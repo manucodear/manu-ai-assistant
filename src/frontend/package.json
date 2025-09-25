@@ -1,0 +1,38 @@
+{
+  "name": "manu-vite-test01",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail \"yarn dev:frontend\" \"yarn dev:backend\"",
+    "dev:frontend": "vite",
+    "dev:backend": "yarn --cwd backend start",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "component": "cross-env NODE_NO_WARNINGS=1 plop --plopfile plopfile.ts",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.8.2",
+    "moment": "^2.30.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.19.0",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "eslint": "^9.19.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.18",
+    "globals": "^15.14.0",
+    "plop": "^4.0.1",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "^8.22.0",
+    "vite": "^6.1.0"
+  }
+}

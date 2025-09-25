@@ -1,0 +1,13 @@
+import React from 'react';
+import { {{pascalCase name}}Props } from './{{pascalCase name}}.types';
+import styles from './{{pascalCase name}}.module.css';
+
+const {{pascalCase name}}: React.FC<{{pascalCase name}}Props> = ({ value }) => {
+  return (
+    <div className={styles.container}>
+      <h2>{{pascalCase name}} Component - Value:{value}</h2>
+    </div>
+  );
+};
+
+export default {{pascalCase name}};

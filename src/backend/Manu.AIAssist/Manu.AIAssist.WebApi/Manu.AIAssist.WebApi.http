@@ -1,0 +1,6 @@
+@Manu.AIAssist.WebApi_HostAddress = http://localhost:5195
+
+GET {{Manu.AIAssist.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
