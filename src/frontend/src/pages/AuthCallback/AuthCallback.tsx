@@ -44,20 +44,32 @@ const AuthCallback: React.FC = () => {
       }
       // Send the authorization code and code_verifier to the backend to get the access token
       axios
-        .post(`http://localhost:4000/auth/callback/${type}`, parameter)
-        .then((response) => {
+        .post(`${import.meta.env.VITE_BACKEND_URL}/api/authentication/${type}`, parameter)
+        .then(async (response) => {
           console.log('response.data', response.data);
           const { access_token, refresh_token, expires_in } = response.data;
           if (access_token) {
-            // Store the access token in localStorage (or sessionStorage)
-            saveAuthenticationData(type as string, access_token, refresh_token, expires_in);
+            // If the backend still returns a refresh_token, send it back to the backend for secure storage
+            // (HttpOnly cookie or server-side DB) and do not persist it on the client.
+            if (refresh_token) {
+              try {
+                await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/authentication/store-refresh`, {
+                  type,
+                  refreshToken: refresh_token
+                }, { withCredentials: true });
+                console.log('Refresh token forwarded to backend for secure storage.');
+              } catch (err) {
+                console.warn('Failed to store refresh token on server:', err);
+              }
+            }
+
+            // Save only the access token and expiry locally.
+            saveAuthenticationData(type as string, access_token, undefined, expires_in);
             console.log('Access token stored:', access_token);
-            console.log('Refresh token stored:', refresh_token);
             console.log('Expiration:', expires_in);
 
             // Redirect the user to another page (e.g., Dashboard, Home, etc.)
             navigate('/');  // Navigate to the dashboard or any other route
-            // Alternatively, you can use window.location.replace('/dashboard') if you're not using React Router
           }
         })
         .catch((err) => {

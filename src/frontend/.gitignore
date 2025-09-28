@@ -22,11 +22,6 @@ jspm_packages/
 .yarn/cache
 .pnpm-store
 
-# Environment files
-.env
-.env.*.local
-!.env.example
-
 # Build outputs
 dist/
 build/
