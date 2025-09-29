@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using Manu.AiAssistant.WebApi.Options;
 using System.Text.Json;
-using System.Text;
 using Manu.AiAssistant.WebApi.Identity;
 using Microsoft.AspNetCore.Identity;
 using System;
@@ -40,7 +39,6 @@ namespace Manu.AiAssistant.WebApi.Controllers
         public async Task<IActionResult> Microsoft([FromBody] AuthenticationRequest request)
         {
             var clientId = _azureAdOptions.ClientId;
-            var tenantId = _azureAdOptions.TenantId;
             var clientSecret = _azureAdOptions.ClientSecret;
             var redirectUri = _azureAdOptions.RedirectUri;
 
@@ -76,16 +74,27 @@ namespace Manu.AiAssistant.WebApi.Controllers
             var handler = new JwtSecurityTokenHandler();
             var jwtToken = handler.ReadJwtToken(idToken);
             var userName = jwtToken.Claims.First(c => c.Type == "preferred_username").Value;
+
             var user = await _userManager.FindByNameAsync(userName);
             if (user == null)
             {
-                user = new ApplicationUser { UserName = userName };
+                // Set token properties before creation to satisfy NOT NULL constraints
+                user = new ApplicationUser
+                {
+                    UserName = userName,
+                    AccessToken = accessToken!,
+                    RefreshToken = refreshToken!,
+                    ExpiresAt = expiresAt
+                };
                 await _userManager.CreateAsync(user);
             }
-            user.AccessToken = accessToken!;
-            user.RefreshToken = refreshToken!;
-            user.ExpiresAt = expiresAt;
-            await _userManager.UpdateAsync(user);
+            else
+            {
+                user.AccessToken = accessToken!;
+                user.RefreshToken = refreshToken!;
+                user.ExpiresAt = expiresAt;
+                await _userManager.UpdateAsync(user);
+            }
 
             await _signInManager.SignInAsync(user, isPersistent: true);
 

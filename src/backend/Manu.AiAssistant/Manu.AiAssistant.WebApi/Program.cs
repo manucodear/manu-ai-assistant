@@ -45,13 +45,23 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.Configure<AzureAdOptions>(builder.Configuration.GetSection("AzureAd"));
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), sql =>
+                {
+                    sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+                }));
 
             builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
             var app = builder.Build();
+
+            // Ensure database / schema exists (development bootstrap). For production prefer migrations.
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                db.Database.EnsureCreated();
+            }
 
             if (app.Environment.IsDevelopment())
             {
