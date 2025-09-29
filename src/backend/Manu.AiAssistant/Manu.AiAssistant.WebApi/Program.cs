@@ -5,6 +5,7 @@ using Manu.AiAssistant.WebApi.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.SqlServer; // ensure extension method namespace
+using Microsoft.AspNetCore.Http;
 
 namespace Manu.AiAssistant.WebApi
 {
@@ -23,13 +24,16 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.AddControllers();
             builder.Services.AddOpenApi();
 
+            // CORS policy for frontend using cookies (credentials)
+            const string FrontendCorsPolicy = "Frontend";
             builder.Services.AddCors(options =>
             {
-                options.AddDefaultPolicy(policy =>
+                options.AddPolicy(FrontendCorsPolicy, policy =>
                 {
-                    policy.AllowAnyOrigin()
+                    policy.WithOrigins("https://localhost:3001") // use https to allow Secure cookies
+                          .AllowAnyHeader()
                           .AllowAnyMethod()
-                          .AllowAnyHeader();
+                          .AllowCredentials();
                 });
             });
 
@@ -54,22 +58,27 @@ namespace Manu.AiAssistant.WebApi
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
-            var app = builder.Build();
-
-            // Ensure database / schema exists (development bootstrap). For production prefer migrations.
-            using (var scope = app.Services.CreateScope())
+            // Cookie configuration for cross-site (SameSite=None requires Secure)
+            builder.Services.ConfigureApplicationCookie(o =>
             {
-                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                db.Database.EnsureCreated();
-            }
+                o.Cookie.SameSite = SameSiteMode.None;
+                o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                o.Cookie.HttpOnly = true;
+            });
+
+            var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
             {
+                // Apply migrations automatically in development
+                using var scope = app.Services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                db.Database.Migrate();
                 app.MapOpenApi();
             }
 
-            app.UseCors();
             app.UseHttpsRedirection();
+            app.UseCors(FrontendCorsPolicy);
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();

@@ -44,7 +44,7 @@ const AuthCallback: React.FC = () => {
       }
       // Send the authorization code and code_verifier to the backend to get the access token
       axios
-        .post(`${import.meta.env.VITE_BACKEND_URL}/api/authentication/${type}`, parameter)
+        .post(`${import.meta.env.VITE_BACKEND_URL}/api/authentication/${type}`, parameter, {withCredentials: true})
         .then(async (response) => {
           console.log('response.data', response.data);
           const { access_token, refresh_token, expires_in } = response.data;
