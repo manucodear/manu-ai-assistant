@@ -41,19 +41,23 @@ namespace Manu.AiAssistant.WebApi
             {
                 var configuration = x.GetRequiredService<IConfiguration>();
                 var vaultUrl = configuration["AzureKeyVault:Url"];
-                return new SecretClient(new Uri(vaultUrl), new DefaultAzureCredential());
+                return new SecretClient(new Uri(vaultUrl!), new DefaultAzureCredential());
             });
 
             builder.Services.Configure<AzureAdOptions>(builder.Configuration.GetSection("AzureAd"));
+            builder.Services.Configure<CosmosDbOptions>(builder.Configuration.GetSection("CosmosDb"));
 
-            // Use CosmosDb config from configuration (overridden by Key Vault in production)
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            // Use CosmosDb config from options
+            builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
+            {
+                var cosmosOptions = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<CosmosDbOptions>>().Value;
                 options.UseCosmos(
-                    builder.Configuration["CosmosDb:AccountEndpoint"],
-                    builder.Configuration["CosmosDb:AccountKey"],
-                    builder.Configuration["CosmosDb:DatabaseName"]));
+                    cosmosOptions.AccountEndpoint,
+                    cosmosOptions.AccountKey,
+                    cosmosOptions.DatabaseName);
+            });
 
-            builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+            builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 

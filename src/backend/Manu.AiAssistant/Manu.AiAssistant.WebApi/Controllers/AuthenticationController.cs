@@ -9,6 +9,8 @@ using System.Text;
 using Manu.AiAssistant.WebApi.Identity;
 using Microsoft.AspNetCore.Identity;
 using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {
@@ -69,16 +71,19 @@ namespace Manu.AiAssistant.WebApi.Controllers
             var expiresIn = json.RootElement.GetProperty("expires_in").GetInt32();
             var expiresAt = DateTime.UtcNow.AddSeconds(expiresIn);
 
-            // For demo: use sub or email from id_token or user info as username
-            var userName = "microsoft-user"; // TODO: parse from id_token or userinfo
+            // Extract username from id_token
+            var idToken = json.RootElement.GetProperty("id_token").GetString();
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(idToken);
+            var userName = jwtToken.Claims.First(c => c.Type == "preferred_username").Value;
             var user = await _userManager.FindByNameAsync(userName);
             if (user == null)
             {
                 user = new ApplicationUser { UserName = userName };
                 await _userManager.CreateAsync(user);
             }
-            user.AccessToken = accessToken;
-            user.RefreshToken = refreshToken;
+            user.AccessToken = accessToken!;
+            user.RefreshToken = refreshToken!;
             user.ExpiresAt = expiresAt;
             await _userManager.UpdateAsync(user);
 

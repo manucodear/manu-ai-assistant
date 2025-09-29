@@ -8,5 +8,6 @@ namespace Manu.AiAssistant.WebApi.Identity
         public string AccessToken { get; set; }
         public string RefreshToken { get; set; }
         public DateTime? ExpiresAt { get; set; }
+        public string ETag { get; set; } // For Cosmos DB concurrency
     }
 }
