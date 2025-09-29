@@ -87,6 +87,9 @@ pnpm-lock.yaml
 # Docker
 .dockerignore
 
+# SSL Certificates (for local development)
+certs/
+
 # Misc
 *.tgz
 *.orig
