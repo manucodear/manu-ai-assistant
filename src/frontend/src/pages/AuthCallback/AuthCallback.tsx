@@ -69,7 +69,7 @@ const AuthCallback: React.FC = () => {
             console.log('Expiration:', expires_in);
 
             // Redirect the user to another page (e.g., Dashboard, Home, etc.)
-            navigate('/');  // Navigate to the dashboard or any other route
+            navigate('/Image');  // Navigate to the dashboard or any other route
           }
         })
         .catch((err) => {

@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { Home } from './pages/Home';
 import { AuthCallback } from './pages/AuthCallback';
 import { RedditPosts } from './pages/RedditPosts';
+import { Image } from './pages/Image';
 import { Login } from './pages/Login';
 import Layout from './Layout';
 
@@ -15,6 +16,7 @@ function App() {
         <Route path="/auth/callback/:type" element={<AuthCallback />} />
         <Route path="/redditPosts" element={<RedditPosts />} />
       </Route>
+      <Route path="/image" element={<Image />} />
     </Routes>
    </Router>
   )
