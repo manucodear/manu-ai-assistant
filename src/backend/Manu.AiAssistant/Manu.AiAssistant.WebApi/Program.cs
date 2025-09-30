@@ -68,6 +68,13 @@ namespace Manu.AiAssistant.WebApi
                 o.Cookie.HttpOnly = true;
             });
 
+            builder.Services.Configure<AzureStorageOptions>(builder.Configuration.GetSection("AzureStorage"));
+            builder.Services.AddSingleton(x =>
+            {
+                var options = x.GetRequiredService<Microsoft.Extensions.Options.IOptions<AzureStorageOptions>>().Value;
+                return new Azure.Storage.Blobs.BlobServiceClient(options.ConnectionString);
+            });
+
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
