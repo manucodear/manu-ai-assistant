@@ -47,6 +47,8 @@ namespace Manu.AiAssistant.WebApi
             });
 
             builder.Services.Configure<AzureAdOptions>(builder.Configuration.GetSection("AzureAd"));
+            // Added Dalle options registration
+            builder.Services.Configure<DalleOptions>(builder.Configuration.GetSection("Dalle"));
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), sql =>
