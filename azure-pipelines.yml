@@ -13,12 +13,38 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
+# -------------------------------
+# Backend: Restore, Build, Publish
+# -------------------------------
 - script: dotnet restore $(Build.SourcesDirectory)/src/backend/Manu.AiAssistant/Manu.AiAssistant.sln
   displayName: 'Restore dependencies'
 - script: dotnet build $(Build.SourcesDirectory)/src/backend/Manu.AiAssistant/Manu.AiAssistant.sln --configuration $(buildConfiguration)
   displayName: 'dotnet build $(buildConfiguration)'
+- script: dotnet publish $(Build.SourcesDirectory)/src/backend/Manu.AiAssistant/Manu.AiAssistant.sln --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/backend
+  displayName: 'Publish backend'
+
+# -------------------------------
+# Frontend: Install Node, Build, Publish
+# -------------------------------
+- task: NodeTool@0
+  inputs:
+    versionSpec: '20.x'       # Node.js version compatible with your project
+  displayName: 'Use Node.js 20.x'
+- script: npm install --prefix $(Build.SourcesDirectory)/src/frontend
+  displayName: 'Install frontend dependencies'
+- script: npm run build --prefix $(Build.SourcesDirectory)/src/frontend
+  displayName: 'Build frontend'
+- script: cp -r $(Build.SourcesDirectory)/src/frontend/dist $(Build.ArtifactStagingDirectory)/frontend
+  displayName: 'Publish frontend'
+
+# -------------------------------
+# Publish Build Artifacts separately
+# -------------------------------
 - task: PublishBuildArtifacts@1
   inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/backend'
     ArtifactName: 'drop-backend'
-
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/frontend'
+    ArtifactName: 'drop-frontend'
