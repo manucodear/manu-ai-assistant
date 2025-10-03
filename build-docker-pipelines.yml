@@ -6,7 +6,7 @@ pool:
 
 variables:
   # General
-  azureServiceConnection: 'azure-service-connection'  # ARM service connection
+  azureServiceConnection: 'azure-container-registry'  # ARM service connection
   acrName: 'manucode-ecfccsaghrewfwb7'               # ACR name
   imageTag: '$(Build.BuildId)-$(Build.SourceBranchName)'  # unique per build + branch
 
