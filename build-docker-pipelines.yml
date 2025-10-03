@@ -29,7 +29,7 @@ jobs:
     displayName: 'Build and push backend image'
     inputs:
       containerRegistry: '$(azureServiceConnection)'  
-      repository: '$(acrName).azurecr.io/$(backendImageName)'  # full ACR repository URL
+      repository: '$(backendImageName)'
       command: 'buildAndPush'
       Dockerfile: '$(Build.SourcesDirectory)/$(backendPath)/Dockerfile'
       buildContext: '$(Build.SourcesDirectory)/$(backendPath)'
@@ -48,7 +48,7 @@ jobs:
     displayName: 'Build and push frontend image'
     inputs:
       containerRegistry: '$(azureServiceConnection)'  
-      repository: '$(acrName).azurecr.io/$(frontendImageName)'  # full ACR repository URL
+      repository: '$(frontendImageName)'
       command: 'buildAndPush'
       Dockerfile: '$(Build.SourcesDirectory)/$(frontendPath)/Dockerfile'
       buildContext: '$(Build.SourcesDirectory)/$(frontendPath)'
