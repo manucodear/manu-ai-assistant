@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for building the Vite + React + TypeScript app and serving with nginx
 
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:20-bullseye AS builder
 WORKDIR /app
 
 # Install dependencies (copy package files first for better caching)
