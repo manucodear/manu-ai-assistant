@@ -1,4 +1,4 @@
-namespace Manu.AIAssist.WebApi
+namespace Manu.AiAssistant.WebApi
 {
     public class WeatherForecast
     {

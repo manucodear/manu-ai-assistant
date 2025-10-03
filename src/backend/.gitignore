@@ -34,6 +34,7 @@ bld/
 *.generated.*
 *.g.cs
 *.g.i.cs
+**appsettings.*.json**
 
 # Others
 *.dbmdl
