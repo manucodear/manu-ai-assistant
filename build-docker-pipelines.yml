@@ -6,7 +6,7 @@ pool:
 
 variables:
   # General
-  azureServiceConnection: 'azure-container-registry'  # Docker Registry service connection
+  azureServiceConnection: 'azure-service-connection'  # Docker Registry service connection
   acrName: 'manucode-ecfccsaghrewfwb7'               # ACR name
   imageTag: '$(Build.BuildId)-$(Build.SourceBranchName)'  # unique per build + branch
 
