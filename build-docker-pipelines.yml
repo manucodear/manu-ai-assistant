@@ -28,8 +28,8 @@ jobs:
   - task: Docker@2
     displayName: 'Build and push backend image'
     inputs:
-      containerRegistry: '$(azureServiceConnection)'   # now points to Docker Registry connection
-      repository: '$(backendImageName)'
+      containerRegistry: '$(azureServiceConnection)'  
+      repository: '$(acrName).azurecr.io/$(backendImageName)'  # full ACR repository URL
       command: 'buildAndPush'
       Dockerfile: '$(Build.SourcesDirectory)/$(backendPath)/Dockerfile'
       buildContext: '$(Build.SourcesDirectory)/$(backendPath)'
@@ -43,13 +43,12 @@ jobs:
 # -------------------------------
 - job: FrontendDocker
   displayName: 'Build & Push Frontend Docker'
-  dependsOn: []
   steps:
   - task: Docker@2
     displayName: 'Build and push frontend image'
     inputs:
-      containerRegistry: '$(azureServiceConnection)'   # Docker Registry connection
-      repository: '$(frontendImageName)'
+      containerRegistry: '$(azureServiceConnection)'  
+      repository: '$(acrName).azurecr.io/$(frontendImageName)'  # full ACR repository URL
       command: 'buildAndPush'
       Dockerfile: '$(Build.SourcesDirectory)/$(frontendPath)/Dockerfile'
       buildContext: '$(Build.SourcesDirectory)/$(frontendPath)'
