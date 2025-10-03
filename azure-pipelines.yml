@@ -13,8 +13,10 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
-- script: ls -R $(Build.SourcesDirectory)/src/backend/Manu.AiAssistant
-  displayName: 'List files in backend folder'
+- script: ls -R $(Build.SourcesDirectory)
+  displayName: 'List files in folder'
+- script: ls -R $(Build.SourcesDirectory)/src
+  displayName: 'List files in src folder'
 - script: dotnet restore $(Build.SourcesDirectory)/src/backend/Manu.AiAssistant/Manu.AiAssistant.sln
   displayName: 'Restore dependencies'
 - script: dotnet build $(Build.SourcesDirectory)/src/backend/Manu.AiAssistant/Manu.AiAssistant.sln --configuration $(buildConfiguration)
