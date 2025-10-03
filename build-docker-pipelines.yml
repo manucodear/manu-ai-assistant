@@ -11,7 +11,7 @@ variables:
   imageTag: '$(Build.BuildId)-$(Build.SourceBranchName)'  # unique per build + branch
 
   # Paths
-  backendPath: 'src/backend/Manu.AiAssistant'
+  backendPath: 'src/backend/Manu.AiAssistant/Manu.AiAssistant.WebApi'
   frontendPath: 'src/frontend'
 
   # Docker image names
