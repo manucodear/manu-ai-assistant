@@ -13,9 +13,9 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
-- script: dotnet restore ./src/backend
+- script: dotnet restore ./src/backend/Manu.AiAssistant
   displayName: 'Restore dependencies'
-- script: dotnet build ./src/backend --configuration $(buildConfiguration)
+- script: dotnet build ./src/backend/Manu.AiAssistant --configuration $(buildConfiguration)
   displayName: 'dotnet build $(buildConfiguration)'
 - task: PublishBuildArtifacts@1
   inputs:
