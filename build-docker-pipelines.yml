@@ -8,7 +8,7 @@ variables:
   # General
   azureServiceConnection: 'azure-container-registry'  # Docker Registry service connection
   acrName: 'manucode'               # ACR name
-  imageTag: '$(Build.BuildId)-$(Build.SourceBranchName)'  # unique per build + branch
+  imageTag: '$(Build.BuildNumber)'  # unique per build
 
   # Paths
   backendPath: 'src/backend/Manu.AiAssistant/Manu.AiAssistant.WebApi'
