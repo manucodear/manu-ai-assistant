@@ -1,25 +1,16 @@
 pr:
-- main  # Trigger pipeline on PR targeting main branch
+- main
 
 pool:
   vmImage: ubuntu-latest
 
 variables:
-  # Paths
   backendPath: 'src/backend/Manu.AiAssistant/Manu.AiAssistant.WebApi'
   frontendPath: 'src/frontend'
-
-  # Docker image names
   backendImageName: 'manu-assistant-app-backend'
   frontendImageName: 'manu-assistant-app-frontend'
 
-  # Unique tag for PR builds
-  imageTag: 'PR-$(System.PullRequest.PullRequestId)-$(Build.BuildNumber)'
-
 jobs:
-# -------------------------------
-# Build backend Docker image (no push)
-# -------------------------------
 - job: BackendDockerBuild
   displayName: 'Build Backend Docker (PR)'
   steps:
@@ -31,12 +22,9 @@ jobs:
       Dockerfile: '$(Build.SourcesDirectory)/$(backendPath)/Dockerfile'
       buildContext: '$(Build.SourcesDirectory)/$(backendPath)'
       tags: |
-        $(imageTag)
+        pr-$(System.PullRequest.PullRequestId)-$(Build.BuildNumber)
       arguments: '--platform linux/amd64'
 
-# -------------------------------
-# Build frontend Docker image (no push)
-# -------------------------------
 - job: FrontendDockerBuild
   displayName: 'Build Frontend Docker (PR)'
   steps:
@@ -48,5 +36,5 @@ jobs:
       Dockerfile: '$(Build.SourcesDirectory)/$(frontendPath)/Dockerfile'
       buildContext: '$(Build.SourcesDirectory)/$(frontendPath)'
       tags: |
-        $(imageTag)
+        pr-$(System.PullRequest.PullRequestId)-$(Build.BuildNumber)
       arguments: '--platform linux/amd64'
