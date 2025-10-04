@@ -1,0 +1,29 @@
+trigger: none
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  azureServiceConnection: 'azure-service-connection'  
+  acrName: 'manucode'  
+  resourceGroup: 'manu-assistant-resource-group'  
+  backendContainerAppName: 'manu-assistant-container-backend'
+  imageTag: 'latest'  
+
+jobs:
+- job: DeployBackend
+  displayName: 'Deploy Backend Container App'
+  steps:
+  - task: AzureCLI@2
+    displayName: 'Deploy backend container'
+    inputs:
+      azureSubscription: '$(azureServiceConnection)'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        echo "Deploying backend container..."
+        az containerapp update \
+          --name $(backendContainerAppName) \
+          --resource-group $(resourceGroup) \
+          --image $(acrName).azurecr.io/manu-assistant-app-backend:$(imageTag)
