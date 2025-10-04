@@ -6,7 +6,7 @@ pool:
 
 variables:
   azureServiceConnection: 'azure-service-connection'  
-  acrName: 'manucode'  
+  acrName: 'manucode-ecfccsaghrewfwb7'  
   resourceGroup: 'manu-assistant-resource-group'  
   backendContainerAppName: 'manu-assistant-container-backend'
   imageTag: 'latest'  
