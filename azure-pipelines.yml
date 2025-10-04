@@ -1,50 +1,42 @@
-# ASP.NET Core
-# Build and test ASP.NET Core projects targeting .NET Core.
-# Add steps that run tests, create a NuGet package, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+trigger: none
 
-trigger:
+pr:
 - main
 
 pool:
   vmImage: ubuntu-latest
 
 variables:
-  buildConfiguration: 'Release'
+  backendPath: 'src/backend/Manu.AiAssistant/Manu.AiAssistant.WebApi'
+  frontendPath: 'src/frontend'
+  backendImageName: 'manu-assistant-app-backend'
+  frontendImageName: 'manu-assistant-app-frontend'
 
-steps:
-# -------------------------------
-# Backend: Restore, Build, Publish
-# -------------------------------
-- script: dotnet restore $(Build.SourcesDirectory)/src/backend/Manu.AiAssistant/Manu.AiAssistant.sln
-  displayName: 'Restore dependencies'
-- script: dotnet build $(Build.SourcesDirectory)/src/backend/Manu.AiAssistant/Manu.AiAssistant.sln --configuration $(buildConfiguration)
-  displayName: 'dotnet build $(buildConfiguration)'
-- script: dotnet publish $(Build.SourcesDirectory)/src/backend/Manu.AiAssistant/Manu.AiAssistant.sln --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/backend
-  displayName: 'Publish backend'
+jobs:
+- job: BackendDockerBuild
+  displayName: 'Build Backend Docker (PR)'
+  steps:
+  - task: Docker@2
+    displayName: 'Build backend image'
+    inputs:
+      command: 'build'
+      repository: '$(backendImageName)'
+      Dockerfile: '$(Build.SourcesDirectory)/$(backendPath)/Dockerfile'
+      buildContext: '$(Build.SourcesDirectory)/$(backendPath)'
+      tags: |
+        pr-$(System.PullRequest.PullRequestId)-$(Build.BuildNumber)
+      arguments: '--platform linux/amd64'
 
-# -------------------------------
-# Frontend: Install Node, Build, Publish
-# -------------------------------
-- task: NodeTool@0
-  inputs:
-    versionSpec: '20.x'       # Node.js version compatible with your project
-  displayName: 'Use Node.js 20.x'
-- script: npm install --prefix $(Build.SourcesDirectory)/src/frontend
-  displayName: 'Install frontend dependencies'
-- script: npm run build --prefix $(Build.SourcesDirectory)/src/frontend
-  displayName: 'Build frontend'
-- script: cp -r $(Build.SourcesDirectory)/src/frontend/dist $(Build.ArtifactStagingDirectory)/frontend
-  displayName: 'Publish frontend'
-
-# -------------------------------
-# Publish Build Artifacts separately
-# -------------------------------
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)/backend'
-    ArtifactName: 'drop-backend'
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)/frontend'
-    ArtifactName: 'drop-frontend'
+- job: FrontendDockerBuild
+  displayName: 'Build Frontend Docker (PR)'
+  steps:
+  - task: Docker@2
+    displayName: 'Build frontend image'
+    inputs:
+      command: 'build'
+      repository: '$(frontendImageName)'
+      Dockerfile: '$(Build.SourcesDirectory)/$(frontendPath)/Dockerfile'
+      buildContext: '$(Build.SourcesDirectory)/$(frontendPath)'
+      tags: |
+        pr-$(System.PullRequest.PullRequestId)-$(Build.BuildNumber)
+      arguments: '--platform linux/amd64'
