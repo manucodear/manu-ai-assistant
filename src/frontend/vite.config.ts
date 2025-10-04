@@ -8,6 +8,8 @@ import path from 'path'
 export default defineConfig(({ command }) => {
   const plugins: any[] = [react()]
   const server: any = { port: 3001 }
+  // Allow skipping HTTPS in dev by setting the SKIP_HTTPS env var (useful in local dev)
+  const skipHttps = (process.env.SKIP_HTTPS || '').toString().toLowerCase() === '1' || (process.env.SKIP_HTTPS || '').toString().toLowerCase() === 'true'
 
   // Only attempt to load local cert files when running the dev server.
   // Vite loads the config for build too, so reading cert files unconditionally
@@ -23,12 +25,15 @@ export default defineConfig(({ command }) => {
         cert: fs.readFileSync(crtPath),
       }
     } else {
-      // Fallback for local development when cert files aren't present:
-      // use the basic-ssl plugin which generates a temporary certificate.
-      // This avoids failing in CI where certs are not checked in.
-      const ssl = basicSsl()
-      if (Array.isArray(ssl)) plugins.push(...ssl)
-      else plugins.push(ssl)
+      // If SKIP_HTTPS is set, skip adding basic-ssl and run a plain HTTP dev server.
+      if (!skipHttps) {
+        // Fallback for local development when cert files aren't present:
+        // use the basic-ssl plugin which generates a temporary certificate.
+        // This avoids failing in CI where certs are not checked in.
+        const ssl = basicSsl()
+        if (Array.isArray(ssl)) plugins.push(...ssl)
+        else plugins.push(ssl)
+      }
     }
   }
 
