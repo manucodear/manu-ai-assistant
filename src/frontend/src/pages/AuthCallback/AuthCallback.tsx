@@ -44,7 +44,7 @@ const AuthCallback: React.FC = () => {
 
       // Send the authorization code to the backend - authentication is handled via cookies
       axios
-        .post(`${import.meta.env.VITE_BACKEND_URL}/api/authentication/${type}`, parameter, { withCredentials: true })
+        .post(`${import.meta.env.VITE_BACKEND_URL}/authentication/${type}`, parameter, { withCredentials: true })
         .then((response) => {
           // API now returns 200 without body, authentication is stored in cookies
           if (response.status === 200) {
