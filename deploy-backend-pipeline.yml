@@ -85,7 +85,7 @@ stages:
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
-                BACKEND_IMAGE_TAG=$(cat $(Pipeline.Workspace)/backend-image-metadata/backend-image-metadata.json | jq -r '.imageTag')
+                BACKEND_IMAGE_TAG=$(cat $(Pipeline.Workspace)/backend-image-metadata/backend_image_metadata.json | jq -r '.imageTag')
                 echo "Backend image tag: $BACKEND_IMAGE_TAG"
                 echo "##vso[task.setvariable variable=BACKEND_IMAGE_TAG]$BACKEND_IMAGE_TAG"
 
@@ -111,7 +111,7 @@ stages:
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
-                FRONTEND_IMAGE_TAG=$(cat $(Pipeline.Workspace)/frontend-image-metadata/frontend-image-metadata.json | jq -r '.imageTag')
+                FRONTEND_IMAGE_TAG=$(cat $(Pipeline.Workspace)/frontend-image-metadata/frontend_image_metadata.json | jq -r '.imageTag')
                 echo "Frontend image tag: $FRONTEND_IMAGE_TAG"
                 echo "##vso[task.setvariable variable=FRONTEND_IMAGE_TAG]$FRONTEND_IMAGE_TAG"
 
