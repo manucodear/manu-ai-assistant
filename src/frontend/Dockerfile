@@ -12,7 +12,7 @@ RUN yarn install --frozen-lockfile --verbose
 
 # Copy source code and build
 COPY . ./
-RUN yarn build
+RUN yarn build --mode production
 
 # Stage 2: Production nginx
 FROM nginx:stable-alpine AS production
