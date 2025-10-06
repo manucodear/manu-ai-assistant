@@ -13,7 +13,7 @@ using System.Linq;
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class AuthenticationController : ControllerBase
     {
