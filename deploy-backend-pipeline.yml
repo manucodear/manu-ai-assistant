@@ -1,29 +1,82 @@
+# deploy.yml
 trigger: none
-pr: none
 
-pool:
-  vmImage: ubuntu-latest
+# schedules:
+# - cron: "0 2 * * *"    # every day at 2 AM UTC
+#   displayName: "Nightly Deploy"
+#   branches:
+#     include:
+#       - main
+#   always: true
 
 variables:
-  azureServiceConnection: 'azure-service-connection'  
-  acrName: 'manucode-ecfccsaghrewfwb7'  
-  resourceGroup: 'manu-assistant-resource-group'  
-  backendContainerAppName: 'manu-assistant-container-backend'
-  imageTag: 'latest'  
+  registryName: "manucode"   # <-- your ACR name
+  resourceGroup: "manu-assistant-resource-group"
 
-jobs:
-- job: DeployBackend
-  displayName: 'Deploy Backend Container App'
-  steps:
-  - task: AzureCLI@2
-    displayName: 'Deploy backend container'
-    inputs:
-      azureSubscription: '$(azureServiceConnection)'
-      scriptType: 'bash'
-      scriptLocation: 'inlineScript'
-      inlineScript: |
-        echo "Deploying backend container..."
-        az containerapp update \
-          --name $(backendContainerAppName) \
-          --resource-group $(resourceGroup) \
-          --image $(acrName).azurecr.io/manu-assistant-app-backend:$(imageTag)
+resources:
+  pipelines:
+    - pipeline: buildPipeline
+      source: manu-assistant-build-main
+      trigger: none
+
+stages:
+  - stage: Deploy
+    displayName: "Deploy Backend & Frontend"
+    jobs:
+      - job: Deploy
+        displayName: "Deploy Application"
+        steps:
+
+          # Install jq (if not already available)
+          - script: |
+              sudo apt-get update && sudo apt-get install -y jq
+            displayName: "Install jq"
+
+          # Get the ACR login server dynamically
+          - script: |
+              LOGIN_SERVER=$(az acr show \
+                --name $(registryName) \
+                --resource-group $(resourceGroup) \
+                --query loginServer \
+                --output tsv)
+              echo "##vso[task.setvariable variable=LOGIN_SERVER]$LOGIN_SERVER"
+              echo "Registry Login Server: $LOGIN_SERVER"
+            displayName: "Get ACR Login Server"
+
+          # Download backend artifact
+          - download: buildPipeline
+            artifact: backend-image-metadata
+
+          # Get backend image tag
+          - script: |
+              BACKEND_IMAGE_TAG=$(cat $(Pipeline.Workspace)/buildPipeline/backend-image-metadata/backend_image_metadata.json | jq -r '.imageTag')
+              echo "##vso[task.setvariable variable=BACKEND_IMAGE_TAG]$BACKEND_IMAGE_TAG"
+              echo "Backend Image Tag: $BACKEND_IMAGE_TAG"
+            displayName: "Read Backend Image Tag"
+
+          # Deploy backend
+          - script: |
+              az containerapp update \
+                --name manu-assistant-container-backend \
+                --resource-group $(resourceGroup) \
+                --image $(LOGIN_SERVER)/manu-assistant-app-backend:$(BACKEND_IMAGE_TAG)
+            displayName: "Deploy Backend Container App"
+
+          # Download frontend artifact
+          - download: buildPipeline
+            artifact: frontend-image-metadata
+
+          # Get frontend image tag
+          - script: |
+              FRONTEND_IMAGE_TAG=$(cat $(Pipeline.Workspace)/buildPipeline/frontend-image-metadata/frontend_image_metadata.json | jq -r '.imageTag')
+              echo "##vso[task.setvariable variable=FRONTEND_IMAGE_TAG]$FRONTEND_IMAGE_TAG"
+              echo "Frontend Image Tag: $FRONTEND_IMAGE_TAG"
+            displayName: "Read Frontend Image Tag"
+
+          # Deploy frontend
+          - script: |
+              az containerapp update \
+                --name manu-assistant-container-website \
+                --resource-group $(resourceGroup) \
+                --image $(LOGIN_SERVER)/manu-assistant-app-frontend:$(FRONTEND_IMAGE_TAG)
+            displayName: "Deploy Frontend Container App"
