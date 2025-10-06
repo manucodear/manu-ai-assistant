@@ -26,6 +26,14 @@ stages:
       - job: Deploy
         displayName: "Deploy Application"
         steps:
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'azure-service-connection'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                echo "Logged in to Azure"
+            displayName: "Azure CLI Login"
 
           # Install jq (if not already available)
           - script: |
