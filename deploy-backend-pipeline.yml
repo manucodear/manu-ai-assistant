@@ -26,6 +26,10 @@ stages:
       - job: Deploy
         displayName: "Deploy Application"
         steps:
+
+          # -------------------------------
+          # Login to Azure
+          # -------------------------------
           - task: AzureCLI@2
             inputs:
               azureSubscription: 'azure-service-connection'
@@ -35,56 +39,88 @@ stages:
                 echo "Logged in to Azure"
             displayName: "Azure CLI Login"
 
-          # Install jq (if not already available)
-          - script: |
-              sudo apt-get update && sudo apt-get install -y jq
+          # -------------------------------
+          # Install jq
+          # -------------------------------
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'azure-service-connection'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                sudo apt-get update && sudo apt-get install -y jq
             displayName: "Install jq"
 
-          # Get the ACR login server dynamically
-          - script: |
-              LOGIN_SERVER=$(az acr show \
-                --name $(registryName) \
-                --resource-group $(resourceGroup) \
-                --query loginServer \
-                --output tsv)
-              echo "##vso[task.setvariable variable=LOGIN_SERVER]$LOGIN_SERVER"
-              echo "Registry Login Server: $LOGIN_SERVER"
+          # -------------------------------
+          # Get ACR login server
+          # -------------------------------
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'azure-service-connection'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                LOGIN_SERVER=$(az acr show \
+                  --name $(registryName) \
+                  --resource-group $(resourceGroup) \
+                  --query loginServer \
+                  --output tsv)
+                echo "LOGIN_SERVER=$LOGIN_SERVER"
+                echo "##vso[task.setvariable variable=LOGIN_SERVER]$LOGIN_SERVER"
             displayName: "Get ACR Login Server"
 
-          # Download backend artifact
-          - download: buildPipeline
-            artifact: backend-image-metadata
+          # -------------------------------
+          # Deploy Backend
+          # -------------------------------
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'azure-service-connection'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                echo "Downloading backend artifact..."
+                mkdir -p $(Pipeline.Workspace)/backend
+                az artifacts universal download \
+                  --organization $(System.TeamFoundationCollectionUri) \
+                  --feed $(Build.DefinitionName) \
+                  --package-name backend-image-metadata \
+                  --package-version $(Build.BuildId) \
+                  --path $(Pipeline.Workspace)/backend
 
-          # Get backend image tag
-          - script: |
-              BACKEND_IMAGE_TAG=$(cat $(Pipeline.Workspace)/buildPipeline/backend-image-metadata/backend_image_metadata.json | jq -r '.imageTag')
-              echo "##vso[task.setvariable variable=BACKEND_IMAGE_TAG]$BACKEND_IMAGE_TAG"
-              echo "Backend Image Tag: $BACKEND_IMAGE_TAG"
-            displayName: "Read Backend Image Tag"
+                BACKEND_IMAGE_TAG=$(cat $(Pipeline.Workspace)/buildPipeline/backend-image-metadata/backend_image_metadata.json | jq -r '.imageTag')
+                echo "Backend image tag: $BACKEND_IMAGE_TAG"
+                echo "##vso[task.setvariable variable=BACKEND_IMAGE_TAG]$BACKEND_IMAGE_TAG"
 
-          # Deploy backend
-          - script: |
-              az containerapp update \
-                --name manu-assistant-container-backend \
-                --resource-group $(resourceGroup) \
-                --image $(LOGIN_SERVER)/manu-assistant-app-backend:$(BACKEND_IMAGE_TAG)
+                az containerapp update \
+                  --name manu-assistant-container-backend \
+                  --resource-group $(resourceGroup) \
+                  --image $(LOGIN_SERVER)/manu-assistant-app-backend:$BACKEND_IMAGE_TAG
             displayName: "Deploy Backend Container App"
 
-          # Download frontend artifact
-          - download: buildPipeline
-            artifact: frontend-image-metadata
+          # -------------------------------
+          # Deploy Frontend
+          # -------------------------------
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'azure-service-connection'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                echo "Downloading frontend artifact..."
+                mkdir -p $(Pipeline.Workspace)/frontend
+                az artifacts universal download \
+                  --organization $(System.TeamFoundationCollectionUri) \
+                  --feed $(Build.DefinitionName) \
+                  --package-name frontend-image-metadata \
+                  --package-version $(Build.BuildId) \
+                  --path $(Pipeline.Workspace)/frontend
 
-          # Get frontend image tag
-          - script: |
-              FRONTEND_IMAGE_TAG=$(cat $(Pipeline.Workspace)/buildPipeline/frontend-image-metadata/frontend_image_metadata.json | jq -r '.imageTag')
-              echo "##vso[task.setvariable variable=FRONTEND_IMAGE_TAG]$FRONTEND_IMAGE_TAG"
-              echo "Frontend Image Tag: $FRONTEND_IMAGE_TAG"
-            displayName: "Read Frontend Image Tag"
+                FRONTEND_IMAGE_TAG=$(cat $(Pipeline.Workspace)/buildPipeline/frontend-image-metadata/frontend_image_metadata.json | jq -r '.imageTag')
+                echo "Frontend image tag: $FRONTEND_IMAGE_TAG"
+                echo "##vso[task.setvariable variable=FRONTEND_IMAGE_TAG]$FRONTEND_IMAGE_TAG"
 
-          # Deploy frontend
-          - script: |
-              az containerapp update \
-                --name manu-assistant-container-website \
-                --resource-group $(resourceGroup) \
-                --image $(LOGIN_SERVER)/manu-assistant-app-frontend:$(FRONTEND_IMAGE_TAG)
+                az containerapp update \
+                  --name manu-assistant-container-website \
+                  --resource-group $(resourceGroup) \
+                  --image $(LOGIN_SERVER)/manu-assistant-app-frontend:$FRONTEND_IMAGE_TAG
             displayName: "Deploy Frontend Container App"
