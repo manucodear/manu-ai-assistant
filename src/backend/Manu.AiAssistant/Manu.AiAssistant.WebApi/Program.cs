@@ -78,8 +78,11 @@ namespace Manu.AiAssistant.WebApi
                 return new Azure.Storage.Blobs.BlobServiceClient(options.ConnectionString);
             });
 
-            // Add Application Insights telemetry
-            builder.Services.AddApplicationInsightsTelemetry();
+            // Add Application Insights telemetry only in non-development environments
+            if (!builder.Environment.IsDevelopment())
+            {
+                builder.Services.AddApplicationInsightsTelemetry();
+            }
 
             var app = builder.Build();
 
