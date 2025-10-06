@@ -6,6 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.SqlServer; // ensure extension method namespace
 using Microsoft.AspNetCore.Http;
+using Microsoft.ApplicationInsights.AspNetCore;
+using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Manu.AiAssistant.WebApi
 {
@@ -74,6 +77,9 @@ namespace Manu.AiAssistant.WebApi
                 var options = x.GetRequiredService<Microsoft.Extensions.Options.IOptions<AzureStorageOptions>>().Value;
                 return new Azure.Storage.Blobs.BlobServiceClient(options.ConnectionString);
             });
+
+            // Add Application Insights telemetry
+            builder.Services.AddApplicationInsightsTelemetry();
 
             var app = builder.Build();
 
