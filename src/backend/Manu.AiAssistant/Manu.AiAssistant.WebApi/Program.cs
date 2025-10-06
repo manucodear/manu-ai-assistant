@@ -83,6 +83,10 @@ namespace Manu.AiAssistant.WebApi
 
             var app = builder.Build();
 
+            // Log the database connection string at startup for verification
+            var logger = app.Services.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation("Database connection string: {ConnectionString}", builder.Configuration.GetConnectionString("DefaultConnection"));
+
             if (app.Environment.IsDevelopment())
             {
                 // Apply migrations automatically in development
