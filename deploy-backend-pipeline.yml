@@ -1,5 +1,17 @@
-# deploy-test.yml
+# deploy.yml
 trigger: none
+
+# schedules:
+# - cron: "0 2 * * *"    # every day at 2 AM UTC
+#   displayName: "Nightly Deploy"
+#   branches:
+#     include:
+#       - main
+#   always: true
+
+variables:
+  registryName: "manucode"   # <-- your ACR name
+  resourceGroup: "manu-assistant-resource-group"
 
 resources:
   pipelines:
@@ -8,21 +20,15 @@ resources:
       trigger: none
 
 stages:
-  - stage: TestArtifacts
-    displayName: "Test Artifact Paths"
+  - stage: Deploy
+    displayName: "Deploy Backend & Frontend"
     jobs:
-      - job: ListArtifacts
-        displayName: "List Artifacts Folder Content"
+      - job: Deploy
+        displayName: "Deploy Application"
         steps:
 
           # -------------------------------
-          # Download build artifacts
-          # -------------------------------
-          - download: buildPipeline
-            displayName: "Download buildPipeline artifacts"
-
-          # -------------------------------
-          # List folders in pipeline workspace
+          # Login to Azure
           # -------------------------------
           - task: AzureCLI@2
             inputs:
@@ -30,13 +36,79 @@ stages:
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
-                echo "Pipeline workspace: $(Pipeline.Workspace)"
-                echo "Listing workspace:"
-                ls -la $(Pipeline.Workspace)
+                echo "Logged in to Azure"
+            displayName: "Azure CLI Login"
 
-                echo "Listing backend-image-metadata folder:"
-                ls -la $(Pipeline.Workspace)/**/backend-image-metadata || echo "No backend-image-metadata found"
+          # -------------------------------
+          # Install jq
+          # -------------------------------
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'azure-service-connection'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                sudo apt-get update && sudo apt-get install -y jq
+            displayName: "Install jq"
 
-                echo "Listing frontend-image-metadata folder:"
-                ls -la $(Pipeline.Workspace)/**/frontend-image-metadata || echo "No frontend-image-metadata found"
-            displayName: "List Artifacts Contents"
+          # -------------------------------
+          # Get ACR login server
+          # -------------------------------
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'azure-service-connection'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                LOGIN_SERVER=$(az acr show \
+                  --name $(registryName) \
+                  --resource-group $(resourceGroup) \
+                  --query loginServer \
+                  --output tsv)
+                echo "LOGIN_SERVER=$LOGIN_SERVER"
+                echo "##vso[task.setvariable variable=LOGIN_SERVER]$LOGIN_SERVER"
+            displayName: "Get ACR Login Server"
+
+          # -------------------------------
+          # Download all build artifacts
+          # -------------------------------
+          - download: buildPipeline
+            displayName: "Download all build artifacts"
+
+          # -------------------------------
+          # Deploy Backend
+          # -------------------------------
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'azure-service-connection'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                BACKEND_IMAGE_TAG=$(jq -r '.imageTag' $(Pipeline.Workspace)/buildPipeline/backend-image-metadata/backend_image_metadata.json)
+                echo "Backend image tag: $BACKEND_IMAGE_TAG"
+                echo "##vso[task.setvariable variable=BACKEND_IMAGE_TAG]$BACKEND_IMAGE_TAG"
+
+                az containerapp update \
+                  --name manu-assistant-container-backend \
+                  --resource-group $(resourceGroup) \
+                  --image $(LOGIN_SERVER)/manu-assistant-app-backend:$BACKEND_IMAGE_TAG
+            displayName: "Deploy Backend Container App"
+
+          # -------------------------------
+          # Deploy Frontend
+          # -------------------------------
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'azure-service-connection'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                FRONTEND_IMAGE_TAG=$(jq -r '.imageTag' $(Pipeline.Workspace)/buildPipeline/frontend-image-metadata/frontend_image_metadata.json)
+                echo "Frontend image tag: $FRONTEND_IMAGE_TAG"
+                echo "##vso[task.setvariable variable=FRONTEND_IMAGE_TAG]$FRONTEND_IMAGE_TAG"
+
+                az containerapp update \
+                  --name manu-assistant-container-website \
+                  --resource-group $(resourceGroup) \
+                  --image $(LOGIN_SERVER)/manu-assistant-app-frontend:$FRONTEND_IMAGE_TAG
+            displayName: "Deploy Frontend Container App"
