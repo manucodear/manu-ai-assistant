@@ -7,7 +7,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
     {
         public IActionResult Index()
         {
-            return Ok();
+            return Ok("Welcome to the API");
         }
     }
 }
