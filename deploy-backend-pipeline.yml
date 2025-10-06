@@ -70,11 +70,10 @@ stages:
             displayName: "Get ACR Login Server"
 
           # -------------------------------
-          # Download Backend Artifact
+          # Download all build artifacts
           # -------------------------------
           - download: buildPipeline
-            artifact: backend-image-metadata
-            displayName: "Download Backend Artifact"
+            displayName: "Download all build artifacts"
 
           # -------------------------------
           # Deploy Backend
@@ -85,7 +84,7 @@ stages:
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
-                BACKEND_IMAGE_TAG=$(cat $(Pipeline.Workspace)/backend-image-metadata/backend_image_metadata.json | jq -r '.imageTag')
+                BACKEND_IMAGE_TAG=$(jq -r '.imageTag' $(Pipeline.Workspace)/backend-image-metadata/backend_image_metadata.json)
                 echo "Backend image tag: $BACKEND_IMAGE_TAG"
                 echo "##vso[task.setvariable variable=BACKEND_IMAGE_TAG]$BACKEND_IMAGE_TAG"
 
@@ -96,13 +95,6 @@ stages:
             displayName: "Deploy Backend Container App"
 
           # -------------------------------
-          # Download Frontend Artifact
-          # -------------------------------
-          - download: buildPipeline
-            artifact: frontend-image-metadata
-            displayName: "Download Frontend Artifact"
-
-          # -------------------------------
           # Deploy Frontend
           # -------------------------------
           - task: AzureCLI@2
@@ -111,7 +103,7 @@ stages:
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
-                FRONTEND_IMAGE_TAG=$(cat $(Pipeline.Workspace)/frontend-image-metadata/frontend_image_metadata.json | jq -r '.imageTag')
+                FRONTEND_IMAGE_TAG=$(jq -r '.imageTag' $(Pipeline.Workspace)/frontend-image-metadata/frontend_image_metadata.json)
                 echo "Frontend image tag: $FRONTEND_IMAGE_TAG"
                 echo "##vso[task.setvariable variable=FRONTEND_IMAGE_TAG]$FRONTEND_IMAGE_TAG"
 
