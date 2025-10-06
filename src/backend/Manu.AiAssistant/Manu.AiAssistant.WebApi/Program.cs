@@ -79,6 +79,8 @@ namespace Manu.AiAssistant.WebApi
                 builder.Services.AddApplicationInsightsTelemetry();
             }
 
+            builder.Services.AddHealthChecks();
+
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
@@ -95,6 +97,7 @@ namespace Manu.AiAssistant.WebApi
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
+            app.MapHealthChecks("/health");
             app.Run();
         }
     }
