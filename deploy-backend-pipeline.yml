@@ -70,6 +70,13 @@ stages:
             displayName: "Get ACR Login Server"
 
           # -------------------------------
+          # Download Backend Artifact
+          # -------------------------------
+          - download: buildPipeline
+            artifact: backend-image-metadata
+            displayName: "Download Backend Artifact"
+
+          # -------------------------------
           # Deploy Backend
           # -------------------------------
           - task: AzureCLI@2
@@ -78,16 +85,7 @@ stages:
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
-                echo "Downloading backend artifact..."
-                mkdir -p $(Pipeline.Workspace)/backend
-                az artifacts universal download \
-                  --organization $(System.TeamFoundationCollectionUri) \
-                  --feed $(Build.DefinitionName) \
-                  --package-name backend-image-metadata \
-                  --package-version $(Build.BuildId) \
-                  --path $(Pipeline.Workspace)/backend
-
-                BACKEND_IMAGE_TAG=$(cat $(Pipeline.Workspace)/buildPipeline/backend-image-metadata/backend_image_metadata.json | jq -r '.imageTag')
+                BACKEND_IMAGE_TAG=$(cat $(Pipeline.Workspace)/buildPipeline/backend-image-metadata/backend-image-metadata.json | jq -r '.imageTag')
                 echo "Backend image tag: $BACKEND_IMAGE_TAG"
                 echo "##vso[task.setvariable variable=BACKEND_IMAGE_TAG]$BACKEND_IMAGE_TAG"
 
@@ -98,6 +96,13 @@ stages:
             displayName: "Deploy Backend Container App"
 
           # -------------------------------
+          # Download Frontend Artifact
+          # -------------------------------
+          - download: buildPipeline
+            artifact: frontend-image-metadata
+            displayName: "Download Frontend Artifact"
+
+          # -------------------------------
           # Deploy Frontend
           # -------------------------------
           - task: AzureCLI@2
@@ -106,16 +111,7 @@ stages:
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
-                echo "Downloading frontend artifact..."
-                mkdir -p $(Pipeline.Workspace)/frontend
-                az artifacts universal download \
-                  --organization $(System.TeamFoundationCollectionUri) \
-                  --feed $(Build.DefinitionName) \
-                  --package-name frontend-image-metadata \
-                  --package-version $(Build.BuildId) \
-                  --path $(Pipeline.Workspace)/frontend
-
-                FRONTEND_IMAGE_TAG=$(cat $(Pipeline.Workspace)/buildPipeline/frontend-image-metadata/frontend_image_metadata.json | jq -r '.imageTag')
+                FRONTEND_IMAGE_TAG=$(cat $(Pipeline.Workspace)/buildPipeline/frontend-image-metadata/frontend-image-metadata.json | jq -r '.imageTag')
                 echo "Frontend image tag: $FRONTEND_IMAGE_TAG"
                 echo "##vso[task.setvariable variable=FRONTEND_IMAGE_TAG]$FRONTEND_IMAGE_TAG"
 
