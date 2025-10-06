@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:production": "tsc -b && vite build --mode production",
     "lint": "eslint .",
     "component": "cross-env NODE_NO_WARNINGS=1 plop --plopfile plopfile.ts",
     "preview": "vite preview",

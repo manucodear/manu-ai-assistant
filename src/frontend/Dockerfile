@@ -12,7 +12,14 @@ RUN yarn install --frozen-lockfile --verbose
 
 # Copy source code and build
 COPY . ./
-RUN yarn build --mode production
+
+# Debug: Show environment files and their contents
+RUN echo "=== Debugging Environment Files ===" && \
+    ls -la .env* && \
+    echo "Contents of .env.production:" && \
+    cat .env.production && \
+    echo "=== Building ===" && \
+    yarn build:production
 
 # Stage 2: Production nginx
 FROM nginx:stable-alpine AS production
