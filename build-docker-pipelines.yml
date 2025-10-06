@@ -39,6 +39,17 @@ jobs:
       includeLatestTag: false
       arguments: '--platform linux/amd64'
 
+  - script: |
+      echo "{
+        \"image\": \"$(acrName).azurecr.io/$(backendImageName):$(imageTag)\",
+        \"imageTag\": \"$(imageTag)\"
+      }" > backend_image_metadata.json
+    displayName: 'Generate backend image metadata'
+
+  - publish: backend_image_metadata.json
+    artifact: backend-image-metadata
+    displayName: 'Publish backend image metadata artifact'
+
 # -------------------------------
 # Build & push frontend Docker image
 # -------------------------------
@@ -57,3 +68,14 @@ jobs:
         $(imageTag)
       includeLatestTag: false
       arguments: '--platform linux/amd64'
+
+  - script: |
+      echo "{
+        \"image\": \"$(acrName).azurecr.io/$(frontendImageName):$(imageTag)\",
+        \"imageTag\": \"$(imageTag)\"
+      }" > frontend_image_metadata.json
+    displayName: 'Generate frontend image metadata'
+
+  - publish: frontend_image_metadata.json
+    artifact: frontend-image-metadata
+    displayName: 'Publish frontend image metadata artifact'
