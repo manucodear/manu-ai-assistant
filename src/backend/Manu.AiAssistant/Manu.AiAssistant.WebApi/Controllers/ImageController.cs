@@ -11,7 +11,7 @@ using System.Net;
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     [ApiController]
     public class ImageController : Controller
     {
