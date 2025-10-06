@@ -4,11 +4,6 @@ using Manu.AiAssistant.WebApi.Options;
 using Manu.AiAssistant.WebApi.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore.SqlServer; // ensure extension method namespace
-using Microsoft.AspNetCore.Http;
-using Microsoft.ApplicationInsights.AspNetCore;
-using Microsoft.ApplicationInsights.Extensibility;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Manu.AiAssistant.WebApi
 {
