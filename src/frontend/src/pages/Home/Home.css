@@ -1,37 +1,83 @@
-#root {
-  width: 100%;
-}
-
 .home-container {
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  align-items: center;
+  padding: 1rem;
+  gap: 1.5rem;
+  min-height: 100vh;
+}
+
+@media (min-width: 768px) {
+  .home-container {
+    padding: 2rem;
+    gap: 2rem;
+  }
 }
 
 .home-header {
   display: flex;
-  flex-direction: row-reverse;
+  justify-content: flex-end;
+  width: 100%;
+  padding: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .home-header {
+    padding: 1rem;
+  }
 }
 
 .home-body {
-  width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  max-width: 800px;
+  width: 100%;
+  padding: 0 1rem;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
+@media (min-width: 768px) {
+  .home-body {
+    gap: 2rem;
+    padding: 0;
+  }
+}
+
+.home-logo-container {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .home-logo-container {
+    gap: 2rem;
+    flex-wrap: nowrap;
+  }
+}
+
+.home-logo {
+  height: 4em;
+  padding: 1em;
   will-change: filter;
   transition: filter 300ms;
 }
 
-.logo:hover {
+@media (min-width: 768px) {
+  .home-logo {
+    height: 6em;
+    padding: 1.5em;
+  }
+}
+
+.home-logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
 
-.logo.react:hover {
+.home-logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
 
@@ -39,22 +85,36 @@
   from {
     transform: rotate(0deg);
   }
-
   to {
     transform: rotate(360deg);
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+.home-react-logo {
+  animation: logo-spin infinite 20s linear;
+}
+
+.home-card {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.home-text-center {
+  text-align: center;
+}
+
+.home-button-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+@media (max-width: 480px) {
+  .home-button-group {
+    flex-direction: column;
+    gap: 0.75rem;
   }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
 }

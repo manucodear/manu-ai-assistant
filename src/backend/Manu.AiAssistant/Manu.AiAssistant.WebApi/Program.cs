@@ -4,6 +4,8 @@ using Manu.AiAssistant.WebApi.Options;
 using Manu.AiAssistant.WebApi.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using Azure.Extensions.AspNetCore.Configuration.Secrets;
+using Manu.AiAssistant.WebApi.KeyVault;
 
 namespace Manu.AiAssistant.WebApi
 {
@@ -14,9 +16,11 @@ namespace Manu.AiAssistant.WebApi
             var builder = WebApplication.CreateBuilder(args);
 
             var keyVaultUrl = builder.Configuration["AzureKeyVault:Url"];
-            if (!string.IsNullOrEmpty(keyVaultUrl) && !builder.Environment.IsDevelopment())
+            if (!string.IsNullOrEmpty(keyVaultUrl))
             {
-                builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), new DefaultAzureCredential());
+                // Load configuration from Azure Key Vault using a custom mapper for flat secret names
+                var secretClient = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential());
+                builder.Configuration.AddAzureKeyVault(secretClient, new CustomKeyVaultSecretManager());
             }
 
             builder.Services.AddControllers();
@@ -37,12 +41,10 @@ namespace Manu.AiAssistant.WebApi
 
             builder.Services.AddHttpClient();
 
-            builder.Services.AddSingleton(x =>
+            if (!string.IsNullOrWhiteSpace(keyVaultUrl))
             {
-                var configuration = x.GetRequiredService<IConfiguration>();
-                var vaultUrl = configuration["AzureKeyVault:Url"];
-                return new SecretClient(new Uri(vaultUrl!), new DefaultAzureCredential());
-            });
+                builder.Services.AddSingleton(_ => new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential()));
+            }
 
             builder.Services.Configure<AzureAdOptions>(builder.Configuration.GetSection("AzureAd"));
             // Added Dalle options registration
@@ -69,8 +71,12 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.Configure<AzureStorageOptions>(builder.Configuration.GetSection("AzureStorage"));
             builder.Services.AddSingleton(x =>
             {
-                var options = x.GetRequiredService<Microsoft.Extensions.Options.IOptions<AzureStorageOptions>>().Value;
-                return new Azure.Storage.Blobs.BlobServiceClient(options.ConnectionString);
+                var opts = x.GetRequiredService<Microsoft.Extensions.Options.IOptions<AzureStorageOptions>>().Value;
+                if (string.IsNullOrWhiteSpace(opts.AccountUrl))
+                {
+                    throw new InvalidOperationException("AzureStorage:AccountUrl must be configured");
+                }
+                return new Azure.Storage.Blobs.BlobServiceClient(new Uri(opts.AccountUrl), new DefaultAzureCredential());
             });
 
             // Add Application Insights telemetry only in non-development environments

@@ -3,29 +3,99 @@ import viteLogo from '/vite.svg'
 import './Home.css';
 import { LoginButton, LoginButtonType } from '../../components/LoginButton';
 import { Link } from 'react-router-dom';
+import {
+  Button,
+  Card,
+  CardHeader,
+  CardPreview,
+  Text,
+  Title1,
+  Title3,
+  Body1,
+  Image,
+  Link as FluentLink
+} from '@fluentui/react-components';
+import { Home20Regular, PersonFeedback20Regular } from '@fluentui/react-icons';
 
 const Home: React.FC = () => {
+
   return (
-    <div className='home-container'>
-      <div className='home-header'>
-        <div>
-          <Link to="/login">Login</Link>
-        </div>
+    <div className="home-container">
+      <div className="home-header">
+        <Link to="/login" style={{ textDecoration: 'none' }}>
+          <Button appearance="primary" icon={<PersonFeedback20Regular />}>
+            Login
+          </Button>
+        </Link>
       </div>
-      <div className='home-body'>
-        <div>
-          <a href="https://vite.dev" target="_blank">
-            <img src={viteLogo} className="logo" alt="Vite logo" />
-          </a>
-          <a href="https://react.dev" target="_blank">
-            <img src={reactLogo} className="logo react" alt="React logo" />
-          </a>
+      <div className="home-body">
+        <Card className="home-card">
+          <CardHeader
+            header={<Title1>Welcome to Your Fluent UI App</Title1>}
+            description={<Body1>Built with Vite + React + Fluent UI</Body1>}
+          />
+          <CardPreview>
+            <div className="home-logo-container home-text-center">
+              <FluentLink href="https://vite.dev" target="_blank">
+                <Image
+                  src={viteLogo}
+                  alt="Vite logo"
+                  className="home-logo"
+                  width={96}
+                  height={96}
+                />
+              </FluentLink>
+              <FluentLink href="https://react.dev" target="_blank">
+                <Image
+                  src={reactLogo}
+                  alt="React logo"
+                  className="home-logo home-react-logo"
+                  width={96}
+                  height={96}
+                />
+              </FluentLink>
+            </div>
+          </CardPreview>
+        </Card>
+
+        <div className="home-text-center">
+          <Title3>Get Started</Title3>
+          <Text>Click on the Vite and React logos to learn more</Text>
         </div>
-        <h1>Vite + React</h1>
-        <p className="read-the-docs">
-          Click on the Vite and React logos to learn more
-        </p>
-        <LoginButton type={LoginButtonType.Microsoft}></LoginButton>
+
+        <LoginButton type={LoginButtonType.Microsoft} />
+        
+        <div className="home-button-group">
+          <Link to="/image" style={{ textDecoration: 'none' }}>
+            <Button 
+              appearance="secondary" 
+              icon={<Home20Regular />}
+            >
+              Go to Image Page
+            </Button>
+          </Link>
+          <Link to="/showcase" style={{ textDecoration: 'none' }}>
+            <Button 
+              appearance="outline"
+            >
+              View Component Showcase
+            </Button>
+          </Link>
+          <Link to="/responsive" style={{ textDecoration: 'none' }}>
+            <Button 
+              appearance="outline"
+            >
+              📱 Mobile Demo
+            </Button>
+          </Link>
+          <Link to="/test-errors" style={{ textDecoration: 'none' }}>
+            <Button 
+              appearance="subtle"
+            >
+              Test Error Pages
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );

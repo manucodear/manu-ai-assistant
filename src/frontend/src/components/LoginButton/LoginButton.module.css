@@ -1,0 +1,10 @@
+.loginButton {
+  min-width: 200px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .loginButton {
+    width: auto;
+  }
+}
