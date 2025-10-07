@@ -5,6 +5,10 @@ import { RedditPosts } from './pages/RedditPosts';
 import { Image } from './pages/Image';
 import { Login } from './pages/Login';
 import FluentShowcase from './pages/FluentShowcase';
+import ErrorPage from './pages/ErrorPage';
+import ErrorTestPage from './pages/ErrorTestPage';
+import ResponsiveDemo from './pages/ResponsiveDemo';
+import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './Layout';
 
 function App() {
@@ -14,11 +18,22 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/showcase" element={<FluentShowcase />} />
+      <Route path="/responsive" element={<ResponsiveDemo />} />
+      <Route path="/error" element={<ErrorPage />} />
+      <Route path="/test-errors" element={<ErrorTestPage />} />
       <Route element={<Layout />}>
         <Route path="/auth/callback/:type" element={<AuthCallback />} />
-        <Route path="/redditPosts" element={<RedditPosts />} />
+        <Route path="/redditPosts" element={
+          <ProtectedRoute>
+            <RedditPosts />
+          </ProtectedRoute>
+        } />
       </Route>
-      <Route path="/image" element={<Image />} />
+      <Route path="/image" element={
+        <ProtectedRoute>
+          <Image />
+        </ProtectedRoute>
+      } />
     </Routes>
    </Router>
   )

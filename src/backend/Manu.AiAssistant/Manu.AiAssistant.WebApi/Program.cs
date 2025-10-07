@@ -69,8 +69,12 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.Configure<AzureStorageOptions>(builder.Configuration.GetSection("AzureStorage"));
             builder.Services.AddSingleton(x =>
             {
-                var options = x.GetRequiredService<Microsoft.Extensions.Options.IOptions<AzureStorageOptions>>().Value;
-                return new Azure.Storage.Blobs.BlobServiceClient(options.ConnectionString);
+                var opts = x.GetRequiredService<Microsoft.Extensions.Options.IOptions<AzureStorageOptions>>().Value;
+                if (string.IsNullOrWhiteSpace(opts.AccountUrl))
+                {
+                    throw new InvalidOperationException("AzureStorage:AccountUrl is not configured");
+                }
+                return new Azure.Storage.Blobs.BlobServiceClient(new Uri(opts.AccountUrl), new DefaultAzureCredential());
             });
 
             // Add Application Insights telemetry only in non-development environments

@@ -12,90 +12,35 @@ import {
   Title1,
   Title3,
   Body1,
-  makeStyles,
   Image,
   Link as FluentLink
 } from '@fluentui/react-components';
 import { Home20Regular, PersonFeedback20Regular } from '@fluentui/react-icons';
 
-const useStyles = makeStyles({
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: '2rem',
-    gap: '2rem',
-    minHeight: '100vh'
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    width: '100%',
-    padding: '1rem'
-  },
-  body: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '2rem',
-    maxWidth: '800px'
-  },
-  logoContainer: {
-    display: 'flex',
-    gap: '2rem',
-    alignItems: 'center'
-  },
-  logo: {
-    height: '6em',
-    padding: '1.5em',
-    willChange: 'filter',
-    transition: 'filter 300ms'
-  },
-  reactLogo: {
-    '@keyframes logo-spin': {
-      from: {
-        transform: 'rotate(0deg)'
-      },
-      to: {
-        transform: 'rotate(360deg)'
-      }
-    },
-    animation: 'logo-spin infinite 20s linear'
-  },
-  card: {
-    width: '100%',
-    maxWidth: '600px'
-  },
-  textCenter: {
-    textAlign: 'center'
-  }
-});
-
 const Home: React.FC = () => {
-  const styles = useStyles();
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
+    <div className="home-container">
+      <div className="home-header">
         <Link to="/login" style={{ textDecoration: 'none' }}>
           <Button appearance="primary" icon={<PersonFeedback20Regular />}>
             Login
           </Button>
         </Link>
       </div>
-      <div className={styles.body}>
-        <Card className={styles.card}>
+      <div className="home-body">
+        <Card className="home-card">
           <CardHeader
             header={<Title1>Welcome to Your Fluent UI App</Title1>}
             description={<Body1>Built with Vite + React + Fluent UI</Body1>}
           />
           <CardPreview>
-            <div className={`${styles.logoContainer} ${styles.textCenter}`}>
+            <div className="home-logo-container home-text-center">
               <FluentLink href="https://vite.dev" target="_blank">
                 <Image
                   src={viteLogo}
                   alt="Vite logo"
-                  className={styles.logo}
+                  className="home-logo"
                   width={96}
                   height={96}
                 />
@@ -104,7 +49,7 @@ const Home: React.FC = () => {
                 <Image
                   src={reactLogo}
                   alt="React logo"
-                  className={`${styles.logo} ${styles.reactLogo}`}
+                  className="home-logo home-react-logo"
                   width={96}
                   height={96}
                 />
@@ -113,14 +58,14 @@ const Home: React.FC = () => {
           </CardPreview>
         </Card>
 
-        <div className={styles.textCenter}>
+        <div className="home-text-center">
           <Title3>Get Started</Title3>
           <Text>Click on the Vite and React logos to learn more</Text>
         </div>
 
         <LoginButton type={LoginButtonType.Microsoft} />
         
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+        <div className="home-button-group">
           <Link to="/image" style={{ textDecoration: 'none' }}>
             <Button 
               appearance="secondary" 
@@ -134,6 +79,20 @@ const Home: React.FC = () => {
               appearance="outline"
             >
               View Component Showcase
+            </Button>
+          </Link>
+          <Link to="/responsive" style={{ textDecoration: 'none' }}>
+            <Button 
+              appearance="outline"
+            >
+              📱 Mobile Demo
+            </Button>
+          </Link>
+          <Link to="/test-errors" style={{ textDecoration: 'none' }}>
+            <Button 
+              appearance="subtle"
+            >
+              Test Error Pages
             </Button>
           </Link>
         </div>

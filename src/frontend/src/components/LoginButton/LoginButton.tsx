@@ -1,14 +1,9 @@
 import { LoginButtonProps } from './LoginButton.types';
 import { LoginButtonType } from './LoginButton.enums';
 import { generatePKCECode, generateRandomState } from '../../utils/random-helper';
-import { Button, makeStyles } from '@fluentui/react-components';
+import { Button } from '@fluentui/react-components';
 import { PersonFeedback20Regular, WindowDevTools20Regular, CloudArrowRight20Regular } from '@fluentui/react-icons';
-
-const useStyles = makeStyles({
-  button: {
-    minWidth: '200px'
-  }
-});
+import styles from './LoginButton.module.css';
 
 const getAuthenticationUri = async (type:LoginButtonType): Promise<string> => {
   let authUrl: string = '';
@@ -49,9 +44,14 @@ const getAuthenticationUri = async (type:LoginButtonType): Promise<string> => {
 }
 
 const LoginButton: React.FC<LoginButtonProps> = ({ type, text }) => {
-  const styles = useStyles();
-  
   const onButtonClick = async (type:LoginButtonType) => {
+    // Store return URL if provided in query params
+    const urlParams = new URLSearchParams(window.location.search);
+    const returnUrl = urlParams.get('returnUrl');
+    if (returnUrl) {
+      sessionStorage.setItem('returnUrl', returnUrl);
+    }
+    
     const authUrl = await getAuthenticationUri(type);
     window.location.href = authUrl;
   }
@@ -89,7 +89,7 @@ const LoginButton: React.FC<LoginButtonProps> = ({ type, text }) => {
       onClick={() => onButtonClick(type)} 
       appearance={getAppearance()}
       icon={getIcon()}
-      className={styles.button}
+      className={styles.loginButton}
     >
       {buttonText}
     </Button>

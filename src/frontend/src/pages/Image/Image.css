@@ -1,3 +1,25 @@
-body {
-    
+.image-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+@media (min-width: 768px) {
+  .image-container {
+    gap: 2rem;
+    padding: 2rem;
+  }
+}
+
+.image-card {
+  padding: 1rem;
+}
+
+@media (min-width: 768px) {
+  .image-card {
+    padding: 1.5rem;
+  }
 }

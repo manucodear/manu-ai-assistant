@@ -1,52 +1,16 @@
 import React, { useState } from 'react';
 import { ImagePromptProps } from './ImagePrompt.types';
+import styles from './ImagePrompt.module.css';
 import { 
   Textarea, 
   Button, 
   Spinner, 
   MessageBar,
-  makeStyles,
   Image
 } from '@fluentui/react-components';
 import { ImageSparkle20Regular } from '@fluentui/react-icons';
 
-const useFluentStyles = makeStyles({
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem'
-  },
-  promptRow: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem'
-  },
-  actions: {
-    display: 'flex',
-    justifyContent: 'flex-end'
-  },
-  results: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '1rem',
-    marginTop: '2rem'
-  },
-  resultImage: {
-    width: '100%',
-    height: 'auto',
-    borderRadius: '8px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-  },
-  loadingContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    padding: '1rem'
-  }
-});
-
 const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
-  const fluentStyles = useFluentStyles();
   const [prompt, setPrompt] = useState<string>(value ?? '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,9 +26,10 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
         Prompt: prompt,
       } as any;
 
-      const res = await fetch('/api/Image/Generate', {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/Image/Generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify(payload),
       });
 
@@ -92,8 +57,8 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
   };
 
   return (
-    <div className={fluentStyles.container}>
-      <div className={fluentStyles.promptRow}>
+    <div className={styles.container}>
+      <div className={styles.promptRow}>
         <Textarea
           value={prompt}
           onChange={(_e, data) => setPrompt(data.value)}
@@ -101,7 +66,7 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
           rows={6}
           resize="vertical"
         />
-        <div className={fluentStyles.actions}>
+        <div className={styles.actions}>
           <Button 
             appearance="primary"
             onClick={handleGenerate} 
@@ -114,7 +79,7 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
       </div>
 
       {loading && (
-        <div className={fluentStyles.loadingContainer}>
+        <div className={styles.loadingContainer}>
           <Spinner size="small" />
           <span>Generating your image...</span>
         </div>
@@ -127,13 +92,13 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
       )}
 
       {images.length > 0 && (
-        <div className={fluentStyles.results}>
+        <div className={styles.results}>
           {images.map((src) => (
             <Image 
               key={src} 
               src={src} 
               alt="AI generated image" 
-              className={fluentStyles.resultImage}
+              className={styles.resultImage}
               fit="cover"
             />
           ))}
