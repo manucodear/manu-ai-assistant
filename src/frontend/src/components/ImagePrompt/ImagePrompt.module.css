@@ -1,0 +1,61 @@
+.container {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	width: 100%;
+}
+
+.promptRow {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+}
+
+.textarea {
+	flex: 1 1 auto;
+	resize: vertical;
+	padding: 8px;
+	font-size: 14px;
+	border: 1px solid #ccc;
+	border-radius: 6px;
+	min-height: 120px;
+	box-sizing: border-box;
+}
+
+.actions {
+	display: flex;
+	align-items: flex-start;
+}
+
+.generateButton {
+	height: 40px;
+	padding: 0 16px;
+	background: #2563eb;
+	color: white;
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+}
+
+.generateButton:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.error {
+	color: #b91c1c;
+}
+
+.results {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.resultImage {
+	max-width: 200px;
+	max-height: 200px;
+	object-fit: cover;
+	border-radius: 6px;
+	border: 1px solid #e5e7eb;
+}
