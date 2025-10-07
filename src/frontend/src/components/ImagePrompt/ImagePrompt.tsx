@@ -1,8 +1,52 @@
 import React, { useState } from 'react';
 import { ImagePromptProps } from './ImagePrompt.types';
-import styles from './ImagePrompt.module.css';
+import { 
+  Textarea, 
+  Button, 
+  Spinner, 
+  MessageBar,
+  makeStyles,
+  Image
+} from '@fluentui/react-components';
+import { ImageSparkle20Regular } from '@fluentui/react-icons';
+
+const useFluentStyles = makeStyles({
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem'
+  },
+  promptRow: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem'
+  },
+  actions: {
+    display: 'flex',
+    justifyContent: 'flex-end'
+  },
+  results: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '1rem',
+    marginTop: '2rem'
+  },
+  resultImage: {
+    width: '100%',
+    height: 'auto',
+    borderRadius: '8px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+  },
+  loadingContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '1rem'
+  }
+});
 
 const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
+  const fluentStyles = useFluentStyles();
   const [prompt, setPrompt] = useState<string>(value ?? '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,28 +92,50 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.promptRow}>
-        <textarea
-          className={styles.textarea}
+    <div className={fluentStyles.container}>
+      <div className={fluentStyles.promptRow}>
+        <Textarea
           value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+          onChange={(_e, data) => setPrompt(data.value)}
           placeholder="Describe the image you want (multiline supported)"
           rows={6}
+          resize="vertical"
         />
-        <div className={styles.actions}>
-          <button className={styles.generateButton} onClick={handleGenerate} disabled={loading || !prompt.trim()}>
+        <div className={fluentStyles.actions}>
+          <Button 
+            appearance="primary"
+            onClick={handleGenerate} 
+            disabled={loading || !prompt.trim()}
+            icon={<ImageSparkle20Regular />}
+          >
             {loading ? 'Generating…' : 'Generate'}
-          </button>
+          </Button>
         </div>
       </div>
 
-      {error && <div className={styles.error}>Error: {error}</div>}
+      {loading && (
+        <div className={fluentStyles.loadingContainer}>
+          <Spinner size="small" />
+          <span>Generating your image...</span>
+        </div>
+      )}
+
+      {error && (
+        <MessageBar intent="error">
+          Error: {error}
+        </MessageBar>
+      )}
 
       {images.length > 0 && (
-        <div className={styles.results}>
+        <div className={fluentStyles.results}>
           {images.map((src) => (
-            <img key={src} src={src} alt="generated" className={styles.resultImage} />
+            <Image 
+              key={src} 
+              src={src} 
+              alt="AI generated image" 
+              className={fluentStyles.resultImage}
+              fit="cover"
+            />
           ))}
         </div>
       )}

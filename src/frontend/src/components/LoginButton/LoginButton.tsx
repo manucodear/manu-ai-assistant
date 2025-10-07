@@ -1,6 +1,14 @@
 import { LoginButtonProps } from './LoginButton.types';
 import { LoginButtonType } from './LoginButton.enums';
 import { generatePKCECode, generateRandomState } from '../../utils/random-helper';
+import { Button, makeStyles } from '@fluentui/react-components';
+import { PersonFeedback20Regular, WindowDevTools20Regular, CloudArrowRight20Regular } from '@fluentui/react-icons';
+
+const useStyles = makeStyles({
+  button: {
+    minWidth: '200px'
+  }
+});
 
 const getAuthenticationUri = async (type:LoginButtonType): Promise<string> => {
   let authUrl: string = '';
@@ -41,15 +49,50 @@ const getAuthenticationUri = async (type:LoginButtonType): Promise<string> => {
 }
 
 const LoginButton: React.FC<LoginButtonProps> = ({ type, text }) => {
+  const styles = useStyles();
+  
   const onButtonClick = async (type:LoginButtonType) => {
     const authUrl = await getAuthenticationUri(type);
     window.location.href = authUrl;
   }
 
-  const buttonText = text ? text : `Login ${type}`;
+  const buttonText = text ? text : `Login with ${type}`;
+  
+  const getIcon = () => {
+    switch (type) {
+      case LoginButtonType.Microsoft:
+        return <CloudArrowRight20Regular />;
+      case LoginButtonType.X:
+        return <WindowDevTools20Regular />;
+      case LoginButtonType.Reddit:
+        return <PersonFeedback20Regular />;
+      default:
+        return <PersonFeedback20Regular />;
+    }
+  };
+
+  const getAppearance = () => {
+    switch (type) {
+      case LoginButtonType.Microsoft:
+        return 'primary' as const;
+      case LoginButtonType.X:
+        return 'secondary' as const;
+      case LoginButtonType.Reddit:
+        return 'outline' as const;
+      default:
+        return 'primary' as const;
+    }
+  };
 
   return (
-    <button onClick={() => onButtonClick(type)}>{buttonText}</button>
+    <Button 
+      onClick={() => onButtonClick(type)} 
+      appearance={getAppearance()}
+      icon={getIcon()}
+      className={styles.button}
+    >
+      {buttonText}
+    </Button>
   );
 };
 

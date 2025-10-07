@@ -4,6 +4,7 @@ import { AuthCallback } from './pages/AuthCallback';
 import { RedditPosts } from './pages/RedditPosts';
 import { Image } from './pages/Image';
 import { Login } from './pages/Login';
+import FluentShowcase from './pages/FluentShowcase';
 import Layout from './Layout';
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/showcase" element={<FluentShowcase />} />
       <Route element={<Layout />}>
         <Route path="/auth/callback/:type" element={<AuthCallback />} />
         <Route path="/redditPosts" element={<RedditPosts />} />
