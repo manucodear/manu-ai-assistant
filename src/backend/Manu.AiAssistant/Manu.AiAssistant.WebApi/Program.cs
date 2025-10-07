@@ -17,6 +17,7 @@ namespace Manu.AiAssistant.WebApi
             if (!string.IsNullOrEmpty(keyVaultUrl) && !builder.Environment.IsDevelopment())
             {
                 builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), new DefaultAzureCredential());
+                var secretClient = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential());
             }
 
             builder.Services.AddControllers();
