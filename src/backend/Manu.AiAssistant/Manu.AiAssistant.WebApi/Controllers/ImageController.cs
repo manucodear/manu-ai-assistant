@@ -8,6 +8,7 @@ using System.Text.Json;
 using Manu.AiAssistant.WebApi.Models.Image;
 using Azure.Storage.Blobs;
 using System.Net;
+using Microsoft.Extensions.Logging;
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {
@@ -19,18 +20,21 @@ namespace Manu.AiAssistant.WebApi.Controllers
         private readonly DalleOptions _options;
         private readonly BlobServiceClient _blobServiceClient;
         private readonly AzureStorageOptions _storageOptions;
+        private readonly ILogger<ImageController> _logger;
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
         public ImageController(
             IHttpClientFactory httpClientFactory,
             IOptions<DalleOptions> options,
             BlobServiceClient blobServiceClient,
-            IOptions<AzureStorageOptions> storageOptions)
+            IOptions<AzureStorageOptions> storageOptions,
+            ILogger<ImageController> logger)
         {
-            _httpClient = httpClientFactory.CreateClient();
+            _httpClient = httpClientFactory.CreateClient("external");
             _options = options.Value;
             _blobServiceClient = blobServiceClient;
             _storageOptions = storageOptions.Value;
+            _logger = logger;
         }
 
         [HttpGet("{filename}")]
@@ -89,7 +93,37 @@ namespace Manu.AiAssistant.WebApi.Controllers
 
             if (!response.IsSuccessStatusCode)
             {
+                // Collect diagnostics without exposing secrets
+                response.Headers.TryGetValues("x-ms-request-id", out var reqIdValues);
+                var requestId = reqIdValues?.FirstOrDefault();
+
+                var requestDiagnostics = new
+                {
+                    Endpoint = _options.Endpoint,
+                    Payload = payload,
+                    Headers = new
+                    {
+                        Authorization = MaskApiKey(_options.ApiKey)
+                    },
+                    Response = new
+                    {
+                        StatusCode = (int)response.StatusCode,
+                        Reason = response.ReasonPhrase,
+                        RequestId = requestId,
+                        ContentSnippet = SafeSnippet(responseContent, 2000)
+                    }
+                };
+
+                _logger.LogError("DALL-E generation failed. {@Diagnostics}", requestDiagnostics);
+
                 return StatusCode((int)response.StatusCode, TryParseJson(responseContent));
+            }
+            else
+            {
+                // Optional: log success at Debug level
+                response.Headers.TryGetValues("x-ms-request-id", out var reqIdValues);
+                var requestId = reqIdValues?.FirstOrDefault();
+                _logger.LogDebug("DALL-E generation succeeded. Status: {Status} RequestId: {ReqId}", (int)response.StatusCode, requestId);
             }
 
             // Parse DALL-E response and replace image URLs
@@ -177,6 +211,19 @@ namespace Manu.AiAssistant.WebApi.Controllers
             }
 
             return Ok(new { url = blobClient.Uri.ToString() });
+        }
+
+        private static string MaskApiKey(string apiKey)
+        {
+            if (string.IsNullOrEmpty(apiKey)) return string.Empty;
+            var visible = Math.Min(4, apiKey.Length);
+            return new string('*', Math.Max(0, apiKey.Length - visible)) + apiKey[^visible..];
+        }
+
+        private static string SafeSnippet(string content, int max)
+        {
+            if (string.IsNullOrEmpty(content)) return string.Empty;
+            return content.Length <= max ? content : content.Substring(0, max) + "...";
         }
     }
 }

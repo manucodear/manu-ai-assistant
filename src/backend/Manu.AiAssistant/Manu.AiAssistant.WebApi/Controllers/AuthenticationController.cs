@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Identity;
 using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {
@@ -21,17 +22,20 @@ namespace Manu.AiAssistant.WebApi.Controllers
         private readonly AzureAdOptions _azureAdOptions;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly ILogger<AuthenticationController> _logger;
 
         public AuthenticationController(
             IHttpClientFactory httpClientFactory,
             IOptions<AzureAdOptions> azureAdOptions,
             UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager)
+            SignInManager<ApplicationUser> signInManager,
+            ILogger<AuthenticationController> logger)
         {
             _httpClientFactory = httpClientFactory;
             _azureAdOptions = azureAdOptions.Value;
             _userManager = userManager;
             _signInManager = signInManager;
+            _logger = logger;
         }
 
         [HttpPost]
@@ -39,8 +43,12 @@ namespace Manu.AiAssistant.WebApi.Controllers
         public async Task<IActionResult> Microsoft([FromBody] AuthenticationRequest request)
         {
             var clientId = _azureAdOptions.ClientId;
-            var clientSecret = _azureAdOptions.ClientSecret;
+            var clientSecret = _azureAdOptions.ClientSecret; // will not be logged
             var redirectUri = _azureAdOptions.RedirectUri;
+
+            var codeLength = request?.Code?.Length ?? 0;
+            var clientIdSuffix = clientId.Length > 6 ? clientId[^6..] : clientId;
+            _logger.LogInformation("Starting Microsoft OAuth token exchange. CodeLength={CodeLength} RedirectUri={RedirectUri} ClientIdSuffix={ClientIdSuffix}", codeLength, redirectUri, clientIdSuffix);
 
             var tokenEndpoint = $"https://login.microsoftonline.com/common/oauth2/v2.0/token";
             var parameters = new[]
@@ -55,15 +63,43 @@ namespace Manu.AiAssistant.WebApi.Controllers
 
             var httpClient = _httpClientFactory.CreateClient();
             var content = new FormUrlEncodedContent(parameters);
-            var response = await httpClient.PostAsync(tokenEndpoint, content);
+
+            HttpResponseMessage response;
+            try
+            {
+                response = await httpClient.PostAsync(tokenEndpoint, content);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception while calling Microsoft token endpoint {Endpoint}", tokenEndpoint);
+                return StatusCode(500, "Token endpoint call failed");
+            }
+
             var responseContent = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
             {
+                _logger.LogWarning(
+                    "Microsoft token endpoint returned non-success. Status={StatusCode} BodySnippet={BodySnippet} CodePresent={CodePresent} RedirectUri={RedirectUri} ClientIdSuffix={ClientIdSuffix}",
+                    (int)response.StatusCode,
+                    SafeSnippet(responseContent, 600),
+                    !string.IsNullOrWhiteSpace(request.Code),
+                    redirectUri,
+                    clientIdSuffix);
                 return StatusCode((int)response.StatusCode, responseContent);
             }
 
-            var json = JsonDocument.Parse(responseContent);
+            JsonDocument json;
+            try
+            {
+                json = JsonDocument.Parse(responseContent);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to parse token endpoint JSON response. BodySnippet={BodySnippet}", SafeSnippet(responseContent, 600));
+                return StatusCode(502, "Invalid token response");
+            }
+
             var accessToken = json.RootElement.GetProperty("access_token").GetString();
             var refreshToken = json.RootElement.GetProperty("refresh_token").GetString();
             var expiresIn = json.RootElement.GetProperty("expires_in").GetInt32();
@@ -78,7 +114,6 @@ namespace Manu.AiAssistant.WebApi.Controllers
             var user = await _userManager.FindByNameAsync(userName);
             if (user == null)
             {
-                // Set token properties before creation to satisfy NOT NULL constraints
                 user = new ApplicationUser
                 {
                     UserName = userName,
@@ -86,19 +121,37 @@ namespace Manu.AiAssistant.WebApi.Controllers
                     RefreshToken = refreshToken!,
                     ExpiresAt = expiresAt
                 };
-                await _userManager.CreateAsync(user);
+                var createResult = await _userManager.CreateAsync(user);
+                if (!createResult.Succeeded)
+                {
+                    _logger.LogError("Failed creating user {UserName}. Errors={Errors}", userName, string.Join(";", createResult.Errors.Select(e => e.Code)));
+                    return StatusCode(500, "User creation failed");
+                }
             }
             else
             {
                 user.AccessToken = accessToken!;
                 user.RefreshToken = refreshToken!;
                 user.ExpiresAt = expiresAt;
-                await _userManager.UpdateAsync(user);
+                var updateResult = await _userManager.UpdateAsync(user);
+                if (!updateResult.Succeeded)
+                {
+                    _logger.LogError("Failed updating user {UserName}. Errors={Errors}", userName, string.Join(";", updateResult.Errors.Select(e => e.Code)));
+                    return StatusCode(500, "User update failed");
+                }
             }
 
             await _signInManager.SignInAsync(user, isPersistent: true);
 
+            _logger.LogInformation("Microsoft OAuth sign-in succeeded for {UserName}. ExpiresInSeconds={ExpiresIn}", userName, expiresIn);
+
             return Ok(new { success = true });
+        }
+
+        private static string SafeSnippet(string? value, int max)
+        {
+            if (string.IsNullOrEmpty(value)) return string.Empty;
+            return value.Length <= max ? value : value.Substring(0, max) + "...";
         }
     }
 }

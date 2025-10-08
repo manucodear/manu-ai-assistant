@@ -32,6 +32,8 @@ namespace Manu.AiAssistant.WebApi.KeyVault
                 return $"AzureAd{ConfigurationPath.KeyDelimiter}TenantId";
             if (string.Equals(name, "client-secret", StringComparison.OrdinalIgnoreCase))
                 return $"AzureAd{ConfigurationPath.KeyDelimiter}ClientSecret";
+            if (string.Equals(name, "redirect-uri", StringComparison.OrdinalIgnoreCase))
+                return $"AzureAd{ConfigurationPath.KeyDelimiter}RedirectUri";
 
             // DALL·E
             if (string.Equals(name, "dalle-api-key", StringComparison.OrdinalIgnoreCase) ||

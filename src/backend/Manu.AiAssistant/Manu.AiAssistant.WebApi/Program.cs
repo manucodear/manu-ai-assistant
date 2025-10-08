@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Manu.AiAssistant.WebApi.KeyVault;
+using Manu.AiAssistant.WebApi.Http;
 
 namespace Manu.AiAssistant.WebApi
 {
@@ -39,7 +40,10 @@ namespace Manu.AiAssistant.WebApi
                 });
             });
 
-            builder.Services.AddHttpClient();
+            // Register the delegating handler and wire it into a named client used across the app
+            builder.Services.AddTransient<ExternalRequestLoggingHandler>();
+            builder.Services.AddHttpClient("external")
+                            .AddHttpMessageHandler<ExternalRequestLoggingHandler>();
 
             if (!string.IsNullOrWhiteSpace(keyVaultUrl))
             {
@@ -88,10 +92,6 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.AddHealthChecks();
 
             var app = builder.Build();
-
-            // Log the database connection string at startup for verification
-            var logger = app.Services.GetRequiredService<ILogger<Program>>();
-            logger.LogInformation("Database connection string: {ConnectionString}", builder.Configuration.GetConnectionString("DefaultConnection"));
 
             if (app.Environment.IsDevelopment())
             {
