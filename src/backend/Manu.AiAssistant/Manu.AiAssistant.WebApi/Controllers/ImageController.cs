@@ -6,9 +6,11 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Manu.AiAssistant.WebApi.Models.Image;
+using Manu.AiAssistant.WebApi.Models.Entities;
 using Azure.Storage.Blobs;
 using System.Net;
 using Microsoft.Extensions.Logging;
+using Manu.AiAssistant.WebApi.Data;
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {
@@ -21,6 +23,8 @@ namespace Manu.AiAssistant.WebApi.Controllers
         private readonly BlobServiceClient _blobServiceClient;
         private readonly AzureStorageOptions _storageOptions;
         private readonly ILogger<ImageController> _logger;
+        private readonly CosmosRepository<ImageGeneration> _imageGenerationRepository;
+        private readonly AppOptions _appOptions;
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
         public ImageController(
@@ -28,13 +32,17 @@ namespace Manu.AiAssistant.WebApi.Controllers
             IOptions<DalleOptions> options,
             BlobServiceClient blobServiceClient,
             IOptions<AzureStorageOptions> storageOptions,
-            ILogger<ImageController> logger)
+            ILogger<ImageController> logger,
+            CosmosRepository<ImageGeneration> imageGenerationRepository,
+            IOptions<AppOptions> appOptions)
         {
             _httpClient = httpClientFactory.CreateClient("external");
             _options = options.Value;
             _blobServiceClient = blobServiceClient;
             _storageOptions = storageOptions.Value;
             _logger = logger;
+            _imageGenerationRepository = imageGenerationRepository;
+            _appOptions = appOptions.Value;
         }
 
         [HttpGet("{filename}")]
@@ -91,7 +99,11 @@ namespace Manu.AiAssistant.WebApi.Controllers
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
-            if (!response.IsSuccessStatusCode)
+            bool isError = !response.IsSuccessStatusCode;
+            List<string> finalImageUrls = new();
+            object dalleResponseObj = null;
+
+            if (isError)
             {
                 // Collect diagnostics without exposing secrets
                 response.Headers.TryGetValues("x-ms-request-id", out var reqIdValues);
@@ -115,8 +127,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 };
 
                 _logger.LogError("DALL-E generation failed. {@Diagnostics}", requestDiagnostics);
-
-                return StatusCode((int)response.StatusCode, TryParseJson(responseContent));
+                dalleResponseObj = TryParseJson(responseContent);
             }
             else
             {
@@ -154,7 +165,9 @@ namespace Manu.AiAssistant.WebApi.Controllers
                             var blobClient = containerClient.GetBlobClient(blobName);
                             using var ms = new MemoryStream(imageBytes);
                             await blobClient.UploadAsync(ms, overwrite: false, cancellationToken);
-                            var newUrl = $"{Request.Scheme}://{Request.Host}/api/{this.ControllerContext.RouteData.Values["controller"]}/{blobName}";
+                            var publicDomain = _appOptions.PublicImageDomain?.TrimEnd('/');
+                            var newUrl = $"{publicDomain}/api/{this.ControllerContext.RouteData.Values["controller"]}/{blobName}";
+                            finalImageUrls.Add(newUrl.ToLower());
                             // Create a new object with the replaced url
                             using var itemDoc = JsonDocument.Parse(item.GetRawText());
                             var itemObj = itemDoc.RootElement.EnumerateObject().ToDictionary(p => p.Name, p => p.Value);
@@ -176,10 +189,30 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 var responseDict = root.EnumerateObject().ToDictionary(p => p.Name, p => p.Value);
                 responseDict["data"] = JsonDocument.Parse(JsonSerializer.Serialize(newData)).RootElement;
                 var newResponseJson = JsonSerializer.Serialize(responseDict.ToDictionary(kv => kv.Key, kv => kv.Value));
+                dalleResponseObj ??= TryParseJson(newResponseJson);
+                // Store log in CosmosDB
+                await StoreImageGenerationLogAsync(request, payload, dalleResponseObj, isError, finalImageUrls, cancellationToken);
                 return Content(newResponseJson, "application/json", Encoding.UTF8);
             }
 
+            dalleResponseObj ??= TryParseJson(responseContent);
+            await StoreImageGenerationLogAsync(request, payload, dalleResponseObj, isError, finalImageUrls, cancellationToken);
             return Content(responseContent, "application/json", Encoding.UTF8);
+        }
+
+        private async Task StoreImageGenerationLogAsync(GenerateRequest request, object dalleRequest, object dalleResponse, bool error, List<string> imageUrls, CancellationToken cancellationToken)
+        {
+            var username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name : "anonymous";
+            var generation = new ImageGeneration
+            {
+                Username = username,
+                TimestampUtc = DateTime.UtcNow,
+                DalleRequest = dalleRequest,
+                DalleResponse = dalleResponse,
+                Error = error,
+                ImageUrls = imageUrls
+            };
+            await _imageGenerationRepository.AddAsync(generation, cancellationToken);
         }
 
         private static object? TryParseJson(string content)

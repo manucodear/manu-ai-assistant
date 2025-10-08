@@ -7,6 +7,10 @@ using Microsoft.AspNetCore.Identity;
 using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Manu.AiAssistant.WebApi.KeyVault;
 using Manu.AiAssistant.WebApi.Http;
+using Manu.AiAssistant.WebApi.Models.Image;
+using Manu.AiAssistant.WebApi.Extensions;
+using Manu.AiAssistant.WebApi.Models.Entities;
+using Manu.AiAssistant.WebApi.Data;
 
 namespace Manu.AiAssistant.WebApi
 {
@@ -91,14 +95,44 @@ namespace Manu.AiAssistant.WebApi
 
             builder.Services.AddHealthChecks();
 
+            // Register CosmosDB
+            builder.Services.AddCosmosDb(builder.Configuration);
+
+            builder.Services.AddSingleton(provider => {
+                var config = provider.GetRequiredService<IConfiguration>();
+                var cosmosSection = config.GetSection("CosmosDb");
+                var accountEndpoint = cosmosSection["AccountEndpoint"];
+                var accountKey = cosmosSection["AccountKey"];
+                return new Microsoft.Azure.Cosmos.CosmosClient(accountEndpoint, accountKey);
+            });
+
+            // Register repository for ImageGeneration
+            builder.Services.AddSingleton(provider => {
+                var config = provider.GetRequiredService<IConfiguration>();
+                var cosmosSection = config.GetSection("CosmosDb");
+                var databaseName = cosmosSection["DatabaseName"];
+                var containerName = cosmosSection.GetSection("ImageGeneration")["ContainerName"];
+                var client = provider.GetRequiredService<Microsoft.Azure.Cosmos.CosmosClient>();
+                var container = client.GetContainer(databaseName, containerName);
+                return new CosmosRepository<ImageGeneration>(container);
+            });
+
+            // Add AppOptions configuration
+            builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
+
             var app = builder.Build();
 
-            if (app.Environment.IsDevelopment())
+            // Enable migrations based on setting
+            var applyMigrations = builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup");
+            if (applyMigrations)
             {
-                // Apply migrations automatically in development
                 using var scope = app.Services.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 db.Database.Migrate();
+            }
+
+            if (app.Environment.IsDevelopment())
+            {
                 app.MapOpenApi();
             }
 
