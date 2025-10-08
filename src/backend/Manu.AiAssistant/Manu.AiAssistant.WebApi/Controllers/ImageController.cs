@@ -11,6 +11,9 @@ using Azure.Storage.Blobs;
 using System.Net;
 using Microsoft.Extensions.Logging;
 using Manu.AiAssistant.WebApi.Data;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats.Png;
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {
@@ -200,7 +203,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
             return Content(responseContent, "application/json", Encoding.UTF8);
         }
 
-        private async Task StoreImageGenerationLogAsync(GenerateRequest request, object dalleRequest, object dalleResponse, bool error, List<string> imageUrls, CancellationToken cancellationToken)
+        private async Task StoreImageGenerationLogAsync(GenerateRequest request, object dalleRequest, object dalleResponse, bool error, List<string> imageUrls, CancellationToken cancellationToken, List<string>? smallThumbUrls = null, List<string>? mediumThumbUrls = null)
         {
             var username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name : "anonymous";
             var generation = new ImageGeneration
@@ -210,8 +213,18 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 DalleRequest = dalleRequest,
                 DalleResponse = dalleResponse,
                 Error = error,
-                ImageUrls = imageUrls
+                ImageUrls = imageUrls,
+                // Add thumbnail URLs to the log if provided
+                // You may want to extend ImageGeneration to support these fields if not present
             };
+            // Optionally, add thumbnail URLs to a dictionary or extend the model
+            if (smallThumbUrls != null || mediumThumbUrls != null)
+            {
+                var extra = new Dictionary<string, object>();
+                if (smallThumbUrls != null) extra["ThumbnailSmall"] = smallThumbUrls;
+                if (mediumThumbUrls != null) extra["ThumbnailMedium"] = mediumThumbUrls;
+                generation.DalleResponse = new { dalleResponse, extra };
+            }
             await _imageGenerationRepository.AddAsync(generation, cancellationToken);
         }
 
@@ -237,13 +250,61 @@ namespace Manu.AiAssistant.WebApi.Controllers
             var containerClient = _blobServiceClient.GetBlobContainerClient(_storageOptions.ContainerName);
             await containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
 
-            var blobClient = containerClient.GetBlobClient(Guid.NewGuid() + Path.GetExtension(image.FileName));
+            var originalExtension = Path.GetExtension(image.FileName);
+            var baseName = Guid.NewGuid().ToString();
+            var originalBlobName = baseName + originalExtension;
+            var smallThumbName = baseName + ".small.png";
+            var mediumThumbName = baseName + ".medium.png";
+
+            var blobClient = containerClient.GetBlobClient(originalBlobName);
+            var smallThumbClient = containerClient.GetBlobClient(smallThumbName);
+            var mediumThumbClient = containerClient.GetBlobClient(mediumThumbName);
+
+            // Upload original
             using (var stream = image.OpenReadStream())
             {
                 await blobClient.UploadAsync(stream, overwrite: false, cancellationToken);
             }
 
-            return Ok(new { url = blobClient.Uri.ToString() });
+            // Generate and upload thumbnails
+            using (var imageStream = image.OpenReadStream())
+            using (var img = await Image.LoadAsync(imageStream, cancellationToken))
+            {
+                // Small thumb (32x32)
+                using (var msSmall = new MemoryStream())
+                {
+                    img.Clone(ctx => ctx.Resize(new ResizeOptions
+                    {
+                        Size = new Size(32, 32),
+                        Mode = ResizeMode.Max
+                    })).Save(msSmall, PngFormat.Instance);
+                    msSmall.Position = 0;
+                    await smallThumbClient.UploadAsync(msSmall, overwrite: true, cancellationToken);
+                }
+                // Medium thumb (64x64)
+                using (var msMedium = new MemoryStream())
+                {
+                    img.Clone(ctx => ctx.Resize(new ResizeOptions
+                    {
+                        Size = new Size(64, 64),
+                        Mode = ResizeMode.Max
+                    })).Save(msMedium, PngFormat.Instance);
+                    msMedium.Position = 0;
+                    await mediumThumbClient.UploadAsync(msMedium, overwrite: true, cancellationToken);
+                }
+            }
+
+            var publicDomain = _appOptions.PublicImageDomain?.TrimEnd('/');
+            var controllerName = this.ControllerContext.RouteData.Values["controller"];
+            var originalUrl = $"{publicDomain}/api/{controllerName}/{originalBlobName}".ToLower();
+            var smallThumbUrl = $"{publicDomain}/api/{controllerName}/{smallThumbName}".ToLower();
+            var mediumThumbUrl = $"{publicDomain}/api/{controllerName}/{mediumThumbName}".ToLower();
+
+            return Ok(new {
+                url = originalUrl,
+                thumbnailSmall = smallThumbUrl,
+                thumbnailMedium = mediumThumbUrl
+            });
         }
 
         private static string MaskApiKey(string apiKey)
