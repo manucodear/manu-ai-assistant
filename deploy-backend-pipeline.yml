@@ -16,7 +16,7 @@ variables:
 resources:
   pipelines:
     - pipeline: buildPipeline
-      source: manu-assistant-build-main
+      source: BUILD manu-assistant
       trigger: none
 
 stages:
