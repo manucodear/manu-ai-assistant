@@ -11,6 +11,7 @@ using Manu.AiAssistant.WebApi.Models.Image;
 using Manu.AiAssistant.WebApi.Extensions;
 using Manu.AiAssistant.WebApi.Models.Entities;
 using Manu.AiAssistant.WebApi.Data;
+using Manu.AiAssistant.WebApi.Services;
 
 namespace Manu.AiAssistant.WebApi
 {
@@ -119,6 +120,10 @@ namespace Manu.AiAssistant.WebApi
 
             // Add AppOptions configuration
             builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
+
+            // Register providers
+            builder.Services.AddScoped<IImageStorageProvider, AzureBlobImageStorageProvider>();
+            builder.Services.AddScoped<IDalleProvider, DalleApiProvider>();
 
             var app = builder.Build();
 

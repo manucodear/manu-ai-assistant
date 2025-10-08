@@ -14,6 +14,7 @@ using Manu.AiAssistant.WebApi.Data;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Formats.Png;
+using Manu.AiAssistant.WebApi.Services;
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {
@@ -28,7 +29,13 @@ namespace Manu.AiAssistant.WebApi.Controllers
         private readonly ILogger<ImageController> _logger;
         private readonly CosmosRepository<ImageGeneration> _imageGenerationRepository;
         private readonly AppOptions _appOptions;
+        private readonly IImageStorageProvider _imageStorageProvider;
+        private readonly IDalleProvider _dalleProvider;
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+        private static readonly JsonSerializerOptions CamelCaseOptions = new(JsonSerializerDefaults.Web)
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
 
         public ImageController(
             IHttpClientFactory httpClientFactory,
@@ -37,7 +44,9 @@ namespace Manu.AiAssistant.WebApi.Controllers
             IOptions<AzureStorageOptions> storageOptions,
             ILogger<ImageController> logger,
             CosmosRepository<ImageGeneration> imageGenerationRepository,
-            IOptions<AppOptions> appOptions)
+            IOptions<AppOptions> appOptions,
+            IImageStorageProvider imageStorageProvider,
+            IDalleProvider dalleProvider)
         {
             _httpClient = httpClientFactory.CreateClient("external");
             _options = options.Value;
@@ -46,6 +55,8 @@ namespace Manu.AiAssistant.WebApi.Controllers
             _logger = logger;
             _imageGenerationRepository = imageGenerationRepository;
             _appOptions = appOptions.Value;
+            _imageStorageProvider = imageStorageProvider;
+            _dalleProvider = dalleProvider;
         }
 
         [HttpGet("{filename}")]
@@ -65,88 +76,34 @@ namespace Manu.AiAssistant.WebApi.Controllers
         [Route("Generate")]
         public async Task<IActionResult> Generate([FromBody] GenerateRequest request, CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(_options.Endpoint) || string.IsNullOrWhiteSpace(_options.ApiKey))
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Dalle endpoint or key not configured" });
-            }
-
-            // Use enums for size, style, and quality
-            var sizeEnum = DalleImageSize.Size1024x1024;
-            var styleEnum = DalleImageStyle.Vivid;
-            var qualityEnum = DalleImageQuality.Standard;
-
-            string sizeString = sizeEnum.ToApiString();
-            string styleString = styleEnum.ToString().ToLowerInvariant();
-            string qualityString = qualityEnum.ToString().ToLowerInvariant();
-
-            // Prepare request payload according to required structure
+            // Build payload for logging
             var payload = new
             {
                 model = request.Model,
                 prompt = request.Prompt,
-                size = sizeString,
-                style = styleString,
-                quality = qualityString,
-                n = 1
+                size = request.Size,
+                style = request.Style,
+                quality = request.Quality,
+                n = request.N > 0 ? request.N : 1
             };
-
-            var json = JsonSerializer.Serialize(payload, JsonOptions);
-            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, _options.Endpoint)
-            {
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
-            };
-
-            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
-
-            using var response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-
-            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-
-            bool isError = !response.IsSuccessStatusCode;
-            List<string> finalImageUrls = new();
+            var dalleResult = await _dalleProvider.GenerateImageAsync(request, cancellationToken);
+            var responseContent = dalleResult.ResponseContent;
+            bool isError = dalleResult.IsError;
+            List<Dictionary<string, string>> imageUrlObjects = new();
+            List<string> smallThumbUrls = new();
+            List<string> mediumThumbUrls = new();
             object dalleResponseObj = null;
 
             if (isError)
             {
-                // Collect diagnostics without exposing secrets
-                response.Headers.TryGetValues("x-ms-request-id", out var reqIdValues);
-                var requestId = reqIdValues?.FirstOrDefault();
-
-                var requestDiagnostics = new
-                {
-                    Endpoint = _options.Endpoint,
-                    Payload = payload,
-                    Headers = new
-                    {
-                        Authorization = MaskApiKey(_options.ApiKey)
-                    },
-                    Response = new
-                    {
-                        StatusCode = (int)response.StatusCode,
-                        Reason = response.ReasonPhrase,
-                        RequestId = requestId,
-                        ContentSnippet = SafeSnippet(responseContent, 2000)
-                    }
-                };
-
-                _logger.LogError("DALL-E generation failed. {@Diagnostics}", requestDiagnostics);
+                _logger.LogError("DALL-E generation failed. Response: {Response}", responseContent);
                 dalleResponseObj = TryParseJson(responseContent);
             }
-            else
-            {
-                // Optional: log success at Debug level
-                response.Headers.TryGetValues("x-ms-request-id", out var reqIdValues);
-                var requestId = reqIdValues?.FirstOrDefault();
-                _logger.LogDebug("DALL-E generation succeeded. Status: {Status} RequestId: {ReqId}", (int)response.StatusCode, requestId);
-            }
-
             // Parse DALL-E response and replace image URLs
             using var doc = JsonDocument.Parse(responseContent);
             var root = doc.RootElement.Clone();
             if (root.TryGetProperty("data", out var dataArray) && dataArray.ValueKind == JsonValueKind.Array)
             {
-                var containerClient = _blobServiceClient.GetBlobContainerClient(_storageOptions.ContainerName);
-                await containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
                 var newData = new List<JsonElement>();
                 foreach (var item in dataArray.EnumerateArray())
                 {
@@ -155,28 +112,31 @@ namespace Manu.AiAssistant.WebApi.Controllers
                         var originalUrl = urlProp.GetString();
                         if (!string.IsNullOrWhiteSpace(originalUrl))
                         {
-                            // Use HttpClient instead of WebClient
+                            // Download image
                             using var imageResponse = await _httpClient.GetAsync(originalUrl, cancellationToken);
                             if (!imageResponse.IsSuccessStatusCode)
                             {
                                 newData.Add(item); // fallback: keep original if download fails
                                 continue;
                             }
-                            byte[] imageBytes = await imageResponse.Content.ReadAsByteArrayAsync(cancellationToken);
-                            var guid = Guid.NewGuid().ToString();
-                            var blobName = guid + ".png";
-                            var blobClient = containerClient.GetBlobClient(blobName);
-                            using var ms = new MemoryStream(imageBytes);
-                            await blobClient.UploadAsync(ms, overwrite: false, cancellationToken);
-                            var publicDomain = _appOptions.PublicImageDomain?.TrimEnd('/');
-                            var newUrl = $"{publicDomain}/api/{this.ControllerContext.RouteData.Values["controller"]}/{blobName}";
-                            finalImageUrls.Add(newUrl.ToLower());
-                            // Create a new object with the replaced url
+                            using var imageStream = await imageResponse.Content.ReadAsStreamAsync(cancellationToken);
+                            var uploadResult = await _imageStorageProvider.UploadAndProcessAsync(imageStream, "dalle.png", cancellationToken);
+                            // Build new item with replaced URLs
                             using var itemDoc = JsonDocument.Parse(item.GetRawText());
                             var itemObj = itemDoc.RootElement.EnumerateObject().ToDictionary(p => p.Name, p => p.Value);
-                            itemObj["url"] = JsonDocument.Parse(JsonSerializer.Serialize(newUrl)).RootElement;
+                            itemObj["url"] = JsonDocument.Parse(JsonSerializer.Serialize(uploadResult.OriginalUrl)).RootElement;
+                            itemObj["thumbnailSmallUrl"] = JsonDocument.Parse(JsonSerializer.Serialize(uploadResult.SmallThumbUrl)).RootElement;
+                            itemObj["thumbnailMediumUrl"] = JsonDocument.Parse(JsonSerializer.Serialize(uploadResult.MediumThumbUrl)).RootElement;
                             var newItemJson = JsonSerializer.Serialize(itemObj.ToDictionary(kv => kv.Key, kv => kv.Value));
                             newData.Add(JsonDocument.Parse(newItemJson).RootElement);
+                            // Collect thumb urls for logging
+                            smallThumbUrls.Add(uploadResult.SmallThumbUrl);
+                            mediumThumbUrls.Add(uploadResult.MediumThumbUrl);
+                            imageUrlObjects.Add(new Dictionary<string, string> {
+                                { "Original", uploadResult.OriginalUrl },
+                                { "Small", uploadResult.SmallThumbUrl },
+                                { "Medium", uploadResult.MediumThumbUrl }
+                            });
                         }
                         else
                         {
@@ -190,20 +150,20 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 }
                 // Build new response JSON
                 var responseDict = root.EnumerateObject().ToDictionary(p => p.Name, p => p.Value);
-                responseDict["data"] = JsonDocument.Parse(JsonSerializer.Serialize(newData)).RootElement;
-                var newResponseJson = JsonSerializer.Serialize(responseDict.ToDictionary(kv => kv.Key, kv => kv.Value));
+                responseDict["data"] = JsonDocument.Parse(JsonSerializer.Serialize(newData, CamelCaseOptions)).RootElement;
+                var newResponseJson = JsonSerializer.Serialize(responseDict.ToDictionary(kv => kv.Key, kv => kv.Value), CamelCaseOptions);
                 dalleResponseObj ??= TryParseJson(newResponseJson);
                 // Store log in CosmosDB
-                await StoreImageGenerationLogAsync(request, payload, dalleResponseObj, isError, finalImageUrls, cancellationToken);
+                await StoreImageGenerationLogAsync(request, payload, dalleResponseObj, isError, imageUrlObjects, cancellationToken, smallThumbUrls, mediumThumbUrls);
                 return Content(newResponseJson, "application/json", Encoding.UTF8);
             }
 
             dalleResponseObj ??= TryParseJson(responseContent);
-            await StoreImageGenerationLogAsync(request, payload, dalleResponseObj, isError, finalImageUrls, cancellationToken);
+            await StoreImageGenerationLogAsync(request, payload, dalleResponseObj, isError, imageUrlObjects, cancellationToken);
             return Content(responseContent, "application/json", Encoding.UTF8);
         }
 
-        private async Task StoreImageGenerationLogAsync(GenerateRequest request, object dalleRequest, object dalleResponse, bool error, List<string> imageUrls, CancellationToken cancellationToken, List<string>? smallThumbUrls = null, List<string>? mediumThumbUrls = null)
+        private async Task StoreImageGenerationLogAsync(GenerateRequest request, object dalleRequest, object dalleResponse, bool error, List<Dictionary<string, string>> imageUrls, CancellationToken cancellationToken, List<string>? smallThumbUrls = null, List<string>? mediumThumbUrls = null)
         {
             var username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name : "anonymous";
             var generation = new ImageGeneration
@@ -213,18 +173,14 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 DalleRequest = dalleRequest,
                 DalleResponse = dalleResponse,
                 Error = error,
-                ImageUrls = imageUrls,
-                // Add thumbnail URLs to the log if provided
-                // You may want to extend ImageGeneration to support these fields if not present
+                ImageUrls = null // Not used anymore, but keep for compatibility if needed
             };
-            // Optionally, add thumbnail URLs to a dictionary or extend the model
-            if (smallThumbUrls != null || mediumThumbUrls != null)
-            {
-                var extra = new Dictionary<string, object>();
-                if (smallThumbUrls != null) extra["ThumbnailSmall"] = smallThumbUrls;
-                if (mediumThumbUrls != null) extra["ThumbnailMedium"] = mediumThumbUrls;
-                generation.DalleResponse = new { dalleResponse, extra };
-            }
+            // Store the new structure in DalleResponse for now
+            var extra = new Dictionary<string, object>();
+            extra["ImageUrls"] = imageUrls;
+            if (smallThumbUrls != null) extra["ThumbnailSmall"] = smallThumbUrls;
+            if (mediumThumbUrls != null) extra["ThumbnailMedium"] = mediumThumbUrls;
+            generation.DalleResponse = new { dalleResponse, extra };
             await _imageGenerationRepository.AddAsync(generation, cancellationToken);
         }
 
@@ -247,63 +203,13 @@ namespace Manu.AiAssistant.WebApi.Controllers
             if (image == null || image.Length == 0)
                 return BadRequest("No file uploaded.");
 
-            var containerClient = _blobServiceClient.GetBlobContainerClient(_storageOptions.ContainerName);
-            await containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
-
-            var originalExtension = Path.GetExtension(image.FileName);
-            var baseName = Guid.NewGuid().ToString();
-            var originalBlobName = baseName + originalExtension;
-            var smallThumbName = baseName + ".small.png";
-            var mediumThumbName = baseName + ".medium.png";
-
-            var blobClient = containerClient.GetBlobClient(originalBlobName);
-            var smallThumbClient = containerClient.GetBlobClient(smallThumbName);
-            var mediumThumbClient = containerClient.GetBlobClient(mediumThumbName);
-
-            // Upload original
-            using (var stream = image.OpenReadStream())
-            {
-                await blobClient.UploadAsync(stream, overwrite: false, cancellationToken);
-            }
-
-            // Generate and upload thumbnails
-            using (var imageStream = image.OpenReadStream())
-            using (var img = await Image.LoadAsync(imageStream, cancellationToken))
-            {
-                // Small thumb (32x32)
-                using (var msSmall = new MemoryStream())
-                {
-                    img.Clone(ctx => ctx.Resize(new ResizeOptions
-                    {
-                        Size = new Size(32, 32),
-                        Mode = ResizeMode.Max
-                    })).Save(msSmall, PngFormat.Instance);
-                    msSmall.Position = 0;
-                    await smallThumbClient.UploadAsync(msSmall, overwrite: true, cancellationToken);
-                }
-                // Medium thumb (64x64)
-                using (var msMedium = new MemoryStream())
-                {
-                    img.Clone(ctx => ctx.Resize(new ResizeOptions
-                    {
-                        Size = new Size(64, 64),
-                        Mode = ResizeMode.Max
-                    })).Save(msMedium, PngFormat.Instance);
-                    msMedium.Position = 0;
-                    await mediumThumbClient.UploadAsync(msMedium, overwrite: true, cancellationToken);
-                }
-            }
-
-            var publicDomain = _appOptions.PublicImageDomain?.TrimEnd('/');
-            var controllerName = this.ControllerContext.RouteData.Values["controller"];
-            var originalUrl = $"{publicDomain}/api/{controllerName}/{originalBlobName}".ToLower();
-            var smallThumbUrl = $"{publicDomain}/api/{controllerName}/{smallThumbName}".ToLower();
-            var mediumThumbUrl = $"{publicDomain}/api/{controllerName}/{mediumThumbName}".ToLower();
+            using var stream = image.OpenReadStream();
+            var result = await _imageStorageProvider.UploadAndProcessAsync(stream, image.FileName, cancellationToken);
 
             return Ok(new {
-                url = originalUrl,
-                thumbnailSmall = smallThumbUrl,
-                thumbnailMedium = mediumThumbUrl
+                url = result.OriginalUrl,
+                thumbnailSmall = result.SmallThumbUrl,
+                thumbnailMedium = result.MediumThumbUrl
             });
         }
 
