@@ -224,5 +224,61 @@ namespace Manu.AiAssistant.WebApi.Controllers
             // Optionally also log upload events similarly (not requested now)
             return Ok(resultObj);
         }
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetUserImages(CancellationToken cancellationToken)
+        {
+            var username = User?.Identity?.IsAuthenticated == true ? User.Identity!.Name : null;
+            if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+            // Fetch all, filter by username and non-error generations
+            var all = await _imageGenerationRepository.GetAllAsync(cancellationToken);
+            var userItems = all.Where(g => !g.Error && string.Equals(g.Username, username, StringComparison.OrdinalIgnoreCase));
+
+            var images = new List<object>();
+            foreach (var g in userItems.OrderByDescending(g => g.TimestampUtc))
+            {
+                string? url = null; string? small = null; string? medium = null; string? large = null; string prompt = string.Empty;
+                try
+                {
+                    if (g.DalleRequest is not null)
+                    {
+                        var promptProp = g.DalleRequest.GetType().GetProperty("prompt", System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                        if (promptProp != null && promptProp.GetValue(g.DalleRequest) is string p) prompt = p;
+                    }
+                    if (g.DalleResponse is not null)
+                    {
+                        var json = Newtonsoft.Json.Linq.JToken.FromObject(g.DalleResponse);
+                        var imageNode = json.SelectToken("extra.image");
+                        if (imageNode != null)
+                        {
+                            url = imageNode["url"]?.ToString();
+                            small = imageNode["smallUrl"]?.ToString();
+                            medium = imageNode["mediumUrl"]?.ToString();
+                            large = imageNode["largeUrl"]?.ToString();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed parsing ImageGeneration record Id={Id}", g.Id);
+                }
+
+                images.Add(new {
+                    image = new {
+                        id = g.Id,
+                        timestamp = g.TimestampUtc,
+                        prompt = prompt,
+                        url = url,
+                        smallUrl = small,
+                        mediumUrl = medium,
+                        largeUrl = large
+                    }
+                });
+            }
+
+            return Ok(new { images });
+        }
     }
 }
