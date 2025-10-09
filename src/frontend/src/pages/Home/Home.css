@@ -104,6 +104,21 @@
   text-align: center;
 }
 
+.home-login-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+@media (max-width: 480px) {
+  .home-login-buttons {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
 .home-button-group {
   display: flex;
   gap: 1rem;

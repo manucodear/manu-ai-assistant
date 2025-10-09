@@ -2,7 +2,7 @@ import { LoginButtonProps } from './LoginButton.types';
 import { LoginButtonType } from './LoginButton.enums';
 import { generatePKCECode, generateRandomState } from '../../utils/random-helper';
 import { Button } from '@fluentui/react-components';
-import { PersonFeedback20Regular, WindowDevTools20Regular, CloudArrowRight20Regular } from '@fluentui/react-icons';
+import { PersonFeedback20Regular, WindowDevTools20Regular, CloudArrowRight20Regular, Globe20Regular } from '@fluentui/react-icons';
 import styles from './LoginButton.module.css';
 
 const getAuthenticationUri = async (type:LoginButtonType): Promise<string> => {
@@ -39,6 +39,18 @@ const getAuthenticationUri = async (type:LoginButtonType): Promise<string> => {
       authUrl = `${authenticationUriMs}?&response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_mode=query&duration=permanent`;
       break;
     }
+    case LoginButtonType.Google: {
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      const redirectUri = `${import.meta.env.VITE_REDIRECT_URI}/${LoginButtonType.Google}`;
+      const scope = encodeURIComponent(import.meta.env.VITE_GOOGLE_SCOPE);
+      const state = await generateRandomState();
+      const authenticationUriGoogle = import.meta.env.VITE_GOOGLE_AUTHENTICATION_URI;
+      // Store state for validation
+      sessionStorage.setItem('expectedOauthState', state);
+      // Construct the authorization URL
+      authUrl = `${authenticationUriGoogle}?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}&access_type=offline&prompt=consent`;
+      break;
+    }
   }
   return authUrl;
 }
@@ -66,6 +78,8 @@ const LoginButton: React.FC<LoginButtonProps> = ({ type, text }) => {
         return <WindowDevTools20Regular />;
       case LoginButtonType.Reddit:
         return <PersonFeedback20Regular />;
+      case LoginButtonType.Google:
+        return <Globe20Regular />;
       default:
         return <PersonFeedback20Regular />;
     }
@@ -79,6 +93,8 @@ const LoginButton: React.FC<LoginButtonProps> = ({ type, text }) => {
         return 'secondary' as const;
       case LoginButtonType.Reddit:
         return 'outline' as const;
+      case LoginButtonType.Google:
+        return 'primary' as const;
       default:
         return 'primary' as const;
     }
