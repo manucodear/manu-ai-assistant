@@ -2,16 +2,18 @@ using Azure.Security.KeyVault.Secrets;
 using Azure.Identity;
 using Manu.AiAssistant.WebApi.Options;
 using Manu.AiAssistant.WebApi.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Manu.AiAssistant.WebApi.KeyVault;
 using Manu.AiAssistant.WebApi.Http;
 using Manu.AiAssistant.WebApi.Models.Image;
-using Manu.AiAssistant.WebApi.Extensions;
 using Manu.AiAssistant.WebApi.Models.Entities;
 using Manu.AiAssistant.WebApi.Data;
 using Manu.AiAssistant.WebApi.Services;
+using Microsoft.Azure.Cosmos;
+using Manu.AiAssistant.WebApi.Identity; // ensure CosmosUserStore is visible
+using Azure.Storage.Blobs; // added for BlobServiceClient
+using Microsoft.AspNetCore.Authentication.Cookies; // for cookie options
 
 namespace Manu.AiAssistant.WebApi
 {
@@ -24,7 +26,6 @@ namespace Manu.AiAssistant.WebApi
             var keyVaultUrl = builder.Configuration["AzureKeyVault:Url"];
             if (!string.IsNullOrEmpty(keyVaultUrl))
             {
-                // Load configuration from Azure Key Vault using a custom mapper for flat secret names
                 var secretClient = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential());
                 builder.Configuration.AddAzureKeyVault(secretClient, new CustomKeyVaultSecretManager());
             }
@@ -32,20 +33,18 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.AddControllers();
             builder.Services.AddOpenApi();
 
-            // CORS policy for frontend using cookies (credentials)
             const string FrontendCorsPolicy = "Frontend";
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy(FrontendCorsPolicy, policy =>
                 {
-                    policy.WithOrigins("https://localhost:3001") // use https to allow Secure cookies
+                    policy.WithOrigins("https://localhost:3001")
                           .AllowAnyHeader()
                           .AllowAnyMethod()
                           .AllowCredentials();
                 });
             });
 
-            // Register the delegating handler and wire it into a named client used across the app
             builder.Services.AddTransient<ExternalRequestLoggingHandler>();
             builder.Services.AddHttpClient("external")
                             .AddHttpMessageHandler<ExternalRequestLoggingHandler>();
@@ -56,21 +55,66 @@ namespace Manu.AiAssistant.WebApi
             }
 
             builder.Services.Configure<AzureAdOptions>(builder.Configuration.GetSection("AzureAd"));
-            // Added Dalle options registration
             builder.Services.Configure<DalleOptions>(builder.Configuration.GetSection("Dalle"));
             builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection("Google"));
+            builder.Services.Configure<AzureStorageOptions>(builder.Configuration.GetSection("AzureStorage"));
+            builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
 
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), sql =>
+            // Health checks
+            builder.Services.AddHealthChecks();
+
+            // Data Protection (required for Identity token providers)
+            builder.Services.AddDataProtection();
+
+            // BlobServiceClient for image storage & controller
+            builder.Services.AddSingleton(provider =>
+            {
+                var storageOptions = provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<AzureStorageOptions>>().Value;
+                return new BlobServiceClient(new Uri(storageOptions.AccountUrl), new DefaultAzureCredential());
+            });
+
+            // Cosmos Client singleton (shared)
+            builder.Services.AddSingleton(provider => {
+                var config = provider.GetRequiredService<IConfiguration>();
+                var cosmosSection = config.GetSection("CosmosDb");
+                var accountEndpoint = cosmosSection["AccountEndpoint"];
+                var accountKey = cosmosSection["AccountKey"];
+                var clientOptions = new CosmosClientOptions
                 {
-                    sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
-                }));
+                    SerializerOptions = new CosmosSerializationOptions
+                    {
+                        PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase,
+                        IgnoreNullValues = true
+                    }
+                };
+                return new CosmosClient(accountEndpoint, accountKey, clientOptions);
+            });
 
-            builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
-                .AddEntityFrameworkStores<ApplicationDbContext>()
-                .AddDefaultTokenProviders();
+            // Identity (custom Cosmos user store). We only need basic user operations (external login).
+            builder.Services.AddIdentityCore<ApplicationUser>(o =>
+            {
+                o.User.RequireUniqueEmail = false;
+            })
+            .AddSignInManager()
+            .AddDefaultTokenProviders();
+            builder.Services.AddScoped<IUserStore<ApplicationUser>, CosmosUserStore>();
 
-            // Cookie configuration for cross-site (SameSite=None requires Secure)
+            // Authentication & Cookie scheme (required for SignInManager)
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
+                options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
+                options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
+            })
+            .AddCookie(IdentityConstants.ApplicationScheme, o =>
+            {
+                o.Cookie.SameSite = SameSiteMode.None;
+                o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                o.Cookie.HttpOnly = true;
+                o.SlidingExpiration = true;
+            });
+
+            // (Optional) additional configuration hook retained
             builder.Services.ConfigureApplicationCookie(o =>
             {
                 o.Cookie.SameSite = SameSiteMode.None;
@@ -78,73 +122,22 @@ namespace Manu.AiAssistant.WebApi
                 o.Cookie.HttpOnly = true;
             });
 
-            builder.Services.Configure<AzureStorageOptions>(builder.Configuration.GetSection("AzureStorage"));
-            builder.Services.AddSingleton(x =>
-            {
-                var opts = x.GetRequiredService<Microsoft.Extensions.Options.IOptions<AzureStorageOptions>>().Value;
-                if (string.IsNullOrWhiteSpace(opts.AccountUrl))
-                {
-                    throw new InvalidOperationException("AzureStorage:AccountUrl must be configured");
-                }
-                return new Azure.Storage.Blobs.BlobServiceClient(new Uri(opts.AccountUrl), new DefaultAzureCredential());
-            });
-
-            // Add Application Insights telemetry only in non-development environments
-            if (!builder.Environment.IsDevelopment())
-            {
-                builder.Services.AddApplicationInsightsTelemetry();
-            }
-
-            builder.Services.AddHealthChecks();
-
-            // Register CosmosDB
-            builder.Services.AddCosmosDb(builder.Configuration);
-
-            builder.Services.AddSingleton(provider => {
-                var config = provider.GetRequiredService<IConfiguration>();
-                var cosmosSection = config.GetSection("CosmosDb");
-                var accountEndpoint = cosmosSection["AccountEndpoint"];
-                var accountKey = cosmosSection["AccountKey"];
-                var clientOptions = new Microsoft.Azure.Cosmos.CosmosClientOptions
-                {
-                    SerializerOptions = new Microsoft.Azure.Cosmos.CosmosSerializationOptions
-                    {
-                        PropertyNamingPolicy = Microsoft.Azure.Cosmos.CosmosPropertyNamingPolicy.CamelCase,
-                        IgnoreNullValues = true
-                    }
-                };
-                return new Microsoft.Azure.Cosmos.CosmosClient(accountEndpoint, accountKey, clientOptions);
-            });
-
-            // Register repository for ImageGeneration
+            // ImageGeneration repository
             builder.Services.AddSingleton(provider => {
                 var config = provider.GetRequiredService<IConfiguration>();
                 var cosmosSection = config.GetSection("CosmosDb");
                 var databaseName = cosmosSection["DatabaseName"];
                 var containerName = cosmosSection.GetSection("ImageGeneration")["ContainerName"];
-                var client = provider.GetRequiredService<Microsoft.Azure.Cosmos.CosmosClient>();
+                var client = provider.GetRequiredService<CosmosClient>();
                 var container = client.GetContainer(databaseName, containerName);
                 return new CosmosRepository<ImageGeneration>(container);
             });
 
-            // Add AppOptions configuration
-            builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
-
-            // Register providers
             builder.Services.AddScoped<IImageProcessingProvider, ImageSharpProcessingProvider>();
             builder.Services.AddScoped<IImageStorageProvider, AzureBlobImageStorageProvider>();
             builder.Services.AddScoped<IDalleProvider, DalleApiProvider>();
 
             var app = builder.Build();
-
-            // Enable migrations based on setting
-            var applyMigrations = builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup");
-            if (applyMigrations)
-            {
-                using var scope = app.Services.CreateScope();
-                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                db.Database.Migrate();
-            }
 
             if (app.Environment.IsDevelopment())
             {

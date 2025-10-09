@@ -16,6 +16,7 @@ import './Login.css';
 const Login: React.FC = () => {
   const [searchParams] = useSearchParams();
   const returnUrl = searchParams.get('returnUrl');
+  const isGoogleAuthEnabled = import.meta.env.VITE_GOOGLE_AUTH_ENABLED === 'true';
 
   return (
     <div className="login-container">
@@ -33,7 +34,7 @@ const Login: React.FC = () => {
         
         <div className="login-options">
           <LoginButton type={LoginButtonType.Microsoft} />
-          <LoginButton type={LoginButtonType.Google} />
+          {isGoogleAuthEnabled && <LoginButton type={LoginButtonType.Google} />}
           <LoginButton type={LoginButtonType.X} />
           <LoginButton type={LoginButtonType.Reddit} />
         </div>
