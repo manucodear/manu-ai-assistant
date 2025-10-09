@@ -35,8 +35,12 @@ const Login: React.FC = () => {
         <div className="login-options">
           <LoginButton type={LoginButtonType.Microsoft} />
           {isGoogleAuthEnabled && <LoginButton type={LoginButtonType.Google} />}
-          <LoginButton type={LoginButtonType.X} />
-          <LoginButton type={LoginButtonType.Reddit} />
+          <Button disabled appearance="primary" size="large" style={{ width: '100%' }}>
+            Login with X
+          </Button>
+          <Button disabled appearance="primary" size="large" style={{ width: '100%' }}>
+            Login with Reddit
+          </Button>
         </div>
         
         <Divider />

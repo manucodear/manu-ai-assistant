@@ -6,16 +6,13 @@ import { Link } from 'react-router-dom';
 import {
   Button,
   Card,
-  CardHeader,
   CardPreview,
-  Text,
   Title1,
-  Title3,
   Body1,
   Image,
   Link as FluentLink
 } from '@fluentui/react-components';
-import { Home20Regular, PersonFeedback20Regular } from '@fluentui/react-icons';
+import { PersonFeedback20Regular } from '@fluentui/react-icons';
 
 const Home: React.FC = () => {
   const isGoogleAuthEnabled = import.meta.env.VITE_GOOGLE_AUTH_ENABLED === 'true';
@@ -31,10 +28,10 @@ const Home: React.FC = () => {
       </div>
       <div className="home-body">
         <Card className="home-card">
-          <CardHeader
-            header={<Title1>Welcome to My AI Assistant</Title1>}
-            description={<Body1>Built with Vite + React + Fluent UI</Body1>}
-          />
+          <div className="home-card-header">
+            <Title1>Welcome to My AI Assistant</Title1>
+            <Body1>Built with Vite + React + Fluent UI</Body1>
+          </div>
           <CardPreview>
             <div className="home-logo-container home-text-center">
               <FluentLink href="https://vite.dev" target="_blank">
@@ -64,14 +61,6 @@ const Home: React.FC = () => {
         </div>
         
         <div className="home-button-group">
-          <Link to="/image" style={{ textDecoration: 'none' }}>
-            <Button 
-              appearance="secondary" 
-              icon={<Home20Regular />}
-            >
-              Go to Image Page
-            </Button>
-          </Link>
           <Link to="/showcase" style={{ textDecoration: 'none' }}>
             <Button 
               appearance="outline"
