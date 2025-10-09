@@ -1,0 +1,81 @@
+trigger:
+- main
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  # General
+  azureServiceConnection: 'azure-container-registry'  # Docker Registry service connection
+  acrName: 'manucode'               # ACR name
+  imageTag: '$(Build.BuildNumber)'  # unique per build
+
+  # Paths
+  backendPath: 'src/backend/Manu.AiAssistant/Manu.AiAssistant.WebApi'
+  frontendPath: 'src/frontend'
+
+  # Docker image names
+  backendImageName: 'manu-assistant-app-backend'
+  frontendImageName: 'manu-assistant-app-frontend'
+
+jobs:
+# -------------------------------
+# Build & push backend Docker image
+# -------------------------------
+- job: BackendDocker
+  displayName: 'Build & Push Backend Docker'
+  steps:
+  - task: Docker@2
+    displayName: 'Build and push backend image'
+    inputs:
+      containerRegistry: '$(azureServiceConnection)'  
+      repository: '$(backendImageName)'
+      command: 'buildAndPush'
+      Dockerfile: '$(Build.SourcesDirectory)/$(backendPath)/Dockerfile'
+      buildContext: '$(Build.SourcesDirectory)/$(backendPath)'
+      tags: |
+        $(imageTag)
+      includeLatestTag: false
+      arguments: '--platform linux/amd64'
+
+  - script: |
+      echo "{
+        \"image\": \"$(acrName).azurecr.io/$(backendImageName):$(imageTag)\",
+        \"imageTag\": \"$(imageTag)\"
+      }" > backend_image_metadata.json
+    displayName: 'Generate backend image metadata'
+
+  - publish: backend_image_metadata.json
+    artifact: backend-image-metadata
+    displayName: 'Publish backend image metadata artifact'
+
+# -------------------------------
+# Build & push frontend Docker image
+# -------------------------------
+- job: FrontendDocker
+  displayName: 'Build & Push Frontend Docker'
+  steps:
+  - task: Docker@2
+    displayName: 'Build and push frontend image'
+    inputs:
+      containerRegistry: '$(azureServiceConnection)'  
+      repository: '$(frontendImageName)'
+      command: 'buildAndPush'
+      Dockerfile: '$(Build.SourcesDirectory)/$(frontendPath)/Dockerfile'
+      buildContext: '$(Build.SourcesDirectory)/$(frontendPath)'
+      tags: |
+        $(imageTag)
+      includeLatestTag: false
+      arguments: '--platform linux/amd64'
+
+  - script: |
+      echo "{
+        \"image\": \"$(acrName).azurecr.io/$(frontendImageName):$(imageTag)\",
+        \"imageTag\": \"$(imageTag)\"
+      }" > frontend_image_metadata.json
+    displayName: 'Generate frontend image metadata'
+
+  - publish: frontend_image_metadata.json
+    artifact: frontend-image-metadata
+    displayName: 'Publish frontend image metadata artifact'
