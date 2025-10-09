@@ -33,6 +33,7 @@ const Login: React.FC = () => {
         
         <div className="login-options">
           <LoginButton type={LoginButtonType.Microsoft} />
+          <LoginButton type={LoginButtonType.Google} />
           <LoginButton type={LoginButtonType.X} />
           <LoginButton type={LoginButtonType.Reddit} />
         </div>

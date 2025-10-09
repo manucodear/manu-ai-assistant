@@ -18,9 +18,14 @@ const AuthCallback: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const codeParam = params.get('code');
+    const stateParam = params.get('state');
 
     if (codeParam) {
       setCode(codeParam);
+      // Store state for validation
+      if (stateParam) {
+        sessionStorage.setItem('oauthState', stateParam);
+      }
     } else {
       // Redirect to error page if no authorization code is found
       const errorParams = new URLSearchParams({
@@ -39,7 +44,7 @@ const AuthCallback: React.FC = () => {
       
       switch (type) {
         case 'X': {
-          const codeVerifier = sessionStorage.getItem('codeVerifier');
+          const codeVerifier = sessionStorage.getItem(  'codeVerifier');
           parameter = {
             code,
             codeVerifier
@@ -52,6 +57,28 @@ const AuthCallback: React.FC = () => {
         }
         case 'Microsoft': {
           parameter = { code };
+          break;
+        }
+        case 'Google': {
+          const receivedState = sessionStorage.getItem('oauthState');
+          const expectedState = sessionStorage.getItem('expectedOauthState');
+          
+          // Validate state parameter for CSRF protection
+          if (receivedState !== expectedState) {
+            console.error('State mismatch - possible CSRF attack');
+            const errorParams = new URLSearchParams({
+              type: 'auth-error',
+              message: 'Security validation failed',
+              details: 'The authentication request could not be validated. Please try again.'
+            });
+            navigate(`/error?${errorParams.toString()}`, { replace: true });
+            return;
+          }
+          
+          parameter = { code, state: receivedState };
+          // Clean up stored states
+          sessionStorage.removeItem('oauthState');
+          sessionStorage.removeItem('expectedOauthState');
           break;
         }
       }

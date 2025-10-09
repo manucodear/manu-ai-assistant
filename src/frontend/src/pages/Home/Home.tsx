@@ -63,7 +63,10 @@ const Home: React.FC = () => {
           <Text>Click on the Vite and React logos to learn more</Text>
         </div>
 
-        <LoginButton type={LoginButtonType.Microsoft} />
+        <div className="home-login-buttons">
+          <LoginButton type={LoginButtonType.Microsoft} />
+          <LoginButton type={LoginButtonType.Google} />
+        </div>
         
         <div className="home-button-group">
           <Link to="/image" style={{ textDecoration: 'none' }}>
