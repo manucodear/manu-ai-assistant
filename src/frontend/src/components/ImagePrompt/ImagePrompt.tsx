@@ -15,6 +15,10 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
+  // submitted becomes true when a generate request succeeds (res.ok)
+  const [submitted, setSubmitted] = useState(false);
+  // store the prompt that was used for generation so we can show it in a div
+  const [generatedPrompt, setGeneratedPrompt] = useState<string>('');
 
   const handleGenerate = async () => {
     setError(null);
@@ -47,6 +51,9 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
       }
 
       setImages(urls);
+      // consider the request a success if we received an OK response
+      setGeneratedPrompt(prompt);
+      setSubmitted(true);
     } catch (err: any) {
       setError(err?.message ?? 'Unknown error');
     } finally {
@@ -54,25 +61,53 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
     }
   };
 
+  const handleNew = () => {
+    // Reset to original state: empty textarea, no images, errors cleared
+    setPrompt('');
+    setImages([]);
+    setError(null);
+    setLoading(false);
+    setSubmitted(false);
+    setGeneratedPrompt('');
+  };
+
   return (
     <div className={styles.container}>
+      {/* Persistent New button at top-right */}
+      <div className={styles.newButtonWrap}>
+        <Button appearance="secondary" onClick={handleNew}>
+          New
+        </Button>
+      </div>
+
       <div className={styles.promptRow}>
-        <Textarea
-          value={prompt}
-          onChange={(_e, data) => setPrompt(data.value)}
-          placeholder="Describe the image you want (multiline supported)"
-          rows={6}
-          resize="vertical"
-        />
+        {/* If submitted (successful generate) hide the textarea and show the text as plain div */}
+        {!submitted ? (
+          <Textarea
+            value={prompt}
+            onChange={(_e, data) => setPrompt(data.value)}
+            placeholder="Describe the image you want (multiline supported)"
+            rows={6}
+            resize="vertical"
+            disabled={loading}
+          />
+        ) : (
+          <div className={styles.promptCard} aria-live="polite">
+            <div className={styles.promptText}>{generatedPrompt}</div>
+          </div>
+        )}
+
         <div className={styles.actions}>
-          <Button 
-            appearance="primary"
-            onClick={handleGenerate} 
-            disabled={loading || !prompt.trim()}
-            icon={<ImageSparkle20Regular />}
-          >
-            {loading ? 'Generating…' : 'Generate'}
-          </Button>
+          {!submitted && (
+            <Button 
+              appearance="primary"
+              onClick={handleGenerate} 
+              disabled={loading || !prompt.trim()}
+              icon={<ImageSparkle20Regular />}
+            >
+              {loading ? 'Generating…' : 'Generate'}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -89,7 +124,7 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
         </MessageBar>
       )}
 
-      {images.length > 0 && (
+      {(images.length > 0 || submitted) && (
         <div className={styles.results}>
           {images.map((src) => (
             <Image 
