@@ -26,7 +26,7 @@ function App() {
           <RedditPosts />
         </ProtectedRoute>
       } />
-      <Route path="/image" element={
+      <Route path="/image-generation" element={
         <ProtectedRoute>
           <Image />
         </ProtectedRoute>

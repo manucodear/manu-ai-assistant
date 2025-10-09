@@ -100,8 +100,8 @@ const AuthCallback: React.FC = () => {
               sessionStorage.removeItem('returnUrl');
               navigate(returnUrl);
             } else {
-              // Default redirect to /image as requested
-              navigate('/image');
+              // Default redirect to /image-generation as requested
+              navigate('/image-generation');
             }
           }
         })
