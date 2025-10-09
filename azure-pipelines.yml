@@ -49,8 +49,8 @@ jobs:
   - task: Cache@2
     displayName: 'Cache npm dependencies'
     inputs:
-      key: 'npm | "$(Agent.OS)" | $(frontendPath)/package-lock.json'
-      path: $(frontendPath)/node_modules
+      key: 'npm | "$(Agent.OS)" | frontend-$(Build.SourcesDirectory)/src/frontend/package-lock.json'
+      path: '$(Build.SourcesDirectory)/src/frontend/node_modules'
       restoreKeys: |
         npm | "$(Agent.OS)"
 
@@ -58,14 +58,15 @@ jobs:
     displayName: 'Ensure Docker Buildx is installed'
 
   - script: |
+      cd "$(Build.SourcesDirectory)/src/frontend"
       docker buildx create --use || true
       docker buildx build \
-        --file "$(Build.SourcesDirectory)/$(frontendPath)/Dockerfile" \
+        --file Dockerfile \
         --platform $(dockerPlatform) \
         --cache-from type=gha \
         --cache-to type=gha,mode=max \
         -t $(frontendImageName):pr-$(System.PullRequest.PullRequestId)-$(Build.BuildNumber) \
-        $(Build.SourcesDirectory)/$(frontendPath)
+        .
     displayName: 'Build frontend image (with cache)'
     env:
       DOCKER_BUILDKIT: 1
