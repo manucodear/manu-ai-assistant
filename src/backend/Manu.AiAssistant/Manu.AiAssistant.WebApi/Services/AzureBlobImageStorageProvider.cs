@@ -5,9 +5,6 @@ using System.Threading.Tasks;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Options;
 using Manu.AiAssistant.WebApi.Options;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Formats.Png;
 
 namespace Manu.AiAssistant.WebApi.Services
 {
@@ -27,62 +24,20 @@ namespace Manu.AiAssistant.WebApi.Services
             _appOptions = appOptions.Value;
         }
 
-        public async Task<ImageUploadResult> UploadAndProcessAsync(Stream imageStream, string fileName, CancellationToken cancellationToken)
+        public async Task<string> UploadImageAsync(Stream imageStream, string fileName, CancellationToken cancellationToken)
         {
+            if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("fileName required", nameof(fileName));
             var containerClient = _blobServiceClient.GetBlobContainerClient(_storageOptions.ContainerName);
             await containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
 
-            var baseName = Path.GetFileNameWithoutExtension(fileName);
+            // Ensure extension
             var ext = Path.GetExtension(fileName);
-            var guid = Guid.NewGuid().ToString();
-            var originalBlobName = guid + ext;
-            var smallThumbName = guid + ".small.png";
-            var mediumThumbName = guid + ".medium.png";
+            if (string.IsNullOrWhiteSpace(ext)) fileName += ".png"; // default png extension
 
-            var blobClient = containerClient.GetBlobClient(originalBlobName);
-            var smallThumbClient = containerClient.GetBlobClient(smallThumbName);
-            var mediumThumbClient = containerClient.GetBlobClient(mediumThumbName);
-
-            // Upload original
+            var blobClient = containerClient.GetBlobClient(fileName);
             imageStream.Position = 0;
-            await blobClient.UploadAsync(imageStream, overwrite: false, cancellationToken);
-
-            // Generate and upload thumbnails
-            imageStream.Position = 0;
-            using (var img = await Image.LoadAsync(imageStream, cancellationToken))
-            {
-                // Small thumb (32x32)
-                using (var msSmall = new MemoryStream())
-                {
-                    img.Clone(ctx => ctx.Resize(new ResizeOptions
-                    {
-                        Size = new Size(32, 32),
-                        Mode = ResizeMode.Max
-                    })).Save(msSmall, PngFormat.Instance);
-                    msSmall.Position = 0;
-                    await smallThumbClient.UploadAsync(msSmall, overwrite: true, cancellationToken);
-                }
-                // Medium thumb (64x64)
-                using (var msMedium = new MemoryStream())
-                {
-                    img.Clone(ctx => ctx.Resize(new ResizeOptions
-                    {
-                        Size = new Size(64, 64),
-                        Mode = ResizeMode.Max
-                    })).Save(msMedium, PngFormat.Instance);
-                    msMedium.Position = 0;
-                    await mediumThumbClient.UploadAsync(msMedium, overwrite: true, cancellationToken);
-                }
-            }
-
-            var publicDomain = _appOptions.PublicImageDomain?.TrimEnd('/');
-            var controller = "image"; // fallback, can be parameterized
-            return new ImageUploadResult
-            {
-                OriginalUrl = $"{publicDomain}/api/{controller}/{originalBlobName}".ToLower(),
-                SmallThumbUrl = $"{publicDomain}/api/{controller}/{smallThumbName}".ToLower(),
-                MediumThumbUrl = $"{publicDomain}/api/{controller}/{mediumThumbName}".ToLower()
-            };
+            await blobClient.UploadAsync(imageStream, overwrite: true, cancellationToken);
+            return $"{_appOptions.ImagePath.TrimEnd('/')}/{fileName}".ToLower();
         }
     }
 }

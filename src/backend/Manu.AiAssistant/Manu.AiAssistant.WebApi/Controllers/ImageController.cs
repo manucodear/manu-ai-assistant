@@ -1,20 +1,19 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.IO;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
+using System;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Manu.AiAssistant.WebApi.Options;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
 using Manu.AiAssistant.WebApi.Models.Image;
 using Manu.AiAssistant.WebApi.Models.Entities;
 using Azure.Storage.Blobs;
-using System.Net;
 using Microsoft.Extensions.Logging;
 using Manu.AiAssistant.WebApi.Data;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Formats.Png;
 using Manu.AiAssistant.WebApi.Services;
+using Manu.AiAssistant.WebApi.Extensions;
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {
@@ -30,8 +29,8 @@ namespace Manu.AiAssistant.WebApi.Controllers
         private readonly CosmosRepository<ImageGeneration> _imageGenerationRepository;
         private readonly AppOptions _appOptions;
         private readonly IImageStorageProvider _imageStorageProvider;
+        private readonly IImageProcessingProvider _imageProcessingProvider;
         private readonly IDalleProvider _dalleProvider;
-        private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
         private static readonly JsonSerializerOptions CamelCaseOptions = new(JsonSerializerDefaults.Web)
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -46,6 +45,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
             CosmosRepository<ImageGeneration> imageGenerationRepository,
             IOptions<AppOptions> appOptions,
             IImageStorageProvider imageStorageProvider,
+            IImageProcessingProvider imageProcessingProvider,
             IDalleProvider dalleProvider)
         {
             _httpClient = httpClientFactory.CreateClient("external");
@@ -56,6 +56,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
             _imageGenerationRepository = imageGenerationRepository;
             _appOptions = appOptions.Value;
             _imageStorageProvider = imageStorageProvider;
+            _imageProcessingProvider = imageProcessingProvider;
             _dalleProvider = dalleProvider;
         }
 
@@ -76,7 +77,6 @@ namespace Manu.AiAssistant.WebApi.Controllers
         [Route("Generate")]
         public async Task<IActionResult> Generate([FromBody] GenerateRequest request, CancellationToken cancellationToken)
         {
-            // Build payload for logging
             var payload = new
             {
                 model = request.Model,
@@ -89,111 +89,105 @@ namespace Manu.AiAssistant.WebApi.Controllers
             var dalleResult = await _dalleProvider.GenerateImageAsync(request, cancellationToken);
             var responseContent = dalleResult.ResponseContent;
             bool isError = dalleResult.IsError;
-            List<Dictionary<string, string>> imageUrlObjects = new();
-            List<string> smallThumbUrls = new();
-            List<string> mediumThumbUrls = new();
-            object dalleResponseObj = null;
+            Dictionary<string, string>? imageUrlObject = null;
+            object? storedResponseObject = null; // what we will persist
 
             if (isError)
             {
                 _logger.LogError("DALL-E generation failed. Response: {Response}", responseContent);
-                dalleResponseObj = TryParseJson(responseContent);
+                storedResponseObject = responseContent.ParseJsonToPlainObject() ?? new { error = responseContent };
+                await StoreImageGenerationLogAsync(request, payload, storedResponseObject, true, imageUrlObject, cancellationToken);
+                return BadRequest(storedResponseObject);
             }
-            // Parse DALL-E response and replace image URLs
+
             using var doc = JsonDocument.Parse(responseContent);
             var root = doc.RootElement.Clone();
             if (root.TryGetProperty("data", out var dataArray) && dataArray.ValueKind == JsonValueKind.Array)
             {
-                var newData = new List<JsonElement>();
+                // Process only the first element that contains a url; we no longer build a transformed JSON response.
                 foreach (var item in dataArray.EnumerateArray())
                 {
-                    if (item.TryGetProperty("url", out var urlProp))
+                    if (!item.TryGetProperty("url", out var urlProp)) continue;
+                    var originalUrl = urlProp.GetString();
+                    if (string.IsNullOrWhiteSpace(originalUrl)) continue;
+
+                    using var imageResponse = await _httpClient.GetAsync(originalUrl, cancellationToken);
+                    if (!imageResponse.IsSuccessStatusCode) break;
+
+                    using var remoteStream = await imageResponse.Content.ReadAsStreamAsync(cancellationToken);
+                    var originalMemory = new MemoryStream();
+                    await remoteStream.CopyToAsync(originalMemory, cancellationToken);
+                    originalMemory.Position = 0;
+
+                    var thumbResults = await _imageProcessingProvider.GenerateThumbnailsAsync(originalMemory, [ThumbnailSize.Small, ThumbnailSize.Medium, ThumbnailSize.Large], cancellationToken);
+                    var id = Guid.NewGuid().ToString();
+                    var basePath = _appOptions.ImagePath.TrimEnd('/');
+                    string originalFileName = id + ".png";
+
+                    originalMemory.Position = 0;
+                    await _imageStorageProvider.UploadImageAsync(originalMemory, originalFileName, cancellationToken);
+                    foreach (var (size, tuple) in thumbResults)
                     {
-                        var originalUrl = urlProp.GetString();
-                        if (!string.IsNullOrWhiteSpace(originalUrl))
-                        {
-                            // Download image
-                            using var imageResponse = await _httpClient.GetAsync(originalUrl, cancellationToken);
-                            if (!imageResponse.IsSuccessStatusCode)
-                            {
-                                newData.Add(item); // fallback: keep original if download fails
-                                continue;
-                            }
-                            using var imageStream = await imageResponse.Content.ReadAsStreamAsync(cancellationToken);
-                            var uploadResult = await _imageStorageProvider.UploadAndProcessAsync(imageStream, "dalle.png", cancellationToken);
-                            // Build new item with replaced URLs
-                            using var itemDoc = JsonDocument.Parse(item.GetRawText());
-                            var itemObj = itemDoc.RootElement.EnumerateObject().ToDictionary(p => p.Name, p => p.Value);
-                            itemObj["url"] = JsonDocument.Parse(JsonSerializer.Serialize(uploadResult.OriginalUrl)).RootElement;
-                            itemObj["thumbnailSmallUrl"] = JsonDocument.Parse(JsonSerializer.Serialize(uploadResult.SmallThumbUrl)).RootElement;
-                            itemObj["thumbnailMediumUrl"] = JsonDocument.Parse(JsonSerializer.Serialize(uploadResult.MediumThumbUrl)).RootElement;
-                            var newItemJson = JsonSerializer.Serialize(itemObj.ToDictionary(kv => kv.Key, kv => kv.Value));
-                            newData.Add(JsonDocument.Parse(newItemJson).RootElement);
-                            // Collect thumb urls for logging
-                            smallThumbUrls.Add(uploadResult.SmallThumbUrl);
-                            mediumThumbUrls.Add(uploadResult.MediumThumbUrl);
-                            imageUrlObjects.Add(new Dictionary<string, string> {
-                                { "Original", uploadResult.OriginalUrl },
-                                { "Small", uploadResult.SmallThumbUrl },
-                                { "Medium", uploadResult.MediumThumbUrl }
-                            });
-                        }
-                        else
-                        {
-                            newData.Add(item);
-                        }
+                        var (stream, ext) = tuple;
+                        stream.Position = 0;
+                        await _imageStorageProvider.UploadImageAsync(stream, id + ext, cancellationToken);
+                        stream.Dispose();
                     }
-                    else
+                    originalMemory.Dispose();
+
+                    var originalStoredUrl = $"{basePath}/{originalFileName}".ToLower();
+                    var smallUrl = $"{basePath}/{id}{ThumbnailSize.Small.ToFileSuffix()}".ToLower();
+                    var mediumUrl = $"{basePath}/{id}{ThumbnailSize.Medium.ToFileSuffix()}".ToLower();
+                    var largeUrl = $"{basePath}/{id}{ThumbnailSize.Large.ToFileSuffix()}".ToLower();
+
+                    imageUrlObject = new Dictionary<string, string>
                     {
-                        newData.Add(item);
-                    }
+                        { "url", originalStoredUrl },
+                        { "smallUrl", smallUrl },
+                        { "mediumUrl", mediumUrl },
+                        { "largeUrl", largeUrl }
+                    };
+                    break; // stop after first processed image
                 }
-                // Build new response JSON
-                var responseDict = root.EnumerateObject().ToDictionary(p => p.Name, p => p.Value);
-                responseDict["data"] = JsonDocument.Parse(JsonSerializer.Serialize(newData, CamelCaseOptions)).RootElement;
-                var newResponseJson = JsonSerializer.Serialize(responseDict.ToDictionary(kv => kv.Key, kv => kv.Value), CamelCaseOptions);
-                dalleResponseObj ??= TryParseJson(newResponseJson);
-                // Store log in CosmosDB
-                await StoreImageGenerationLogAsync(request, payload, dalleResponseObj, isError, imageUrlObjects, cancellationToken, smallThumbUrls, mediumThumbUrls);
-                return Content(newResponseJson, "application/json", Encoding.UTF8);
+
+                storedResponseObject = responseContent.ParseJsonToPlainObject() ?? new { raw = responseContent }; // ensure object, not plain string
+                var generationEntity = await StoreImageGenerationLogAsync(request, payload, storedResponseObject!, false, imageUrlObject, cancellationToken);
+                return Ok(new {
+                    id = generationEntity.Id,
+                    image = imageUrlObject,
+                    prompt = request.Prompt
+                });
             }
 
-            dalleResponseObj ??= TryParseJson(responseContent);
-            await StoreImageGenerationLogAsync(request, payload, dalleResponseObj, isError, imageUrlObjects, cancellationToken);
-            return Content(responseContent, "application/json", Encoding.UTF8);
+            storedResponseObject = responseContent.ParseJsonToPlainObject() ?? new { raw = responseContent };
+            var generationEntityFallback = await StoreImageGenerationLogAsync(request, payload, storedResponseObject, false, imageUrlObject, cancellationToken);
+            return Ok(new
+            {
+                id = generationEntityFallback.Id,
+                image = imageUrlObject,
+                prompt = request.Prompt
+            });
         }
 
-        private async Task StoreImageGenerationLogAsync(GenerateRequest request, object dalleRequest, object dalleResponse, bool error, List<Dictionary<string, string>> imageUrls, CancellationToken cancellationToken, List<string>? smallThumbUrls = null, List<string>? mediumThumbUrls = null)
+        private async Task<ImageGeneration> StoreImageGenerationLogAsync(GenerateRequest request, object dalleRequest, object dalleResponse, bool error, Dictionary<string, string>? imageUrl, CancellationToken cancellationToken)
         {
             var username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name : "anonymous";
             var generation = new ImageGeneration
             {
-                Username = username,
+                Username = username!,
                 TimestampUtc = DateTime.UtcNow,
                 DalleRequest = dalleRequest,
                 DalleResponse = dalleResponse,
-                Error = error,
-                ImageUrls = null // Not used anymore, but keep for compatibility if needed
+                Error = error
             };
-            // Store the new structure in DalleResponse for now
             var extra = new Dictionary<string, object>();
-            extra["ImageUrls"] = imageUrls;
-            if (smallThumbUrls != null) extra["ThumbnailSmall"] = smallThumbUrls;
-            if (mediumThumbUrls != null) extra["ThumbnailMedium"] = mediumThumbUrls;
+            if (imageUrl != null)
+            {
+                extra["image"] = imageUrl; // standardized shape
+            }
             generation.DalleResponse = new { dalleResponse, extra };
             await _imageGenerationRepository.AddAsync(generation, cancellationToken);
-        }
-
-        private static object? TryParseJson(string content)
-        {
-            try
-            {
-                return JsonSerializer.Deserialize<JsonElement>(content);
-            }
-            catch
-            {
-                return new { error = content };
-            }
+            return generation;
         }
 
         [HttpPost("Upload")]
@@ -203,27 +197,32 @@ namespace Manu.AiAssistant.WebApi.Controllers
             if (image == null || image.Length == 0)
                 return BadRequest("No file uploaded.");
 
-            using var stream = image.OpenReadStream();
-            var result = await _imageStorageProvider.UploadAndProcessAsync(stream, image.FileName, cancellationToken);
+            using var original = new MemoryStream();
+            await image.CopyToAsync(original, cancellationToken);
+            original.Position = 0;
+            var thumbSet = await _imageProcessingProvider.GenerateThumbnailsAsync(original, new[] { ThumbnailSize.Small, ThumbnailSize.Medium, ThumbnailSize.Large }, cancellationToken);
+            var id = Guid.NewGuid().ToString();
+            var basePath = _appOptions.ImagePath.TrimEnd('/');
+            var ext = Path.GetExtension(image.FileName);
+            if (string.IsNullOrWhiteSpace(ext)) ext = ".png";
+            await _imageStorageProvider.UploadImageAsync(original, id + ext, cancellationToken);
+            foreach (var (size, tuple) in thumbSet)
+            {
+                var (stream, suffix) = tuple;
+                stream.Position = 0;
+                await _imageStorageProvider.UploadImageAsync(stream, id + suffix, cancellationToken);
+                stream.Dispose();
+            }
 
-            return Ok(new {
-                url = result.OriginalUrl,
-                thumbnailSmall = result.SmallThumbUrl,
-                thumbnailMedium = result.MediumThumbUrl
-            });
-        }
-
-        private static string MaskApiKey(string apiKey)
-        {
-            if (string.IsNullOrEmpty(apiKey)) return string.Empty;
-            var visible = Math.Min(4, apiKey.Length);
-            return new string('*', Math.Max(0, apiKey.Length - visible)) + apiKey[^visible..];
-        }
-
-        private static string SafeSnippet(string content, int max)
-        {
-            if (string.IsNullOrEmpty(content)) return string.Empty;
-            return content.Length <= max ? content : content.Substring(0, max) + "...";
+            var resultObj = new
+            {
+                url = $"{basePath}/{id + ext}".ToLower(),
+                thumbnailSmall = $"{basePath}/{id}{ThumbnailSize.Small.ToFileSuffix()}".ToLower(),
+                thumbnailMedium = $"{basePath}/{id}{ThumbnailSize.Medium.ToFileSuffix()}".ToLower(),
+                thumbnailLarge = $"{basePath}/{id}{ThumbnailSize.Large.ToFileSuffix()}".ToLower()
+            };
+            // Optionally also log upload events similarly (not requested now)
+            return Ok(resultObj);
         }
     }
 }

@@ -40,12 +40,10 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
 
       const data = await res.json();
 
-      // The backend returns a JSON object which contains a 'data' array with url(s)
+      // The backend returns a JSON object with image.url for 200 responses
       const urls: string[] = [];
-      if (data && Array.isArray(data.data)) {
-        for (const item of data.data) {
-          if (item.url) urls.push(item.url);
-        }
+      if (data && data.image && data.image.url) {
+        urls.push(data.image.url);
       }
 
       setImages(urls);

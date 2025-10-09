@@ -9,7 +9,6 @@ import ErrorPage from './pages/ErrorPage';
 import ErrorTestPage from './pages/ErrorTestPage';
 import ResponsiveDemo from './pages/ResponsiveDemo';
 import ProtectedRoute from './components/ProtectedRoute';
-import Layout from './Layout';
 
 function App() {
   return (
@@ -21,14 +20,12 @@ function App() {
       <Route path="/responsive" element={<ResponsiveDemo />} />
       <Route path="/error" element={<ErrorPage />} />
       <Route path="/test-errors" element={<ErrorTestPage />} />
-      <Route element={<Layout />}>
-        <Route path="/auth/callback/:type" element={<AuthCallback />} />
-        <Route path="/redditPosts" element={
-          <ProtectedRoute>
-            <RedditPosts />
-          </ProtectedRoute>
-        } />
-      </Route>
+      <Route path="/auth/callback/:type" element={<AuthCallback />} />
+      <Route path="/redditPosts" element={
+        <ProtectedRoute>
+          <RedditPosts />
+        </ProtectedRoute>
+      } />
       <Route path="/image" element={
         <ProtectedRoute>
           <Image />
