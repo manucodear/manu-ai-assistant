@@ -7,7 +7,7 @@ namespace Manu.AiAssistant.WebApi.Services
 {
     public class DalleResult
     {
-        public string ResponseContent { get; set; }
+        public string ResponseContent { get; set; } = string.Empty;
         public bool IsError { get; set; }
     }
 

@@ -1,5 +1,6 @@
 using Manu.AiAssistant.WebApi.Options;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Azure.Cosmos; // added
 
 namespace Manu.AiAssistant.WebApi.Extensions
 {
@@ -11,7 +12,15 @@ namespace Manu.AiAssistant.WebApi.Extensions
             services.AddSingleton(s =>
             {
                 var opts = s.GetRequiredService<Microsoft.Extensions.Options.IOptions<CosmosDbOptions>>().Value;
-                var client = new Microsoft.Azure.Cosmos.CosmosClient(opts.AccountEndpoint, opts.AccountKey);
+                var clientOptions = new CosmosClientOptions
+                {
+                    SerializerOptions = new CosmosSerializationOptions
+                    {
+                        PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase,
+                        IgnoreNullValues = true
+                    }
+                };
+                var client = new CosmosClient(opts.AccountEndpoint, opts.AccountKey, clientOptions);
                 var container = client.GetContainer(opts.DatabaseName, opts.ContainerName);
                 return container;
             });

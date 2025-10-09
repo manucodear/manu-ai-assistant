@@ -40,10 +40,38 @@ namespace Manu.AiAssistant.WebApi.Services
             httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
             using var response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            var isError = !response.IsSuccessStatusCode;
+            if (!isError && !string.IsNullOrWhiteSpace(responseContent))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(responseContent);
+                    var root = doc.RootElement;
+                    if (root.TryGetProperty("error", out var errorElem))
+                    {
+                        // If provider wraps error inside success HTTP status, surface it.
+                        isError = true;
+                        if (errorElem.ValueKind == JsonValueKind.String)
+                        {
+                            responseContent = errorElem.GetString()!; // simple string message
+                        }
+                        else
+                        {
+                            responseContent = errorElem.GetRawText(); // object/array etc.
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore JSON parse errors here; keep original content.
+                }
+            }
+
             return new DalleResult
             {
                 ResponseContent = responseContent,
-                IsError = !response.IsSuccessStatusCode
+                IsError = isError
             };
         }
     }

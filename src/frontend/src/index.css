@@ -3,6 +3,12 @@
   box-sizing: border-box;
 }
 
+/* Since the app uses webDarkTheme directly, we need to set dark backgrounds */
+html {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -11,10 +17,25 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #1a1a1a;
+  color: #ffffff;
 }
 
 #root {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background-color: #1a1a1a;
+}
+
+/* Ensure all page containers have proper dark background */
+.fui-FluentProvider {
+  background-color: #1a1a1a;
+  min-height: 100vh;
+}
+
+/* Override any white backgrounds in components */
+[data-theme="dark"], 
+.fui-FluentProvider[data-theme="dark"] {
+  background-color: #1a1a1a !important;
 }

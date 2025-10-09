@@ -4,15 +4,11 @@ using System.Threading.Tasks;
 
 namespace Manu.AiAssistant.WebApi.Services
 {
-    public class ImageUploadResult
-    {
-        public string OriginalUrl { get; set; }
-        public string SmallThumbUrl { get; set; }
-        public string MediumThumbUrl { get; set; }
-    }
-
     public interface IImageStorageProvider
     {
-        Task<ImageUploadResult> UploadAndProcessAsync(Stream imageStream, string fileName, CancellationToken cancellationToken);
+        /// <summary>
+        /// Uploads a single image stream under the provided file name and returns the public URL.
+        /// </summary>
+        Task<string> UploadImageAsync(Stream imageStream, string fileName, CancellationToken cancellationToken);
     }
 }

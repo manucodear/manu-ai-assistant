@@ -104,7 +104,15 @@ namespace Manu.AiAssistant.WebApi
                 var cosmosSection = config.GetSection("CosmosDb");
                 var accountEndpoint = cosmosSection["AccountEndpoint"];
                 var accountKey = cosmosSection["AccountKey"];
-                return new Microsoft.Azure.Cosmos.CosmosClient(accountEndpoint, accountKey);
+                var clientOptions = new Microsoft.Azure.Cosmos.CosmosClientOptions
+                {
+                    SerializerOptions = new Microsoft.Azure.Cosmos.CosmosSerializationOptions
+                    {
+                        PropertyNamingPolicy = Microsoft.Azure.Cosmos.CosmosPropertyNamingPolicy.CamelCase,
+                        IgnoreNullValues = true
+                    }
+                };
+                return new Microsoft.Azure.Cosmos.CosmosClient(accountEndpoint, accountKey, clientOptions);
             });
 
             // Register repository for ImageGeneration
@@ -122,6 +130,7 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
 
             // Register providers
+            builder.Services.AddScoped<IImageProcessingProvider, ImageSharpProcessingProvider>();
             builder.Services.AddScoped<IImageStorageProvider, AzureBlobImageStorageProvider>();
             builder.Services.AddScoped<IDalleProvider, DalleApiProvider>();
 
