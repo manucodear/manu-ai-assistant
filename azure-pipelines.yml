@@ -11,32 +11,61 @@ variables:
   frontendPath: 'src/frontend'
   backendImageName: 'manu-assistant-app-backend'
   frontendImageName: 'manu-assistant-app-frontend'
+  dockerPlatform: 'linux/amd64'
 
 jobs:
 - job: BackendDockerBuild
   displayName: 'Build Backend Docker (PR)'
+  timeoutInMinutes: 15
   steps:
-  - task: Docker@2
-    displayName: 'Build backend image'
+  - task: Cache@2
+    displayName: 'Cache .NET packages'
     inputs:
-      command: 'build'
-      repository: '$(backendImageName)'
-      Dockerfile: '$(Build.SourcesDirectory)/$(backendPath)/Dockerfile'
-      buildContext: '$(Build.SourcesDirectory)/$(backendPath)'
-      tags: |
-        pr-$(System.PullRequest.PullRequestId)-$(Build.BuildNumber)
-      arguments: '--platform linux/amd64'
+      key: 'nuget | "$(Agent.OS)" | **/packages.lock.json'
+      path: ~/.nuget/packages
+      restoreKeys: |
+        nuget | "$(Agent.OS)"
+  - task: DockerInstaller@0
+    displayName: 'Ensure Docker Buildx is installed'
+
+  - script: |
+      docker buildx create --use || true
+      docker buildx build \
+        --file "$(Build.SourcesDirectory)/$(backendPath)/Dockerfile" \
+        --build-arg BUILD_CONFIGURATION=Release \
+        --platform $(dockerPlatform) \
+        --cache-from type=gha \
+        --cache-to type=gha,mode=max \
+        -t $(backendImageName):pr-$(System.PullRequest.PullRequestId)-$(Build.BuildNumber) \
+        $(Build.SourcesDirectory)/$(backendPath)
+    displayName: 'Build backend image (with cache)'
+    env:
+      DOCKER_BUILDKIT: 1
 
 - job: FrontendDockerBuild
   displayName: 'Build Frontend Docker (PR)'
+  timeoutInMinutes: 15
   steps:
-  - task: Docker@2
-    displayName: 'Build frontend image'
+  - task: Cache@2
+    displayName: 'Cache npm dependencies'
     inputs:
-      command: 'build'
-      repository: '$(frontendImageName)'
-      Dockerfile: '$(Build.SourcesDirectory)/$(frontendPath)/Dockerfile'
-      buildContext: '$(Build.SourcesDirectory)/$(frontendPath)'
-      tags: |
-        pr-$(System.PullRequest.PullRequestId)-$(Build.BuildNumber)
-      arguments: '--platform linux/amd64'
+      key: 'npm | "$(Agent.OS)" | $(frontendPath)/package-lock.json'
+      path: $(frontendPath)/node_modules
+      restoreKeys: |
+        npm | "$(Agent.OS)"
+
+  - task: DockerInstaller@0
+    displayName: 'Ensure Docker Buildx is installed'
+
+  - script: |
+      docker buildx create --use || true
+      docker buildx build \
+        --file "$(Build.SourcesDirectory)/$(frontendPath)/Dockerfile" \
+        --platform $(dockerPlatform) \
+        --cache-from type=gha \
+        --cache-to type=gha,mode=max \
+        -t $(frontendImageName):pr-$(System.PullRequest.PullRequestId)-$(Build.BuildNumber) \
+        $(Build.SourcesDirectory)/$(frontendPath)
+    displayName: 'Build frontend image (with cache)'
+    env:
+      DOCKER_BUILDKIT: 1
