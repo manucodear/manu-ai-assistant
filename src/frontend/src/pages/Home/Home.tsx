@@ -18,6 +18,7 @@ import {
 import { Home20Regular, PersonFeedback20Regular } from '@fluentui/react-icons';
 
 const Home: React.FC = () => {
+  const isGoogleAuthEnabled = import.meta.env.VITE_GOOGLE_AUTH_ENABLED === 'true';
 
   return (
     <div className="home-container">
@@ -65,7 +66,7 @@ const Home: React.FC = () => {
 
         <div className="home-login-buttons">
           <LoginButton type={LoginButtonType.Microsoft} />
-          <LoginButton type={LoginButtonType.Google} />
+          {isGoogleAuthEnabled && <LoginButton type={LoginButtonType.Google} />}
         </div>
         
         <div className="home-button-group">
