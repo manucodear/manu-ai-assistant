@@ -32,7 +32,7 @@ const Home: React.FC = () => {
       <div className="home-body">
         <Card className="home-card">
           <CardHeader
-            header={<Title1>Welcome to Your Fluent UI App</Title1>}
+            header={<Title1>Welcome to My AI Assistant</Title1>}
             description={<Body1>Built with Vite + React + Fluent UI</Body1>}
           />
           <CardPreview>
@@ -58,12 +58,6 @@ const Home: React.FC = () => {
             </div>
           </CardPreview>
         </Card>
-
-        <div className="home-text-center">
-          <Title3>Get Started</Title3>
-          <Text>Click on the Vite and React logos to learn more</Text>
-        </div>
-
         <div className="home-login-buttons">
           <LoginButton type={LoginButtonType.Microsoft} />
           {isGoogleAuthEnabled && <LoginButton type={LoginButtonType.Google} />}
