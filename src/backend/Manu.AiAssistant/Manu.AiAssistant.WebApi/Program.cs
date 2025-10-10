@@ -12,9 +12,12 @@ using Manu.AiAssistant.WebApi.Data;
 using Manu.AiAssistant.WebApi.Services;
 using Microsoft.Azure.Cosmos;
 using Manu.AiAssistant.WebApi.Identity; // ensure CosmosUserStore is visible
-using Azure.Storage.Blobs; // added for BlobServiceClient
-using Microsoft.AspNetCore.Authentication.Cookies; // for cookie options
+using Azure.Storage.Blobs; // BlobServiceClient
+using Microsoft.AspNetCore.Authentication.Cookies; // cookie options
 using Microsoft.AspNetCore.HttpOverrides; // forwarded headers
+using Azure.Extensions.AspNetCore.DataProtection.Blobs; // data protection blob persistence
+using Azure.Extensions.AspNetCore.DataProtection.Keys; // (future key wrapping if needed)
+using Microsoft.AspNetCore.DataProtection; // for SetApplicationName extension
 
 namespace Manu.AiAssistant.WebApi
 {
@@ -30,6 +33,9 @@ namespace Manu.AiAssistant.WebApi
                 var secretClient = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential());
                 builder.Configuration.AddAzureKeyVault(secretClient, new CustomKeyVaultSecretManager());
             }
+
+            // Application Insights (requires connection string in configuration or env)
+            builder.Services.AddApplicationInsightsTelemetry();
 
             builder.Services.AddControllers();
             builder.Services.AddOpenApi();
@@ -64,24 +70,31 @@ namespace Manu.AiAssistant.WebApi
             // Health checks
             builder.Services.AddHealthChecks();
 
-            // Data Protection (required for Identity token providers)
-            builder.Services.AddDataProtection();
-
             // Forwarded headers (Front Door / reverse proxy) so Request.Scheme becomes https
             builder.Services.Configure<ForwardedHeadersOptions>(options =>
             {
                 options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
-                // Optionally clear known networks/proxies to accept forwarded headers from Front Door / Container Apps ingress
                 options.KnownNetworks.Clear();
                 options.KnownProxies.Clear();
             });
 
-            // BlobServiceClient for image storage & controller
+            // BlobServiceClient for image storage & data protection key ring
             builder.Services.AddSingleton(provider =>
             {
                 var storageOptions = provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<AzureStorageOptions>>().Value;
                 return new BlobServiceClient(new Uri(storageOptions.AccountUrl), new DefaultAzureCredential());
             });
+
+            // Data Protection: persist keys to blob (container: dataprotection, blob: keyring.xml)
+            builder.Services.AddDataProtection()
+                .SetApplicationName("ManuAiAssistant")
+                .PersistKeysToAzureBlobStorage(sp =>
+                {
+                    var blobService = sp.GetRequiredService<BlobServiceClient>();
+                    var container = blobService.GetBlobContainerClient("dataprotection");
+                    container.CreateIfNotExists();
+                    return container.GetBlobClient("keyring.xml");
+                });
 
             // Cosmos Client singleton (shared)
             builder.Services.AddSingleton(provider => {
@@ -109,6 +122,9 @@ namespace Manu.AiAssistant.WebApi
             .AddDefaultTokenProviders();
             builder.Services.AddScoped<IUserStore<ApplicationUser>, CosmosUserStore>();
 
+            // Authorization services
+            builder.Services.AddAuthorization();
+
             // Authentication & Cookie scheme (required for SignInManager)
             builder.Services.AddAuthentication(options =>
             {
@@ -118,24 +134,16 @@ namespace Manu.AiAssistant.WebApi
             })
             .AddCookie(IdentityConstants.ApplicationScheme, o =>
             {
+                o.Cookie.Name = ".ManuAuth"; // custom cookie name
                 o.Cookie.SameSite = SameSiteMode.None;
                 o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                 o.Cookie.HttpOnly = true;
-                o.SlidingExpiration = true;
-                // Avoid HTTP redirect for API clients: return 401/403 instead
+                o.SlidingExpiration = false; // reduce re-issuance noise
                 o.Events = new CookieAuthenticationEvents
                 {
                     OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; },
                     OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; }
                 };
-            });
-
-            // Optional secondary configuration (kept minimal now)
-            builder.Services.ConfigureApplicationCookie(o =>
-            {
-                o.Cookie.SameSite = SameSiteMode.None;
-                o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-                o.Cookie.HttpOnly = true;
             });
 
             // ImageGeneration repository
@@ -159,6 +167,13 @@ namespace Manu.AiAssistant.WebApi
             {
                 app.MapOpenApi();
             }
+
+            // Diagnostic request logging for scheme/host (early)
+            app.Use(async (ctx, next) =>
+            {
+                app.Logger.LogDebug("Request Host={Host} Scheme={Scheme} Path={Path}", ctx.Request.Host, ctx.Request.Scheme, ctx.Request.Path);
+                await next();
+            });
 
             // MUST be before authentication so scheme/host are corrected
             app.UseForwardedHeaders();
