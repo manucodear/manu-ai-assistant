@@ -9,6 +9,7 @@ import ErrorPage from './pages/ErrorPage';
 import ErrorTestPage from './pages/ErrorTestPage';
 import ResponsiveDemo from './pages/ResponsiveDemo';
 import ProtectedRoute from './components/ProtectedRoute';
+import { Token } from './pages/Token';
 
 function App() {
   return (
@@ -29,6 +30,11 @@ function App() {
       <Route path="/image-generation" element={
         <ProtectedRoute>
           <Image />
+        </ProtectedRoute>
+      } />
+      <Route path="/token" element={
+        <ProtectedRoute>
+          <Token />
         </ProtectedRoute>
       } />
     </Routes>

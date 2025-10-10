@@ -9,15 +9,14 @@ using Manu.AiAssistant.WebApi.Options;
 
 namespace Manu.AiAssistant.WebApi.Services
 {
-    public class ChatApiProvider : IChatProvider
+    public class OpenAiChatProvider : IChatProvider
     {
         private readonly ChatOptions _options;
-        public ChatApiProvider(IOptions<ChatOptions> options)
+        public OpenAiChatProvider(IOptions<ChatOptions> options)
         {
             _options = options.Value;
         }
-
-        public async Task<ChatResult> CompleteChatAsync(string prompt, string username, CancellationToken cancellationToken)
+        public async Task<ChatResult> CompleteChatAsync(string prompt, CancellationToken cancellationToken)
         {
             try
             {

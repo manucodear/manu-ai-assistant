@@ -1,18 +1,20 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+using Manu.AiAssistant.WebApi.Data;
 using Manu.AiAssistant.WebApi.Models.Chat;
 using Manu.AiAssistant.WebApi.Models.Entities;
 using Manu.AiAssistant.WebApi.Services;
-using Manu.AiAssistant.WebApi.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
-using System;
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Use default authentication schemes
+    [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
     public class ChatController : ControllerBase
     {
         private readonly IChatProvider _chatProvider;
@@ -31,7 +33,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 return BadRequest("Prompt is required.");
 
             var username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name : "anonymous";
-            var chatResult = await _chatProvider.CompleteChatAsync(request.Prompt, username!, cancellationToken);
+            var chatResult = await _chatProvider.CompleteChatAsync(request.Prompt, cancellationToken);
 
             var chatEntity = new Chat
             {

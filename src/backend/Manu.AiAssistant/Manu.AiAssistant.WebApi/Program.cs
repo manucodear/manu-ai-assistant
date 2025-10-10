@@ -14,6 +14,8 @@ using Microsoft.AspNetCore.Authentication.Cookies; // for cookie options
 using Microsoft.AspNetCore.HttpOverrides; // ForwardedHeaders
 using Microsoft.AspNetCore.DataProtection; // DataProtection extensions
 using Azure.Security.KeyVault.Keys; // Key Vault key client
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 
 namespace Manu.AiAssistant.WebApi
 {
@@ -58,13 +60,18 @@ namespace Manu.AiAssistant.WebApi
                 builder.Services.AddSingleton(_ => new KeyClient(new Uri(keyVaultUrl), new DefaultAzureCredential()));
             }
 
+            // Register AzureAdOptions
             builder.Services.Configure<AzureAdOptions>(builder.Configuration.GetSection("AzureAd"));
             builder.Services.Configure<DalleOptions>(builder.Configuration.GetSection("Dalle"));
             builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection("Google"));
             builder.Services.Configure<AzureStorageOptions>(builder.Configuration.GetSection("AzureStorage"));
             builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
             builder.Services.Configure<ChatOptions>(builder.Configuration.GetSection("Chat"));
-            builder.Services.AddScoped<IChatProvider, ChatApiProvider>();
+            // To use OpenAI (public API):
+            // builder.Services.AddScoped<IChatProvider, OpenAiChatProvider>();
+
+            // To use Azure OpenAI (default):
+            builder.Services.AddScoped<IChatProvider, AzureOpenAiChatProvider>(); // Change to OpenAiChatProvider for OpenAI public API
 
             // Health checks
             builder.Services.AddHealthChecks();
@@ -132,36 +139,78 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.AddAuthorization();
 
             // Authentication & Cookie scheme (required for SignInManager)
-            builder.Services.AddAuthentication(options =>
+            if (builder.Environment.IsDevelopment())
             {
-                options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
-                options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
-                options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
-            })
-            .AddCookie(IdentityConstants.ApplicationScheme, o =>
-            {
-                o.Cookie.Name = ".ManuAuth"; // custom cookie name
-                o.Cookie.SameSite = SameSiteMode.None;
-                o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-                o.Cookie.HttpOnly = true;
-                o.SlidingExpiration = true; // single authoritative setting
-                o.Events = new CookieAuthenticationEvents
+                builder.Services.AddAuthentication(options =>
                 {
-                    OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; },
-                    OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; }
-                };
-            })
-            .AddJwtBearer("Bearer", options =>
-            {
-                options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                    options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
+                    options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
+                    options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
+                    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                })
+                .AddCookie(IdentityConstants.ApplicationScheme, o =>
                 {
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = false
-                    // Configure as needed for your JWT
-                };
-            });
+                    o.Cookie.Name = ".ManuAuth";
+                    o.Cookie.SameSite = SameSiteMode.None;
+                    o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                    o.Cookie.HttpOnly = true;
+                    o.SlidingExpiration = true;
+                    o.Events = new CookieAuthenticationEvents
+                    {
+                        OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; },
+                        OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; }
+                    };
+                })
+                .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+                {
+                    var azureAdOptions = builder.Configuration.GetSection("AzureAd").Get<AzureAdOptions>();
+                    var jwtKey = builder.Configuration["App:JwtKey"];
+                    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidIssuer = $"https://login.microsoftonline.com/{azureAdOptions.TenantId}/v2.0",
+                        ValidateAudience = true,
+                        ValidAudience = azureAdOptions.ClientId,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(jwtKey)),
+                        ValidateLifetime = true
+                    };
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnChallenge = context =>
+                        {
+                            context.HandleResponse();
+                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                            return Task.CompletedTask;
+                        },
+                        OnForbidden = context =>
+                        {
+                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                            return Task.CompletedTask;
+                        }
+                    };
+                });
+            }
+            else
+            {
+                builder.Services.AddAuthentication(options =>
+                {
+                    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                })
+                .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, o =>
+                {
+                    o.Cookie.Name = ".ManuAuth"; // custom cookie name
+                    o.Cookie.SameSite = SameSiteMode.None;
+                    o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                    o.Cookie.HttpOnly = true;
+                    o.SlidingExpiration = true; // single authoritative setting
+                    o.Events = new CookieAuthenticationEvents
+                    {
+                        OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; },
+                        OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; }
+                    };
+                });
+            }
 
             // (Optional) additional configuration hook retained
             builder.Services.ConfigureApplicationCookie(o =>
@@ -197,6 +246,7 @@ namespace Manu.AiAssistant.WebApi
                 return new CosmosRepository<Chat>(container);
             });
 
+            // Build the app AFTER all service registrations
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())

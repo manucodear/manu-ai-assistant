@@ -1,6 +1,5 @@
 using System.Threading;
 using System.Threading.Tasks;
-using OpenAI.Chat;
 
 namespace Manu.AiAssistant.WebApi.Services
 {
@@ -12,6 +11,6 @@ namespace Manu.AiAssistant.WebApi.Services
 
     public interface IChatProvider
     {
-        Task<ChatResult> CompleteChatAsync(string prompt, string username, CancellationToken cancellationToken);
+        Task<ChatResult> CompleteChatAsync(string prompt, CancellationToken cancellationToken);
     }
 }
