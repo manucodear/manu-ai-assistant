@@ -112,75 +112,44 @@
 
 /* Gallery Grid - Base styles */
 .gallery {
-  display: grid;
-  gap: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem;
   width: 100%;
+  transition: gap 0.3s ease;
 }
 
 /* Small size - more images per row (smaller cards) */
 .gallery[data-size="small"] {
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.125rem;
 }
 
 @media (min-width: 768px) {
   .gallery[data-size="small"] {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 1.5rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .gallery[data-size="small"] {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  }
-}
-
-@media (min-width: 1200px) {
-  .gallery[data-size="small"] {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.25rem;
   }
 }
 
 /* Medium size - balanced layout (default) */
 .gallery[data-size="medium"] {
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.25rem;
 }
 
 @media (min-width: 768px) {
   .gallery[data-size="medium"] {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 2rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .gallery[data-size="medium"] {
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 0.5rem;
   }
 }
 
 /* Large size - fewer images per row (larger cards) */
 .gallery[data-size="large"] {
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 2rem;
+  gap: 0.5rem;
 }
 
 @media (min-width: 768px) {
   .gallery[data-size="large"] {
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    gap: 2.5rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .gallery[data-size="large"] {
-    grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
-  }
-}
-
-@media (min-width: 1200px) {
-  .gallery[data-size="large"] {
-    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+    gap: 0.75rem;
   }
 }
 
@@ -199,7 +168,7 @@
   position: relative;
   overflow: hidden;
   border-radius: 8px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-radius 0.3s ease;
   cursor: pointer;
 }
 
@@ -211,10 +180,23 @@
 /* Size-specific image card styling */
 .gallery[data-size="small"] .imageCard {
   border-radius: 6px;
+  width: 65px;
+  height: 65px;
+  flex-shrink: 0;
+}
+
+.gallery[data-size="medium"] .imageCard {
+  border-radius: 8px;
+  width: 110px;
+  height: 110px;
+  flex-shrink: 0;
 }
 
 .gallery[data-size="large"] .imageCard {
   border-radius: 12px;
+  width: 320px;
+  height: 320px;
+  flex-shrink: 0;
 }
 
 .imageContainer {
@@ -222,6 +204,92 @@
   width: 100%;
   aspect-ratio: 1;
   overflow: hidden;
+}
+
+/* Size-specific image container dimensions - maintaining square aspect ratio */
+.gallery[data-size="small"] .imageContainer {
+  width: 65px;
+  height: 65px;
+}
+
+.gallery[data-size="medium"] .imageContainer {
+  width: 110px;
+  height: 110px;
+}
+
+.gallery[data-size="large"] .imageContainer {
+  width: 320px;
+  height: 320px;
+}
+
+@media (min-width: 768px) {
+  .gallery[data-size="small"] .imageContainer {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .gallery[data-size="medium"] .imageContainer {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .gallery[data-size="large"] .imageContainer {
+    width: 400px;
+    height: 400px;
+  }
+  
+  .gallery[data-size="small"] .imageCard {
+    width: 120px;
+    height: 120px;
+    flex-shrink: 0;
+  }
+  
+  .gallery[data-size="medium"] .imageCard {
+    width: 200px;
+    height: 200px;
+    flex-shrink: 0;
+  }
+  
+  .gallery[data-size="large"] .imageCard {
+    width: 400px;
+    height: 400px;
+    flex-shrink: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .gallery[data-size="small"] .imageContainer {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .gallery[data-size="medium"] .imageContainer {
+    width: 250px;
+    height: 250px;
+  }
+  
+  .gallery[data-size="large"] .imageContainer {
+    width: 480px;
+    height: 480px;
+  }
+  
+  .gallery[data-size="small"] .imageCard {
+    width: 150px;
+    height: 150px;
+    flex-shrink: 0;
+  }
+  
+  .gallery[data-size="medium"] .imageCard {
+    width: 250px;
+    height: 250px;
+    flex-shrink: 0;
+  }
+  
+  .gallery[data-size="large"] .imageCard {
+    width: 480px;
+    height: 480px;
+    flex-shrink: 0;
+  }
 }
 
 .galleryImage {
@@ -252,6 +320,19 @@
   transition: transform 0.3s ease;
 }
 
+/* Size-specific overlay padding */
+.gallery[data-size="small"] .imageOverlay {
+  padding: 0.75rem;
+}
+
+.gallery[data-size="medium"] .imageOverlay {
+  padding: 1rem;
+}
+
+.gallery[data-size="large"] .imageOverlay {
+  padding: 1.25rem;
+}
+
 .imageCard:hover .imageOverlay {
   transform: translateY(0);
 }
@@ -274,6 +355,42 @@
   color: rgba(255, 255, 255, 0.8);
   font-size: 0.875rem;
   margin: 0;
+}
+
+/* Size-specific text styling */
+.gallery[data-size="small"] .imagePrompt {
+  font-size: 0.8125rem;
+  line-height: 1.2;
+}
+
+.gallery[data-size="small"] .imageTimestamp {
+  font-size: 0.5rem;
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .gallery[data-size="small"] .imageTimestamp {
+    display: block;
+    font-size: 0.625rem;
+  }
+}
+
+.gallery[data-size="medium"] .imagePrompt {
+  font-size: 0.875rem;
+  line-height: 1.3;
+}
+
+.gallery[data-size="medium"] .imageTimestamp {
+  font-size: 0.8125rem;
+}
+
+.gallery[data-size="large"] .imagePrompt {
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.gallery[data-size="large"] .imageTimestamp {
+  font-size: 0.875rem;
 }
 
 /* Mobile-specific adjustments */

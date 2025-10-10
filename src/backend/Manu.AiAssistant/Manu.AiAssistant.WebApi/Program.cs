@@ -110,6 +110,13 @@ namespace Manu.AiAssistant.WebApi
                 dataProtectionBuilder.ProtectKeysWithAzureKeyVault(new Uri(keyIdentifier), new DefaultAzureCredential());
             }
 
+            if (!string.IsNullOrEmpty(keyVaultUrl))
+            {
+                var keyIdentifier = builder.Configuration["AzureKeyVault:DataProtectionKeyId"]; // key name or full identifier
+                keyIdentifier = $"{keyVaultUrl}/keys/{keyIdentifier}";
+                dataProtectionBuilder.ProtectKeysWithAzureKeyVault(new Uri(keyIdentifier), new DefaultAzureCredential());
+            }
+
             // Cosmos Client singleton (shared)
             builder.Services.AddSingleton(provider => {
                 var options = provider.GetRequiredService<IOptions<CosmosDbOptions>>().Value;
