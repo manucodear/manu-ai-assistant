@@ -9,10 +9,13 @@ using Manu.AiAssistant.WebApi.Models.Entities;
 using Manu.AiAssistant.WebApi.Data;
 using Manu.AiAssistant.WebApi.Services;
 using Microsoft.Azure.Cosmos;
-using Azure.Storage.Blobs; // BlobServiceClient
-using Microsoft.AspNetCore.Authentication.Cookies; // cookie options
-using Microsoft.AspNetCore.HttpOverrides; // forwarded headers
-using Microsoft.AspNetCore.DataProtection; // for SetApplicationName extension
+using Azure.Storage.Blobs; // added for BlobServiceClient
+using Microsoft.AspNetCore.Authentication.Cookies; // for cookie options
+using Microsoft.AspNetCore.HttpOverrides; // ForwardedHeaders
+using Microsoft.AspNetCore.DataProtection; // DataProtection extensions
+using Azure.Security.KeyVault.Keys; // Key Vault key client
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 
 namespace Manu.AiAssistant.WebApi
 {
@@ -54,13 +57,22 @@ namespace Manu.AiAssistant.WebApi
             if (!string.IsNullOrWhiteSpace(keyVaultUrl))
             {
                 builder.Services.AddSingleton(_ => new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential()));
+                builder.Services.AddSingleton(_ => new KeyClient(new Uri(keyVaultUrl), new DefaultAzureCredential()));
             }
 
+            // Register AzureAdOptions
             builder.Services.Configure<AzureAdOptions>(builder.Configuration.GetSection("AzureAd"));
             builder.Services.Configure<DalleOptions>(builder.Configuration.GetSection("Dalle"));
             builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection("Google"));
             builder.Services.Configure<AzureStorageOptions>(builder.Configuration.GetSection("AzureStorage"));
             builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
+            builder.Services.Configure<ChatOptions>(builder.Configuration.GetSection("Chat"));
+            builder.Services.Configure<CosmosDbOptions>(builder.Configuration.GetSection("CosmosDb"));
+            // To use OpenAI (public API):
+            // builder.Services.AddScoped<IChatProvider, OpenAiChatProvider>();
+
+            // To use Azure OpenAI (default):
+            builder.Services.AddScoped<IChatProvider, AzureOpenAiChatProvider>(); // Change to OpenAiChatProvider for OpenAI public API
 
             // Health checks
             builder.Services.AddHealthChecks();
@@ -90,6 +102,13 @@ namespace Manu.AiAssistant.WebApi
                     container.CreateIfNotExists();
                     return container.GetBlobClient("keyring.xml");
                 });
+            
+            if (!string.IsNullOrEmpty(keyVaultUrl))
+            {
+                var keyIdentifier = builder.Configuration["AzureKeyVault:DataProtectionKeyId"]; // key name or full identifier
+                keyIdentifier = $"{keyVaultUrl}/keys/{keyIdentifier}";
+                dataProtectionBuilder.ProtectKeysWithAzureKeyVault(new Uri(keyIdentifier), new DefaultAzureCredential());
+            }
 
             if (!string.IsNullOrEmpty(keyVaultUrl))
             {
@@ -100,10 +119,7 @@ namespace Manu.AiAssistant.WebApi
 
             // Cosmos Client singleton (shared)
             builder.Services.AddSingleton(provider => {
-                var config = provider.GetRequiredService<IConfiguration>();
-                var cosmosSection = config.GetSection("CosmosDb");
-                var accountEndpoint = cosmosSection["AccountEndpoint"];
-                var accountKey = cosmosSection["AccountKey"];
+                var options = provider.GetRequiredService<IOptions<CosmosDbOptions>>().Value;
                 var clientOptions = new CosmosClientOptions
                 {
                     SerializerOptions = new CosmosSerializationOptions
@@ -112,7 +128,23 @@ namespace Manu.AiAssistant.WebApi
                         IgnoreNullValues = true
                     }
                 };
-                return new CosmosClient(accountEndpoint, accountKey, clientOptions);
+                return new CosmosClient(options.AccountEndpoint, options.AccountKey, clientOptions);
+            });
+
+            // ImageGeneration repository
+            builder.Services.AddSingleton(provider => {
+                var options = provider.GetRequiredService<IOptions<CosmosDbOptions>>().Value;
+                var client = provider.GetRequiredService<CosmosClient>();
+                var container = client.GetContainer(options.DatabaseName, options.Containers["Image"]);
+                return new CosmosRepository<Image>(container);
+            });
+
+            // Register Chat repository
+            builder.Services.AddSingleton(provider => {
+                var options = provider.GetRequiredService<IOptions<CosmosDbOptions>>().Value;
+                var client = provider.GetRequiredService<CosmosClient>();
+                var container = client.GetContainer(options.DatabaseName, options.Containers["Chat"]);
+                return new CosmosRepository<Chat>(container);
             });
 
             // Identity (custom Cosmos user store). We only need basic user operations (external login).
@@ -128,41 +160,92 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.AddAuthorization();
 
             // Authentication & Cookie scheme (required for SignInManager)
-            builder.Services.AddAuthentication(options =>
+            if (builder.Environment.IsDevelopment())
             {
-                options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
-                options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
-                options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
-            })
-            .AddCookie(IdentityConstants.ApplicationScheme, o =>
+                builder.Services.AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
+                    options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
+                    options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
+                    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                })
+                .AddCookie(IdentityConstants.ApplicationScheme, o =>
+                {
+                    o.Cookie.Name = ".ManuAuth";
+                    o.Cookie.SameSite = SameSiteMode.None;
+                    o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                    o.Cookie.HttpOnly = true;
+                    o.SlidingExpiration = true;
+                    o.Events = new CookieAuthenticationEvents
+                    {
+                        OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; },
+                        OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; }
+                    };
+                })
+                .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+                {
+                    var azureAdOptions = builder.Configuration.GetSection("AzureAd").Get<AzureAdOptions>();
+                    var jwtKey = builder.Configuration["App:JwtKey"];
+                    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidIssuer = $"https://login.microsoftonline.com/{azureAdOptions.TenantId}/v2.0",
+                        ValidateAudience = true,
+                        ValidAudience = azureAdOptions.ClientId,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(jwtKey)),
+                        ValidateLifetime = true
+                    };
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnChallenge = context =>
+                        {
+                            context.HandleResponse();
+                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                            return Task.CompletedTask;
+                        },
+                        OnForbidden = context =>
+                        {
+                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                            return Task.CompletedTask;
+                        }
+                    };
+                });
+            }
+            else
             {
-                o.Cookie.Name = ".ManuAuth"; // custom cookie name
+                builder.Services.AddAuthentication(options =>
+                {
+                    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                })
+                .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, o =>
+                {
+                    o.Cookie.Name = ".ManuAuth"; // custom cookie name
+                    o.Cookie.SameSite = SameSiteMode.None;
+                    o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                    o.Cookie.HttpOnly = true;
+                    o.SlidingExpiration = true; // single authoritative setting
+                    o.Events = new CookieAuthenticationEvents
+                    {
+                        OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; },
+                        OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; }
+                    };
+                });
+            }
+
+            // (Optional) additional configuration hook retained
+            builder.Services.ConfigureApplicationCookie(o =>
+            {
                 o.Cookie.SameSite = SameSiteMode.None;
                 o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                 o.Cookie.HttpOnly = true;
-                o.SlidingExpiration = false; // reduce re-issuance noise
-                o.Events = new CookieAuthenticationEvents
-                {
-                    OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; },
-                    OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; }
-                };
-            });
-
-            // ImageGeneration repository
-            builder.Services.AddSingleton(provider => {
-                var config = provider.GetRequiredService<IConfiguration>();
-                var cosmosSection = config.GetSection("CosmosDb");
-                var databaseName = cosmosSection["DatabaseName"];
-                var containerName = cosmosSection.GetSection("ImageGeneration")["ContainerName"];
-                var client = provider.GetRequiredService<CosmosClient>();
-                var container = client.GetContainer(databaseName, containerName);
-                return new CosmosRepository<ImageGeneration>(container);
             });
 
             builder.Services.AddScoped<IImageProcessingProvider, ImageSharpProcessingProvider>();
             builder.Services.AddScoped<IImageStorageProvider, AzureBlobImageStorageProvider>();
             builder.Services.AddScoped<IDalleProvider, DalleApiProvider>();
 
+            // Build the app AFTER all service registrations
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())

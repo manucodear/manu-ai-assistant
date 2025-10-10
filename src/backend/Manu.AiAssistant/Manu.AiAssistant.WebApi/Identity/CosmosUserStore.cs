@@ -6,6 +6,8 @@ using Microsoft.Azure.Cosmos;
 using System.Linq;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Manu.AiAssistant.WebApi.Options;
 
 namespace Manu.AiAssistant.WebApi.Identity
 {
@@ -17,11 +19,11 @@ namespace Manu.AiAssistant.WebApi.Identity
         private readonly string _dbName;
         private readonly string _containerName = "AspNetUsers";
 
-        public CosmosUserStore(Microsoft.Azure.Cosmos.CosmosClient client, IConfiguration configuration, ILogger<CosmosUserStore> logger)
+        public CosmosUserStore(CosmosClient client, IOptions<CosmosDbOptions> options, ILogger<CosmosUserStore> logger)
         {
             _logger = logger;
-            var section = configuration.GetSection("CosmosDb");
-            _dbName = section["IdentityDatabaseName"] ?? section["DatabaseName"]!;
+            var opts = options.Value;
+            _dbName = opts.IdentityDatabaseName ?? opts.DatabaseName;
             _container = client.GetContainer(_dbName, _containerName);
             _logger.LogInformation("CosmosUserStore initialized. Database={Database} Container={Container}", _dbName, _containerName);
         }
