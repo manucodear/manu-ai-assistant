@@ -75,6 +75,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
 
         [HttpPost]
         [Route("Generate")]
+        [Authorize]
         public async Task<IActionResult> Generate([FromBody] GenerateRequest request, CancellationToken cancellationToken)
         {
             var payload = new
