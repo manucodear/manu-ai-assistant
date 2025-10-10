@@ -14,6 +14,12 @@ using Microsoft.Azure.Cosmos;
 using Manu.AiAssistant.WebApi.Identity; // ensure CosmosUserStore is visible
 using Azure.Storage.Blobs; // added for BlobServiceClient
 using Microsoft.AspNetCore.Authentication.Cookies; // for cookie options
+using Manu.AiAssistant.WebApi.Models.Chat;
+using Manu.AiAssistant.WebApi.Options;
+using Manu.AiAssistant.WebApi.Models.Entities;
+using Manu.AiAssistant.WebApi.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace Manu.AiAssistant.WebApi
 {
@@ -59,6 +65,8 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection("Google"));
             builder.Services.Configure<AzureStorageOptions>(builder.Configuration.GetSection("AzureStorage"));
             builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
+            builder.Services.Configure<ChatOptions>(builder.Configuration.GetSection("Chat"));
+            builder.Services.AddScoped<IChatProvider, ChatApiProvider>();
 
             // Health checks
             builder.Services.AddHealthChecks();
@@ -112,6 +120,17 @@ namespace Manu.AiAssistant.WebApi
                 o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                 o.Cookie.HttpOnly = true;
                 o.SlidingExpiration = true;
+            })
+            .AddJwtBearer("Bearer", options =>
+            {
+                options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                {
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = false
+                    // Configure as needed for your JWT
+                };
             });
 
             // (Optional) additional configuration hook retained
@@ -136,6 +155,18 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.AddScoped<IImageProcessingProvider, ImageSharpProcessingProvider>();
             builder.Services.AddScoped<IImageStorageProvider, AzureBlobImageStorageProvider>();
             builder.Services.AddScoped<IDalleProvider, DalleApiProvider>();
+            builder.Services.AddScoped<IChatProvider, ChatApiProvider>();
+
+            // Register Chat repository
+            builder.Services.AddSingleton(provider => {
+                var config = provider.GetRequiredService<IConfiguration>();
+                var cosmosSection = config.GetSection("CosmosDb");
+                var databaseName = cosmosSection["DatabaseName"];
+                var containerName = "Chat"; // Container for chat completions
+                var client = provider.GetRequiredService<CosmosClient>();
+                var container = client.GetContainer(databaseName, containerName);
+                return new CosmosRepository<Chat>(container);
+            });
 
             var app = builder.Build();
 
