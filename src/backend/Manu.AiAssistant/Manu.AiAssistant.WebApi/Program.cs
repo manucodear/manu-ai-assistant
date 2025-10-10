@@ -18,6 +18,9 @@ using Microsoft.AspNetCore.HttpOverrides; // forwarded headers
 using Azure.Extensions.AspNetCore.DataProtection.Blobs; // data protection blob persistence
 using Azure.Extensions.AspNetCore.DataProtection.Keys; // (future key wrapping if needed)
 using Microsoft.AspNetCore.DataProtection; // for SetApplicationName extension
+using Azure.Storage.Blobs; // added for BlobServiceClient
+using Microsoft.AspNetCore.Authentication.Cookies; // for cookie options
+using Microsoft.AspNetCore.HttpOverrides; // forwarded headers
 
 namespace Manu.AiAssistant.WebApi
 {
