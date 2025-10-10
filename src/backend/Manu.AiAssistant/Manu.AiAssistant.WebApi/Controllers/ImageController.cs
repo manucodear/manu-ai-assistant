@@ -26,15 +26,11 @@ namespace Manu.AiAssistant.WebApi.Controllers
         private readonly BlobServiceClient _blobServiceClient;
         private readonly AzureStorageOptions _storageOptions;
         private readonly ILogger<ImageController> _logger;
-        private readonly CosmosRepository<ImageGeneration> _imageGenerationRepository;
+        private readonly CosmosRepository<Image> _imageRepository;
         private readonly AppOptions _appOptions;
         private readonly IImageStorageProvider _imageStorageProvider;
         private readonly IImageProcessingProvider _imageProcessingProvider;
         private readonly IDalleProvider _dalleProvider;
-        private static readonly JsonSerializerOptions CamelCaseOptions = new(JsonSerializerDefaults.Web)
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
 
         public ImageController(
             IHttpClientFactory httpClientFactory,
@@ -42,7 +38,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
             BlobServiceClient blobServiceClient,
             IOptions<AzureStorageOptions> storageOptions,
             ILogger<ImageController> logger,
-            CosmosRepository<ImageGeneration> imageGenerationRepository,
+            CosmosRepository<Image> imageRepository,
             IOptions<AppOptions> appOptions,
             IImageStorageProvider imageStorageProvider,
             IImageProcessingProvider imageProcessingProvider,
@@ -53,7 +49,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
             _blobServiceClient = blobServiceClient;
             _storageOptions = storageOptions.Value;
             _logger = logger;
-            _imageGenerationRepository = imageGenerationRepository;
+            _imageRepository = imageRepository;
             _appOptions = appOptions.Value;
             _imageStorageProvider = imageStorageProvider;
             _imageProcessingProvider = imageProcessingProvider;
@@ -97,7 +93,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
             {
                 _logger.LogError("DALL-E generation failed. Response: {Response}", responseContent);
                 storedResponseObject = responseContent.ParseJsonToPlainObject() ?? new { error = responseContent };
-                await StoreImageGenerationLogAsync(request, payload, storedResponseObject, true, imageUrlObject, cancellationToken);
+                await StoreImageLogAsync(request, payload, storedResponseObject, true, imageUrlObject, cancellationToken);
                 return BadRequest(storedResponseObject);
             }
 
@@ -152,28 +148,28 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 }
 
                 storedResponseObject = responseContent.ParseJsonToPlainObject() ?? new { raw = responseContent }; // ensure object, not plain string
-                var generationEntity = await StoreImageGenerationLogAsync(request, payload, storedResponseObject!, false, imageUrlObject, cancellationToken);
+                var imageEntity = await StoreImageLogAsync(request, payload, storedResponseObject!, false, imageUrlObject, cancellationToken);
                 return Ok(new {
-                    id = generationEntity.Id,
+                    id = imageEntity.Id,
                     image = imageUrlObject,
                     prompt = request.Prompt
                 });
             }
 
             storedResponseObject = responseContent.ParseJsonToPlainObject() ?? new { raw = responseContent };
-            var generationEntityFallback = await StoreImageGenerationLogAsync(request, payload, storedResponseObject, false, imageUrlObject, cancellationToken);
+            var imageEntityFallback = await StoreImageLogAsync(request, payload, storedResponseObject, false, imageUrlObject, cancellationToken);
             return Ok(new
             {
-                id = generationEntityFallback.Id,
+                id = imageEntityFallback.Id,
                 image = imageUrlObject,
                 prompt = request.Prompt
             });
         }
 
-        private async Task<ImageGeneration> StoreImageGenerationLogAsync(GenerateRequest request, object dalleRequest, object dalleResponse, bool error, Dictionary<string, string>? imageUrl, CancellationToken cancellationToken)
+        private async Task<Image> StoreImageLogAsync(GenerateRequest request, object dalleRequest, object dalleResponse, bool error, Dictionary<string, string>? imageUrl, CancellationToken cancellationToken)
         {
             var username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name : "anonymous";
-            var generation = new ImageGeneration
+            var image = new Image
             {
                 Username = username!,
                 TimestampUtc = DateTime.UtcNow,
@@ -186,9 +182,9 @@ namespace Manu.AiAssistant.WebApi.Controllers
             {
                 extra["image"] = imageUrl; // standardized shape
             }
-            generation.DalleResponse = new { dalleResponse, extra };
-            await _imageGenerationRepository.AddAsync(generation, cancellationToken);
-            return generation;
+            image.DalleResponse = new { dalleResponse, extra };
+            await _imageRepository.AddAsync(image, cancellationToken);
+            return image;
         }
 
         [HttpPost("Upload")]
@@ -234,7 +230,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
             if (string.IsNullOrEmpty(username)) return Unauthorized();
 
             // Fetch all, filter by username and non-error generations
-            var all = await _imageGenerationRepository.GetAllAsync(cancellationToken);
+            var all = await _imageRepository.GetAllAsync(cancellationToken);
             var userItems = all.Where(g => !g.Error && string.Equals(g.Username, username, StringComparison.OrdinalIgnoreCase));
 
             var images = new List<object>();
@@ -263,7 +259,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed parsing ImageGeneration record Id={Id}", g.Id);
+                    _logger.LogError(ex, "Failed parsing Image record Id={Id}", g.Id);
                 }
 
                 images.Add(new {

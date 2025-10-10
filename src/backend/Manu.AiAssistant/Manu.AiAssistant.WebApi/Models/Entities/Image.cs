@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace Manu.AiAssistant.WebApi.Models.Entities
 {
-    public class ImageGeneration : CosmosEntityBase
+    public class Image : CosmosEntityBase
     {
         [JsonProperty("username")]
         public string Username { get; set; } = string.Empty;

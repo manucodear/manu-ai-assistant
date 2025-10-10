@@ -67,6 +67,7 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.Configure<AzureStorageOptions>(builder.Configuration.GetSection("AzureStorage"));
             builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
             builder.Services.Configure<ChatOptions>(builder.Configuration.GetSection("Chat"));
+            builder.Services.Configure<CosmosDbOptions>(builder.Configuration.GetSection("CosmosDb"));
             // To use OpenAI (public API):
             // builder.Services.AddScoped<IChatProvider, OpenAiChatProvider>();
 
@@ -111,10 +112,7 @@ namespace Manu.AiAssistant.WebApi
 
             // Cosmos Client singleton (shared)
             builder.Services.AddSingleton(provider => {
-                var config = provider.GetRequiredService<IConfiguration>();
-                var cosmosSection = config.GetSection("CosmosDb");
-                var accountEndpoint = cosmosSection["AccountEndpoint"];
-                var accountKey = cosmosSection["AccountKey"];
+                var options = provider.GetRequiredService<IOptions<CosmosDbOptions>>().Value;
                 var clientOptions = new CosmosClientOptions
                 {
                     SerializerOptions = new CosmosSerializationOptions
@@ -123,7 +121,23 @@ namespace Manu.AiAssistant.WebApi
                         IgnoreNullValues = true
                     }
                 };
-                return new CosmosClient(accountEndpoint, accountKey, clientOptions);
+                return new CosmosClient(options.AccountEndpoint, options.AccountKey, clientOptions);
+            });
+
+            // ImageGeneration repository
+            builder.Services.AddSingleton(provider => {
+                var options = provider.GetRequiredService<IOptions<CosmosDbOptions>>().Value;
+                var client = provider.GetRequiredService<CosmosClient>();
+                var container = client.GetContainer(options.DatabaseName, options.Containers["Image"]);
+                return new CosmosRepository<Image>(container);
+            });
+
+            // Register Chat repository
+            builder.Services.AddSingleton(provider => {
+                var options = provider.GetRequiredService<IOptions<CosmosDbOptions>>().Value;
+                var client = provider.GetRequiredService<CosmosClient>();
+                var container = client.GetContainer(options.DatabaseName, options.Containers["Chat"]);
+                return new CosmosRepository<Chat>(container);
             });
 
             // Identity (custom Cosmos user store). We only need basic user operations (external login).
@@ -220,31 +234,9 @@ namespace Manu.AiAssistant.WebApi
                 o.Cookie.HttpOnly = true;
             });
 
-            // ImageGeneration repository
-            builder.Services.AddSingleton(provider => {
-                var config = provider.GetRequiredService<IConfiguration>();
-                var cosmosSection = config.GetSection("CosmosDb");
-                var databaseName = cosmosSection["DatabaseName"];
-                var containerName = cosmosSection.GetSection("ImageGeneration")["ContainerName"];
-                var client = provider.GetRequiredService<CosmosClient>();
-                var container = client.GetContainer(databaseName, containerName);
-                return new CosmosRepository<ImageGeneration>(container);
-            });
-
             builder.Services.AddScoped<IImageProcessingProvider, ImageSharpProcessingProvider>();
             builder.Services.AddScoped<IImageStorageProvider, AzureBlobImageStorageProvider>();
             builder.Services.AddScoped<IDalleProvider, DalleApiProvider>();
-
-            // Register Chat repository
-            builder.Services.AddSingleton(provider => {
-                var config = provider.GetRequiredService<IConfiguration>();
-                var cosmosSection = config.GetSection("CosmosDb");
-                var databaseName = cosmosSection["DatabaseName"];
-                var containerName = "Chat"; // Container for chat completions
-                var client = provider.GetRequiredService<CosmosClient>();
-                var container = client.GetContainer(databaseName, containerName);
-                return new CosmosRepository<Chat>(container);
-            });
 
             // Build the app AFTER all service registrations
             var app = builder.Build();
