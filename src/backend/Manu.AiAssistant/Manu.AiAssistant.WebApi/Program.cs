@@ -80,8 +80,8 @@ namespace Manu.AiAssistant.WebApi
                 return new BlobServiceClient(new Uri(storageOptions.AccountUrl), new DefaultAzureCredential());
             });
 
-            // Data Protection: persist keys to blob (container: dataprotection, blob: keyring.xml)
-            builder.Services.AddDataProtection()
+            // Data Protection: persist keys to blob AND optionally encrypt with Key Vault key
+            var dataProtectionBuilder = builder.Services.AddDataProtection()
                 .SetApplicationName("ManuAiAssistant")
                 .PersistKeysToAzureBlobStorage(sp =>
                 {
@@ -90,6 +90,13 @@ namespace Manu.AiAssistant.WebApi
                     container.CreateIfNotExists();
                     return container.GetBlobClient("keyring.xml");
                 });
+
+            if (!string.IsNullOrEmpty(keyVaultUrl))
+            {
+                var keyIdentifier = builder.Configuration["AzureKeyVault:DataProtectionKeyId"]; // key name or full identifier
+                keyIdentifier = $"{keyVaultUrl}/keys/{keyIdentifier}";
+                dataProtectionBuilder.ProtectKeysWithAzureKeyVault(new Uri(keyIdentifier), new DefaultAzureCredential());
+            }
 
             // Cosmos Client singleton (shared)
             builder.Services.AddSingleton(provider => {
