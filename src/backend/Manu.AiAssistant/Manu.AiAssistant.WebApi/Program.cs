@@ -9,15 +9,11 @@ using Manu.AiAssistant.WebApi.Models.Entities;
 using Manu.AiAssistant.WebApi.Data;
 using Manu.AiAssistant.WebApi.Services;
 using Microsoft.Azure.Cosmos;
-using Manu.AiAssistant.WebApi.Identity; // ensure CosmosUserStore is visible
 using Azure.Storage.Blobs; // added for BlobServiceClient
 using Microsoft.AspNetCore.Authentication.Cookies; // for cookie options
-using Manu.AiAssistant.WebApi.Models.Chat;
-using Manu.AiAssistant.WebApi.Options;
-using Manu.AiAssistant.WebApi.Models.Entities;
-using Manu.AiAssistant.WebApi.Services;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides; // ForwardedHeaders
+using Microsoft.AspNetCore.DataProtection; // DataProtection extensions
+using Azure.Security.KeyVault.Keys; // Key Vault key client
 
 namespace Manu.AiAssistant.WebApi
 {
@@ -59,6 +55,7 @@ namespace Manu.AiAssistant.WebApi
             if (!string.IsNullOrWhiteSpace(keyVaultUrl))
             {
                 builder.Services.AddSingleton(_ => new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential()));
+                builder.Services.AddSingleton(_ => new KeyClient(new Uri(keyVaultUrl), new DefaultAzureCredential()));
             }
 
             builder.Services.Configure<AzureAdOptions>(builder.Configuration.GetSection("AzureAd"));
@@ -87,8 +84,8 @@ namespace Manu.AiAssistant.WebApi
                 return new BlobServiceClient(new Uri(storageOptions.AccountUrl), new DefaultAzureCredential());
             });
 
-            // Data Protection: persist keys to blob (container: dataprotection, blob: keyring.xml)
-            builder.Services.AddDataProtection()
+            // Data Protection: persist keys to blob AND optionally encrypt with Key Vault key
+            var dataProtectionBuilder = builder.Services.AddDataProtection()
                 .SetApplicationName("ManuAiAssistant")
                 .PersistKeysToAzureBlobStorage(sp =>
                 {
@@ -97,6 +94,13 @@ namespace Manu.AiAssistant.WebApi
                     container.CreateIfNotExists();
                     return container.GetBlobClient("keyring.xml");
                 });
+            
+            if (!string.IsNullOrEmpty(keyVaultUrl))
+            {
+                var keyIdentifier = builder.Configuration["AzureKeyVault:DataProtectionKeyId"]; // key name or full identifier
+                keyIdentifier = $"{keyVaultUrl}/keys/{keyIdentifier}";
+                dataProtectionBuilder.ProtectKeysWithAzureKeyVault(new Uri(keyIdentifier), new DefaultAzureCredential());
+            }
 
             // Cosmos Client singleton (shared)
             builder.Services.AddSingleton(provider => {
@@ -140,13 +144,12 @@ namespace Manu.AiAssistant.WebApi
                 o.Cookie.SameSite = SameSiteMode.None;
                 o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                 o.Cookie.HttpOnly = true;
-                o.SlidingExpiration = false; // reduce re-issuance noise
+                o.SlidingExpiration = true; // single authoritative setting
                 o.Events = new CookieAuthenticationEvents
                 {
                     OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; },
                     OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; }
                 };
-                o.SlidingExpiration = true;
             })
             .AddJwtBearer("Bearer", options =>
             {
@@ -182,7 +185,6 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.AddScoped<IImageProcessingProvider, ImageSharpProcessingProvider>();
             builder.Services.AddScoped<IImageStorageProvider, AzureBlobImageStorageProvider>();
             builder.Services.AddScoped<IDalleProvider, DalleApiProvider>();
-            builder.Services.AddScoped<IChatProvider, ChatApiProvider>();
 
             // Register Chat repository
             builder.Services.AddSingleton(provider => {
