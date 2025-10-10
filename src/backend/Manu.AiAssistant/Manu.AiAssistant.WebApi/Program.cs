@@ -3,24 +3,16 @@ using Azure.Identity;
 using Manu.AiAssistant.WebApi.Options;
 using Manu.AiAssistant.WebApi.Identity;
 using Microsoft.AspNetCore.Identity;
-using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Manu.AiAssistant.WebApi.KeyVault;
 using Manu.AiAssistant.WebApi.Http;
-using Manu.AiAssistant.WebApi.Models.Image;
 using Manu.AiAssistant.WebApi.Models.Entities;
 using Manu.AiAssistant.WebApi.Data;
 using Manu.AiAssistant.WebApi.Services;
 using Microsoft.Azure.Cosmos;
-using Manu.AiAssistant.WebApi.Identity; // ensure CosmosUserStore is visible
 using Azure.Storage.Blobs; // BlobServiceClient
 using Microsoft.AspNetCore.Authentication.Cookies; // cookie options
 using Microsoft.AspNetCore.HttpOverrides; // forwarded headers
-using Azure.Extensions.AspNetCore.DataProtection.Blobs; // data protection blob persistence
-using Azure.Extensions.AspNetCore.DataProtection.Keys; // (future key wrapping if needed)
 using Microsoft.AspNetCore.DataProtection; // for SetApplicationName extension
-using Azure.Storage.Blobs; // added for BlobServiceClient
-using Microsoft.AspNetCore.Authentication.Cookies; // for cookie options
-using Microsoft.AspNetCore.HttpOverrides; // forwarded headers
 
 namespace Manu.AiAssistant.WebApi
 {
