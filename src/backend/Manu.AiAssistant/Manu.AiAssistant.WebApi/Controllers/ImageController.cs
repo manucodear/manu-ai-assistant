@@ -19,7 +19,8 @@ namespace Manu.AiAssistant.WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
+    // [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
+    [Authorize]
     public class ImageController : Controller
     {
         private readonly HttpClient _httpClient;
