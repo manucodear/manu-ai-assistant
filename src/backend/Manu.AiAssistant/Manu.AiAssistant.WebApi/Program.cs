@@ -110,13 +110,6 @@ namespace Manu.AiAssistant.WebApi
                 dataProtectionBuilder.ProtectKeysWithAzureKeyVault(new Uri(keyIdentifier), new DefaultAzureCredential());
             }
 
-            if (!string.IsNullOrEmpty(keyVaultUrl))
-            {
-                var keyIdentifier = builder.Configuration["AzureKeyVault:DataProtectionKeyId"]; // key name or full identifier
-                keyIdentifier = $"{keyVaultUrl}/keys/{keyIdentifier}";
-                dataProtectionBuilder.ProtectKeysWithAzureKeyVault(new Uri(keyIdentifier), new DefaultAzureCredential());
-            }
-
             // Cosmos Client singleton (shared)
             builder.Services.AddSingleton(provider => {
                 var options = provider.GetRequiredService<IOptions<CosmosDbOptions>>().Value;
@@ -216,9 +209,12 @@ namespace Manu.AiAssistant.WebApi
             {
                 builder.Services.AddAuthentication(options =>
                 {
+                    options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
+                    options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
+                    options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
                     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                 })
-                .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, o =>
+                .AddCookie(IdentityConstants.ApplicationScheme, o =>
                 {
                     o.Cookie.Name = ".ManuAuth"; // custom cookie name
                     o.Cookie.SameSite = SameSiteMode.None;
@@ -232,14 +228,6 @@ namespace Manu.AiAssistant.WebApi
                     };
                 });
             }
-
-            // (Optional) additional configuration hook retained
-            builder.Services.ConfigureApplicationCookie(o =>
-            {
-                o.Cookie.SameSite = SameSiteMode.None;
-                o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-                o.Cookie.HttpOnly = true;
-            });
 
             builder.Services.AddScoped<IImageProcessingProvider, ImageSharpProcessingProvider>();
             builder.Services.AddScoped<IImageStorageProvider, AzureBlobImageStorageProvider>();
