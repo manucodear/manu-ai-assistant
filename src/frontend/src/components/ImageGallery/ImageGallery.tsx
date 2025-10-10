@@ -161,7 +161,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
 
           <div className={styles.gallery} data-size={selectedSize}>
             {images.map((image) => (
-              <Card key={image.id} className={styles.imageCard}>
+              <div key={`${image.id}-${selectedSize}`} className={styles.imageCard}>
                 <div className={styles.imageContainer}>
                   <Image
                     src={getImageUrl(image)}
@@ -172,8 +172,12 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
                   <div className={styles.imageOverlay}>
                     <div className={styles.imageInfo}>
                       <Body1 className={styles.imagePrompt} title={image.prompt}>
-                        {image.prompt.length > 100 
-                          ? `${image.prompt.substring(0, 100)}...` 
+                        {selectedSize === 'small' && image.prompt.length > 60
+                          ? `${image.prompt.substring(0, 60)}...`
+                          : selectedSize === 'medium' && image.prompt.length > 100
+                          ? `${image.prompt.substring(0, 100)}...`
+                          : selectedSize === 'large' && image.prompt.length > 150
+                          ? `${image.prompt.substring(0, 150)}...`
                           : image.prompt
                         }
                       </Body1>
@@ -183,7 +187,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
                     </div>
                   </div>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         </>
