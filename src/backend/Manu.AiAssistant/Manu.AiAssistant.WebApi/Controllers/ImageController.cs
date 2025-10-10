@@ -222,7 +222,6 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 thumbnailMedium = $"{basePath}/{id}{ThumbnailSize.Medium.ToFileSuffix()}".ToLower(),
                 thumbnailLarge = $"{basePath}/{id}{ThumbnailSize.Large.ToFileSuffix()}".ToLower()
             };
-            // Optionally also log upload events similarly (not requested now)
             return Ok(resultObj);
         }
 
