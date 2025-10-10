@@ -14,6 +14,7 @@ using Microsoft.Azure.Cosmos;
 using Manu.AiAssistant.WebApi.Identity; // ensure CosmosUserStore is visible
 using Azure.Storage.Blobs; // added for BlobServiceClient
 using Microsoft.AspNetCore.Authentication.Cookies; // for cookie options
+using Microsoft.AspNetCore.HttpOverrides; // forwarded headers
 
 namespace Manu.AiAssistant.WebApi
 {
@@ -66,6 +67,15 @@ namespace Manu.AiAssistant.WebApi
             // Data Protection (required for Identity token providers)
             builder.Services.AddDataProtection();
 
+            // Forwarded headers (Front Door / reverse proxy) so Request.Scheme becomes https
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+                // Optionally clear known networks/proxies to accept forwarded headers from Front Door / Container Apps ingress
+                options.KnownNetworks.Clear();
+                options.KnownProxies.Clear();
+            });
+
             // BlobServiceClient for image storage & controller
             builder.Services.AddSingleton(provider =>
             {
@@ -112,9 +122,15 @@ namespace Manu.AiAssistant.WebApi
                 o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                 o.Cookie.HttpOnly = true;
                 o.SlidingExpiration = true;
+                // Avoid HTTP redirect for API clients: return 401/403 instead
+                o.Events = new CookieAuthenticationEvents
+                {
+                    OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; },
+                    OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; }
+                };
             });
 
-            // (Optional) additional configuration hook retained
+            // Optional secondary configuration (kept minimal now)
             builder.Services.ConfigureApplicationCookie(o =>
             {
                 o.Cookie.SameSite = SameSiteMode.None;
@@ -143,6 +159,9 @@ namespace Manu.AiAssistant.WebApi
             {
                 app.MapOpenApi();
             }
+
+            // MUST be before authentication so scheme/host are corrected
+            app.UseForwardedHeaders();
 
             app.UseHttpsRedirection();
             app.UseCors(FrontendCorsPolicy);
