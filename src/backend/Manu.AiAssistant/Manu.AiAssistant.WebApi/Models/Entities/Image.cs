@@ -9,8 +9,11 @@ namespace Manu.AiAssistant.WebApi.Models.Entities
         [JsonProperty("username")]
         public string Username { get; set; } = string.Empty;
 
-        [JsonProperty("timestampUtc")]
-        public DateTime TimestampUtc { get; set; }
+        [JsonProperty("prompt")]
+        public string Prompt { get; set; } = string.Empty;
+
+        [JsonProperty("timestamp")]
+        public DateTime Timestamp { get; set; }
 
         [JsonProperty("dalleRequest")]
         public object DalleRequest { get; set; } = new();
@@ -19,7 +22,25 @@ namespace Manu.AiAssistant.WebApi.Models.Entities
         [JsonProperty("dalleResponse")]
         public object DalleResponse { get; set; } = new();
 
-        [JsonProperty("error")]
-        public bool Error { get; set; }
+        [JsonProperty("hasError")]
+        public bool HasError { get; set; }
+
+        [JsonProperty("imageData")]
+        public ImageData ImageData { get; set; } = new();
+    }
+
+    public class ImageData
+    {
+        [JsonProperty("url")]
+        public string Url { get; set; } = string.Empty;
+
+        [JsonProperty("smallUrl")]
+        public string SmallUrl { get; set; } = string.Empty;
+
+        [JsonProperty("mediumUrl")]
+        public string MediumUrl { get; set; } = string.Empty;
+
+        [JsonProperty("largeUrl")]
+        public string LargeUrl { get; set; } = string.Empty;
     }
 }
