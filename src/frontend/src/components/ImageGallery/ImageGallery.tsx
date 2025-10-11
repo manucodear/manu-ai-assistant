@@ -24,7 +24,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
   const [images, setImages] = useState<ImageData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedSize, setSelectedSize] = useState<ImageSize>('medium');
+  const [selectedSize, setSelectedSize] = useState<ImageSize>('large');
 
   const fetchImages = async () => {
     setLoading(true);
@@ -171,16 +171,6 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
                   />
                   <div className={styles.imageOverlay}>
                     <div className={styles.imageInfo}>
-                      <Body1 className={styles.imagePrompt} title={image.prompt}>
-                        {selectedSize === 'small' && image.prompt.length > 60
-                          ? `${image.prompt.substring(0, 60)}...`
-                          : selectedSize === 'medium' && image.prompt.length > 100
-                          ? `${image.prompt.substring(0, 100)}...`
-                          : selectedSize === 'large' && image.prompt.length > 150
-                          ? `${image.prompt.substring(0, 150)}...`
-                          : image.prompt
-                        }
-                      </Body1>
                       <Body1 className={styles.imageTimestamp}>
                         {formatTimestamp(image.timestamp)}
                       </Body1>
