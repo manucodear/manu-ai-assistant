@@ -1,0 +1,56 @@
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  backendPath: 'src/backend/Manu.AiAssistant/Manu.AiAssistant.WebApi'
+  frontendPath: 'src/frontend'
+  backendImageName: 'manu-assistant-app-backend'
+  frontendImageName: 'manu-assistant-app-frontend'
+
+jobs:
+- job: BackendDockerBuild
+  displayName: 'Build Backend Docker (PR)'
+  steps:
+  # Cache Docker layers
+  - task: Cache@2
+    inputs:
+      key: 'docker | "$(Agent.OS)" | backend'
+      path: '/tmp/.docker-cache'
+      restoreKeys: |
+        docker | "$(Agent.OS)"
+    displayName: 'Cache backend Docker layers'
+
+  - script: |
+      docker build \
+        --platform linux/amd64 \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --cache-from type=local,src=/tmp/.docker-cache \
+        --cache-to type=local,dest=/tmp/.docker-cache,mode=max \
+        -t $(backendImageName):pr-$(Build.BuildNumber) \
+        -f $(Build.SourcesDirectory)/$(backendPath)/Dockerfile \
+        $(Build.SourcesDirectory)/$(backendPath)
+    displayName: 'Build backend image with cache'
+
+- job: FrontendDockerBuild
+  displayName: 'Build Frontend Docker (PR)'
+  steps:
+  - task: Cache@2
+    inputs:
+      key: 'docker | "$(Agent.OS)" | frontend'
+      path: '/tmp/.docker-cache'
+      restoreKeys: |
+        docker | "$(Agent.OS)"
+    displayName: 'Cache frontend Docker layers'
+
+  - script: |
+      docker build \
+        --platform linux/amd64 \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --cache-from type=local,src=/tmp/.docker-cache \
+        --cache-to type=local,dest=/tmp/.docker-cache,mode=max \
+        -t $(frontendImageName):pr-$(Build.BuildNumber) \
+        -f $(Build.SourcesDirectory)/$(frontendPath)/Dockerfile \
+        $(Build.SourcesDirectory)/$(frontendPath)
+    displayName: 'Build frontend image with cache'
