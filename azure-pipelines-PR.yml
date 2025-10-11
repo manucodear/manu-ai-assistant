@@ -13,44 +13,74 @@ jobs:
 - job: BackendDockerBuild
   displayName: 'Build Backend Docker (PR)'
   steps:
-  # Cache Docker layers
+  # Restore Docker layer cache
   - task: Cache@2
     inputs:
-      key: 'docker | "$(Agent.OS)" | backend'
+      key: 'docker | "$(Agent.OS)" | shared'
       path: '/tmp/.docker-cache'
       restoreKeys: |
         docker | "$(Agent.OS)"
-    displayName: 'Cache backend Docker layers'
+    displayName: 'Restore Docker layer cache'
 
+  # Setup Buildx for BuildKit caching
   - script: |
-      docker build \
+      echo "🔧 Setting up Docker Buildx builder..."
+      docker buildx create --use --name mybuilder
+      docker buildx inspect --bootstrap
+
+      echo "Building backend image with BuildKit cache..."
+      docker buildx build \
         --platform linux/amd64 \
         --build-arg BUILDKIT_INLINE_CACHE=1 \
         --cache-from type=local,src=/tmp/.docker-cache \
         --cache-to type=local,dest=/tmp/.docker-cache,mode=max \
         -t $(backendImageName):pr-$(Build.BuildNumber) \
         -f $(Build.SourcesDirectory)/$(backendPath)/Dockerfile \
-        $(Build.SourcesDirectory)/$(backendPath)
-    displayName: 'Build backend image with cache'
+        $(Build.SourcesDirectory)/$(backendPath) \
+        --load
+    displayName: 'Build backend image (with cache)'
+
+  # Save updated Docker cache
+  - task: Cache@2
+    inputs:
+      key: 'docker | "$(Agent.OS)" | shared'
+      path: '/tmp/.docker-cache'
+    displayName: 'Save Docker layer cache'
 
 - job: FrontendDockerBuild
   displayName: 'Build Frontend Docker (PR)'
+  dependsOn: BackendDockerBuild
   steps:
+  # Restore Docker layer cache
   - task: Cache@2
     inputs:
-      key: 'docker | "$(Agent.OS)" | frontend'
+      key: 'docker | "$(Agent.OS)" | shared'
       path: '/tmp/.docker-cache'
       restoreKeys: |
         docker | "$(Agent.OS)"
-    displayName: 'Cache frontend Docker layers'
+    displayName: 'Restore Docker layer cache'
 
+  # Setup Buildx for BuildKit caching
   - script: |
-      docker build \
+      echo "🔧 Setting up Docker Buildx builder..."
+      docker buildx create --use --name mybuilder
+      docker buildx inspect --bootstrap
+
+      echo "Building frontend image with BuildKit cache..."
+      docker buildx build \
         --platform linux/amd64 \
         --build-arg BUILDKIT_INLINE_CACHE=1 \
         --cache-from type=local,src=/tmp/.docker-cache \
         --cache-to type=local,dest=/tmp/.docker-cache,mode=max \
         -t $(frontendImageName):pr-$(Build.BuildNumber) \
         -f $(Build.SourcesDirectory)/$(frontendPath)/Dockerfile \
-        $(Build.SourcesDirectory)/$(frontendPath)
-    displayName: 'Build frontend image with cache'
+        $(Build.SourcesDirectory)/$(frontendPath) \
+        --load
+    displayName: 'Build frontend image (with cache)'
+
+  # Save updated Docker cache
+  - task: Cache@2
+    inputs:
+      key: 'docker | "$(Agent.OS)" | shared'
+      path: '/tmp/.docker-cache'
+    displayName: 'Save Docker layer cache'
