@@ -62,7 +62,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> GetImage(string filename, CancellationToken cancellationToken)
         {
-            var containerClient = _blobServiceClient.GetBlobContainerClient(_storageOptions.ContainerName);
+            var containerClient = _blobServiceClient.GetBlobContainerClient(_storageOptions.Containers.Image);
             var blobClient = containerClient.GetBlobClient(filename);
             if (!await blobClient.ExistsAsync(cancellationToken))
                 return NotFound();
@@ -177,44 +177,8 @@ namespace Manu.AiAssistant.WebApi.Controllers
             });
         }
 
-        [HttpPost("Upload")]
-        [AllowAnonymous]
-        public async Task<IActionResult> UploadImage([FromForm] IFormFile image, CancellationToken cancellationToken)
-        {
-            if (image == null || image.Length == 0)
-                return BadRequest("No file uploaded.");
-
-            using var original = new MemoryStream();
-            await image.CopyToAsync(original, cancellationToken);
-            original.Position = 0;
-            var thumbSet = await _imageProcessingProvider.GenerateThumbnailsAsync(original, new[] { ThumbnailSize.Small, ThumbnailSize.Medium, ThumbnailSize.Large }, cancellationToken);
-            var id = Guid.NewGuid().ToString();
-            var basePath = _appOptions.ImagePath.TrimEnd('/');
-            var ext = Path.GetExtension(image.FileName);
-            if (string.IsNullOrWhiteSpace(ext)) ext = ".png";
-            await _imageStorageProvider.UploadImageAsync(original, id + ext, cancellationToken);
-            foreach (var (size, tuple) in thumbSet)
-            {
-                var (stream, suffix) = tuple;
-                stream.Position = 0;
-                await _imageStorageProvider.UploadImageAsync(stream, id + suffix, cancellationToken);
-                stream.Dispose();
-            }
-
-            var resultObj = new
-            {
-                url = $"{basePath}/{id + ext}".ToLower(),
-                thumbnailSmall = $"{basePath}/{id}{ThumbnailSize.Small.ToFileSuffix()}".ToLower(),
-                thumbnailMedium = $"{basePath}/{id}{ThumbnailSize.Medium.ToFileSuffix()}".ToLower(),
-                thumbnailLarge = $"{basePath}/{id}{ThumbnailSize.Large.ToFileSuffix()}".ToLower()
-            };
-            // Optionally also log upload events similarly (not requested now)
-            // If you want to log uploads, call StoreImageLogAsync(request, ..., ..., ..., ..., cancellationToken, id)
-            return Ok(resultObj);
-        }
-
         [HttpGet]
-        public async Task<IActionResult> GetUserImages(CancellationToken cancellationToken)
+        public async Task<IActionResult> GetImages(CancellationToken cancellationToken)
         {
             var username = User?.Identity?.IsAuthenticated == true ? User.Identity!.Name : null;
             if (string.IsNullOrEmpty(username)) return Unauthorized();

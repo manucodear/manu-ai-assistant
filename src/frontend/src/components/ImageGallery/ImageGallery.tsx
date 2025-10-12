@@ -76,13 +76,18 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
 
   const formatTimestamp = (timestamp: string): string => {
     try {
-      return new Date(timestamp).toLocaleDateString('en-US', {
+      const d = new Date(timestamp);
+      if (Number.isNaN(d.getTime())) return timestamp;
+      const datePart = d.toLocaleDateString('en-US', {
         year: 'numeric',
-        month: 'short',
-        day: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const timePart = d.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit'
       });
+      return `${datePart} · ${timePart}`;
     } catch {
       return timestamp;
     }
