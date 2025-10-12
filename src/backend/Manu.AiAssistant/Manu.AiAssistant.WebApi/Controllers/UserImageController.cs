@@ -33,7 +33,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
         }
 
         [HttpPost]
-        [AllowAnonymous]
+        [Authorize]
         public async Task<IActionResult> UploadImage([FromForm] IFormFile image, CancellationToken cancellationToken)
         {
             if (image == null || image.Length == 0)
