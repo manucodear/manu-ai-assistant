@@ -107,7 +107,7 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('https://localhost:4001/api/userImage', {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/userimage`, {
         method: 'POST',
         // Do NOT set Content-Type; browser will add multipart boundary
         headers: headers,

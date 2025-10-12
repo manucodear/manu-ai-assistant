@@ -41,7 +41,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
 
             var uploadedFiles = new List<string>();
             var id = Guid.NewGuid().ToString();
-            var basePath = _appOptions.ImagePath.TrimEnd('/');
+            var basePath = _appOptions.UserImagePath.TrimEnd('/');
             var ext = Path.GetExtension(image.FileName).ToLower();
             if (string.IsNullOrWhiteSpace(ext)) ext = ".png";
 
