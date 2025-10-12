@@ -98,6 +98,7 @@ namespace Manu.AiAssistant.WebApi
                 .PersistKeysToAzureBlobStorage(sp =>
                 {
                     var blobService = sp.GetRequiredService<BlobServiceClient>();
+                    // Use a dedicated container for data protection keys, not ImageC/ChatC
                     var container = blobService.GetBlobContainerClient("dataprotection");
                     container.CreateIfNotExists();
                     return container.GetBlobClient("keyring.xml");
@@ -232,6 +233,8 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.AddScoped<IImageProcessingProvider, ImageSharpProcessingProvider>();
             builder.Services.AddScoped<IImageStorageProvider, AzureBlobImageStorageProvider>();
             builder.Services.AddScoped<IDalleProvider, DalleApiProvider>();
+            // Register UserImageBlobStorageProvider for user images
+            builder.Services.AddScoped<UserImageBlobStorageProvider>();
 
             // Build the app AFTER all service registrations
             var app = builder.Build();
