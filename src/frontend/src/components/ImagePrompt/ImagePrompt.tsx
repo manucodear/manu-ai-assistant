@@ -75,6 +75,11 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
     setGeneratedPrompt('');
     setUploadedThumbnail(null);
     setUploadedImageUrl(null);
+    
+    // Reset the file input to allow uploading again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   // ref to hidden file input for uploads
@@ -178,6 +183,11 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
       setUploadedThumbnail(null);
       setUploadedImageUrl(null);
       
+      // Reset the file input to allow uploading again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
     } catch (err: any) {
       console.error('Delete error:', err);
       setError(err?.message ?? 'Failed to delete image');
@@ -188,40 +198,41 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
 
   return (
     <div className={styles.container}>
-      {/* Persistent New button at top-right and Add Image button at top-left (same parent) */}
-      {/* Thumbnail displayed above the buttons */}
-      <div className={styles.thumbTop}>
-        {uploading ? (
-          <div className={styles.uploadThumbPlaceholder} aria-hidden>
-            <Spinner size="small" />
-          </div>
-        ) : uploadedThumbnail ? (
-          <div className={styles.thumbContainer}>
-            <img src={uploadedThumbnail} alt="uploaded thumbnail" className={styles.uploadedThumb} />
+      {/* Buttons container: Add (+), thumbnail, and New button all in same row */}
+      <div className={styles.buttonsRow}>
+        <div className={styles.addButtonWrap}>
+          {/* Only show + button if no thumbnail is uploaded and not uploading */}
+          {!uploadedThumbnail && !uploading && (
             <Button
               appearance="subtle"
               shape="circular"
-              size="small"
-              className={styles.deleteButton}
-              onClick={deleteUploadedImage}
-              disabled={deleting}
-              title={deleting ? "Deleting..." : "Delete image"}
-              icon={deleting ? <Spinner size="extra-small" /> : <Delete20Regular />}
+              title="Add Image"
+              onClick={handleUploadClick}
+              icon={<Add20Regular />}
             />
-          </div>
-        ) : null}
-      </div>
-
-      {/* Buttons container: Add (+) on the left, New on the right */}
-      <div className={styles.buttonsRow}>
-        <div className={styles.addButtonWrap}>
-          <Button
-            appearance="subtle"
-            shape="circular"
-            title="Add Image"
-            onClick={handleUploadClick}
-            icon={<Add20Regular />}
-          />
+          )}
+          
+          {/* Show thumbnail or upload spinner in the same space as + button */}
+          {uploading ? (
+            <div className={styles.uploadThumbPlaceholder} aria-hidden>
+              <Spinner size="small" />
+            </div>
+          ) : uploadedThumbnail ? (
+            <div className={styles.thumbContainer}>
+              <img src={uploadedThumbnail} alt="uploaded thumbnail" className={styles.uploadedThumb} />
+              <Button
+                appearance="subtle"
+                shape="circular"
+                size="small"
+                className={styles.deleteButton}
+                onClick={deleteUploadedImage}
+                disabled={deleting}
+                title={deleting ? "Deleting..." : "Delete image"}
+                icon={deleting ? <Spinner size="extra-small" /> : <Delete20Regular />}
+              />
+            </div>
+          ) : null}
+          
           {/* Hidden file input used for uploads */}
           <input
             ref={fileInputRef}

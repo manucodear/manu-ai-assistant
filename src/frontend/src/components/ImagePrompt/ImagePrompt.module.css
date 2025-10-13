@@ -61,10 +61,6 @@
   justify-content: flex-end;
 }
 
-.addButtonWrap {
-  margin-right: auto;
-}
-
 .uploadedThumb {
   width: 56px;
   height: 56px;
@@ -79,13 +75,6 @@
   justify-content: center;
   width: 56px;
   height: 56px;
-}
-
-.thumbTop {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  margin-bottom: 0.5rem;
 }
 
 .thumbContainer {
@@ -124,6 +113,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 56px; /* Ensure consistent height even when no thumbnail */
+}
+
+.addButtonWrap {
+  display: flex;
+  align-items: center;
+  margin-right: auto;
 }
 
 .newButtonWrapInner {
