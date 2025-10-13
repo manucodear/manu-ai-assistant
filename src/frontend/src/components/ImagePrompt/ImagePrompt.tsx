@@ -8,7 +8,7 @@ import {
   MessageBar,
   Image
 } from '@fluentui/react-components';
-import { ImageSparkle20Regular, Add20Regular } from '@fluentui/react-icons';
+import { ImageSparkle20Regular, Add20Regular, Delete20Regular } from '@fluentui/react-icons';
 
 const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
   const [prompt, setPrompt] = useState<string>(value ?? '');
@@ -16,7 +16,9 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
   const [error, setError] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [uploadedThumbnail, setUploadedThumbnail] = useState<string | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   // submitted becomes true when a generate request succeeds (res.ok)
   const [submitted, setSubmitted] = useState(false);
   // store the prompt that was used for generation so we can show it in a div
@@ -71,6 +73,8 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
     setLoading(false);
     setSubmitted(false);
     setGeneratedPrompt('');
+    setUploadedThumbnail(null);
+    setUploadedImageUrl(null);
   };
 
   // ref to hidden file input for uploads
@@ -125,6 +129,10 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
       // Expect object with thumbnailMedium and url fields per API example
       if (data && data.thumbnailMedium) {
         setUploadedThumbnail(data.thumbnailMedium);
+        // Store the full image URL for deletion
+        if (data.url) {
+          setUploadedImageUrl(data.url);
+        }
       }
 
       // Do not add the uploaded full image to the generated images area.
@@ -139,6 +147,45 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
     }
   };
 
+  // Delete the uploaded image
+  const deleteUploadedImage = async () => {
+    if (!uploadedImageUrl) {
+      console.error('No image URL available for deletion');
+      return;
+    }
+
+    setDeleting(true);
+    setError(null);
+
+    try {
+      // Extract filename from the full URL for the DELETE endpoint
+      const filename = uploadedImageUrl.split('/').pop();
+      if (!filename) {
+        throw new Error('Could not extract filename from image URL');
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/userimage/${filename}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const txt = await response.text();
+        throw new Error(txt || `Failed to delete image: ${response.status}`);
+      }
+
+      // Clear the thumbnail and URL after successful deletion
+      setUploadedThumbnail(null);
+      setUploadedImageUrl(null);
+      
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      setError(err?.message ?? 'Failed to delete image');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className={styles.container}>
       {/* Persistent New button at top-right and Add Image button at top-left (same parent) */}
@@ -149,7 +196,19 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
             <Spinner size="small" />
           </div>
         ) : uploadedThumbnail ? (
-          <img src={uploadedThumbnail} alt="uploaded thumbnail" className={styles.uploadedThumb} />
+          <div className={styles.thumbContainer}>
+            <img src={uploadedThumbnail} alt="uploaded thumbnail" className={styles.uploadedThumb} />
+            <Button
+              appearance="subtle"
+              shape="circular"
+              size="small"
+              className={styles.deleteButton}
+              onClick={deleteUploadedImage}
+              disabled={deleting}
+              title={deleting ? "Deleting..." : "Delete image"}
+              icon={deleting ? <Spinner size="extra-small" /> : <Delete20Regular />}
+            />
+          </div>
         ) : null}
       </div>
 
