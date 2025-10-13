@@ -12,6 +12,8 @@ export interface ImageData {
   smallUrl: string;
   mediumUrl: string;
   largeUrl: string;
+  isUserUpload?: boolean; // Flag to identify user-uploaded images
+  deleteUrl?: string; // URL to use for deleting user-uploaded images
 }
 
 export interface ImageResponse {
