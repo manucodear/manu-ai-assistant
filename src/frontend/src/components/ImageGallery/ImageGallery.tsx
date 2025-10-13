@@ -12,12 +12,14 @@ import {
   Image,
   RadioGroup,
   Radio,
-  Badge
+  Badge,
+  Button
 } from '@fluentui/react-components';
 import { 
   ImageMultiple20Regular,
   Warning20Regular,
-  CheckmarkCircle20Regular
+  CheckmarkCircle20Regular,
+  Dismiss20Regular
 } from '@fluentui/react-icons';
 
 const ImageGallery: React.FC<ImageGalleryProps> = () => {
@@ -25,6 +27,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<ImageSize>('large');
+  const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
 
   const fetchImages = async () => {
     setLoading(true);
@@ -90,6 +93,40 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
       return `${datePart} · ${timePart}`;
     } catch {
       return timestamp;
+    }
+  };
+
+  const deleteUserImage = async (image: ImageData) => {
+    if (!image.isUserUpload || !image.url) {
+      console.error('Cannot delete: not a user upload or missing URL');
+      return;
+    }
+
+    setDeletingImageId(image.id);
+    setError(null);
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/userimage`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ imageUrl: image.url }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete image: ${response.status} ${response.statusText}`);
+      }
+
+      // Remove the image from the local state
+      setImages(prevImages => prevImages.filter(img => img.id !== image.id));
+      
+    } catch (err: any) {
+      console.error('Error deleting image:', err);
+      setError(err.message || 'Failed to delete image');
+    } finally {
+      setDeletingImageId(null);
     }
   };
 
@@ -174,6 +211,22 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
                     className={styles.galleryImage}
                     fit="cover"
                   />
+                  {/* X button for user-uploaded images */}
+                  {image.isUserUpload && (
+                    <Button
+                      appearance="subtle"
+                      shape="circular"
+                      size="small"
+                      icon={deletingImageId === image.id ? <Spinner size="extra-small" /> : <Dismiss20Regular />}
+                      className={styles.deleteButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteUserImage(image);
+                      }}
+                      disabled={deletingImageId === image.id}
+                      title={deletingImageId === image.id ? "Deleting..." : "Delete this image"}
+                    />
+                  )}
                   <div className={styles.imageOverlay}>
                     <div className={styles.imageInfo}>
                       <Body1 className={styles.imageTimestamp}>
