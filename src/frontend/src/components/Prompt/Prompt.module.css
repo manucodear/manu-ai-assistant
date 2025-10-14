@@ -1,0 +1,73 @@
+.container {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	width: 100%;
+}
+
+.promptRow {
+	display: flex;
+	gap: 8px;
+	align-items: flex-start;
+}
+
+.actions {
+	display: flex;
+	align-items: center;
+}
+
+.messages {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.messageCard {
+	background: #ffffff;
+	border: 1px solid #e1e1e1;
+	padding: 10px;
+	border-radius: 6px;
+}
+
+.userPrompt {
+	font-weight: 600;
+	margin-bottom: 8px;
+	white-space: pre-wrap;
+}
+
+.chipsRow {
+	display: flex;
+	gap: 6px;
+	flex-wrap: wrap;
+	margin-bottom: 8px;
+}
+
+.chip {
+	background: #f3f2f1;
+	border: 1px solid #e1dfdd;
+	padding: 6px 10px;
+	border-radius: 999px;
+	cursor: pointer;
+}
+
+.conversation {
+	margin-top: 6px;
+	color: #333;
+	white-space: pre-wrap;
+}
+
+.loadingRow {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	margin-bottom: 6px;
+}
+
+.loadingText {
+	color: #666;
+}
+
+.error {
+	color: #a80000;
+	font-weight: 600;
+}

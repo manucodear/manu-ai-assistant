@@ -8,6 +8,7 @@ import FluentShowcase from './pages/FluentShowcase';
 import ErrorPage from './pages/ErrorPage';
 import ErrorTestPage from './pages/ErrorTestPage';
 import ResponsiveDemo from './pages/ResponsiveDemo';
+import PromptTest from './pages/PromptTest/PromptTest';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Token } from './pages/Token';
 
@@ -37,6 +38,7 @@ function App() {
           <Token />
         </ProtectedRoute>
       } />
+      <Route path="/prompt-test" element={<PromptTest />} />
     </Routes>
    </Router>
   )
