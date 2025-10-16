@@ -34,5 +34,12 @@ namespace Manu.AiAssistant.WebApi.Controllers
             }
             return Ok(result.ResponseContent);
         }
+
+        [HttpPut]
+        public async Task<IActionResult> PromptRevision([FromBody] PromptRevisionRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _imagePromptProvider.PromptRevisionAsync(request, cancellationToken);
+            return result.IsError ? StatusCode(500, result.ResponseContent) : Ok(result.ResponseContent);
+        }
     }
 }
