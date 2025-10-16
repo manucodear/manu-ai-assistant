@@ -23,16 +23,18 @@
 }
 
 .messageCard {
-	background: #ffffff;
-	border: 1px solid #e1e1e1;
+	background: #1e1e1e; /* dark card */
+	border: 1px solid #2e2e2e;
 	padding: 10px;
 	border-radius: 6px;
+	color: #e6e6e6;
 }
 
 .userPrompt {
 	font-weight: 600;
 	margin-bottom: 8px;
 	white-space: pre-wrap;
+	color: #ffffff;
 }
 
 .chipsRow {
@@ -43,16 +45,35 @@
 }
 
 .chip {
-	background: #f3f2f1;
-	border: 1px solid #e1dfdd;
+	background: #2a2a2a;
+	border: 1px solid #3a3a3a;
 	padding: 6px 10px;
 	border-radius: 999px;
 	cursor: pointer;
+	color: #e6e6e6;
+}
+
+.tagSelectorWrapper {
+	position: relative;
+	display: inline-block;
+}
+
+.floatingPanel {
+	position: absolute;
+	right: 0;
+	top: calc(100% + 8px);
+	background: #1e1e1e;
+	border: 1px solid #3a3a3a;
+	padding: 8px;
+	border-radius: 6px;
+	z-index: 1000;
+	min-width: 260px;
+	box-shadow: 0 6px 18px rgba(0,0,0,0.6);
 }
 
 .conversation {
 	margin-top: 6px;
-	color: #333;
+	color: #cfcfcf;
 	white-space: pre-wrap;
 }
 
@@ -64,7 +85,7 @@
 }
 
 .loadingText {
-	color: #666;
+	color: #bdbdbd;
 }
 
 .error {
