@@ -1,9 +1,7 @@
-﻿using Manu.AiAssistant.WebApi.Models.Chat;
+﻿using Manu.AiAssistant.WebApi.Models.ImagePrompt;
 using Manu.AiAssistant.WebApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {
@@ -12,15 +10,15 @@ namespace Manu.AiAssistant.WebApi.Controllers
     [Route("api/[controller]")]
     public class ImagePromptController : ControllerBase
     {
-        private readonly ImagePromptProvider _imagePromptProvider;
+        private readonly IImagePromptProvider _imagePromptProvider;
 
-        public ImagePromptController(ImagePromptProvider imagePromptProvider)
+        public ImagePromptController(IImagePromptProvider imagePromptProvider)
         {
             _imagePromptProvider = imagePromptProvider;
         }
 
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] ChatRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> Post([FromBody] ImagePromptRequest request, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(request.Prompt))
             {
@@ -28,18 +26,22 @@ namespace Manu.AiAssistant.WebApi.Controllers
             }
 
             var result = await _imagePromptProvider.GetImagePromptResponseAsync(request.Prompt, cancellationToken);
-            if (result.IsError)
+            if (result == null || string.IsNullOrWhiteSpace(result.ImprovedPrompt))
             {
-                return StatusCode(500, result.ResponseContent);
+                return StatusCode(500, "Failed to parse image prompt result.");
             }
-            return Ok(result.ResponseContent);
+            return Ok(result);
         }
 
         [HttpPut]
         public async Task<IActionResult> PromptRevision([FromBody] PromptRevisionRequest request, CancellationToken cancellationToken)
         {
             var result = await _imagePromptProvider.PromptRevisionAsync(request, cancellationToken);
-            return result.IsError ? StatusCode(500, result.ResponseContent) : Ok(result.ResponseContent);
+            if (result == null || string.IsNullOrWhiteSpace(result.RevisedPrompt))
+            {
+                return StatusCode(500, "Failed to parse prompt revision result.");
+            }
+            return Ok(result);
         }
     }
 }

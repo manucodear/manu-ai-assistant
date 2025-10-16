@@ -241,8 +241,8 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.AddScoped<IDalleProvider, DalleApiProvider>();
             // Register UserImageBlobStorageProvider for user images
             builder.Services.AddScoped<UserImageBlobStorageProvider>();
-            // Register ImagePromptProvider
-            builder.Services.AddScoped<ImagePromptProvider>();
+            // Register IImagePromptProvider for DI
+            builder.Services.AddScoped<IImagePromptProvider, ImagePromptProvider>();
 
             // Build the app AFTER all service registrations
             var app = builder.Build();

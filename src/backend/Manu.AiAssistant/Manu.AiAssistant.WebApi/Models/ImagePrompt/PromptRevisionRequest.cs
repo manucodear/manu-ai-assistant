@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Manu.AiAssistant.WebApi.Models.Chat
+namespace Manu.AiAssistant.WebApi.Models.ImagePrompt
 {
     public class PromptRevisionRequest
     {

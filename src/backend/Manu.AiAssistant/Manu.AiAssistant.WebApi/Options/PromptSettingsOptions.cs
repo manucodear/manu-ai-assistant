@@ -6,6 +6,7 @@ namespace Manu.AiAssistant.WebApi.Options
     public class PromptSettingsOptions
     {
         public ImagePromptOptions Image { get; set; } = new();
+        public string RevisionPrompt { get; set; } = string.Empty;
     }
 
     public class ImagePromptOptions
