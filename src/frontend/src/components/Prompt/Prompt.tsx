@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { PromptProps } from './Prompt.types';
 import styles from './Prompt.module.css';
-import { Textarea, Button, Spinner } from '@fluentui/react-components';
+import { Spinner, Textarea } from '@fluentui/react-components';
+import { Send16Regular } from '@fluentui/react-icons';
 
 interface ImagePromptTags {
   Included: string[];
@@ -31,11 +32,15 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [sending, setSending] = useState(false);
   const [imageResult, setImageResult] = useState<ImagePromptResult | null>(null);
+  const [showUserInput, setShowUserInput] = useState(true);
+  const [imageResultMessageId, setImageResultMessageId] = useState<string | null>(null);
+  const [pendingMessage, setPendingMessage] = useState<MessageItem | null>(null);
 
   const [selectedIncluded, setSelectedIncluded] = useState<Record<string, boolean>>({});
   const [selectedNotIncluded, setSelectedNotIncluded] = useState<Record<string, boolean>>({});
   const [selectedPOVs, setSelectedPOVs] = useState<Record<string, boolean>>({});
   const [showDifferences, setShowDifferences] = useState(false);
+  const [showTextarea, setShowTextarea] = useState<boolean>(true);
 
   const sendPrompt = async (text: string) => {
     if (!text || !text.trim()) return;
@@ -51,9 +56,14 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
       isImagePrompt: true,
     };
 
-    setMessages((m: MessageItem[]) => [...m, newMessage]);
-    setInput('');
-    setSending(true);
+  // keep the new message as pending (don't add to messages list yet)
+  setPendingMessage(newMessage);
+  // clear the input immediately when sending
+  setInput('');
+  setSending(true);
+  // hide the textarea immediately when send starts
+  setShowTextarea(false);
+  // pendingMessage will be rendered inline in the input card until response
 
     try {
       const payload = { prompt: text } as any;
@@ -97,7 +107,12 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
         } as ImagePromptResult;
       })();
 
-      setImageResult(data);
+    setImageResult(data);
+
+  // Record which message corresponds to this image result so we can
+  // hide/show the original user input for that message.
+  setImageResultMessageId(tempId);
+  setShowUserInput(false);
 
       const inc: Record<string, boolean> = {};
       const notInc: Record<string, boolean> = {};
@@ -110,29 +125,18 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
       (data.PointOfViews || []).forEach((p: string) => (povs[p] = false));
       setSelectedPOVs(povs);
 
-      setMessages((prev: MessageItem[]) => {
-        const copy = [...prev];
-        for (let i = copy.length - 1; i >= 0; i--) {
-          if (copy[i].id && copy[i].id === tempId) {
-            copy[i] = { ...copy[i], loading: false, error: null, conversation: '' };
-            return copy;
-          }
-        }
-        return copy;
-      });
+      // add the completed message to the messages list and associate it with the image result
+      setMessages((prev: MessageItem[]) => [...prev, { ...newMessage, loading: false, error: null }]);
+      setImageResultMessageId(tempId);
+      setShowUserInput(false);
+      setPendingMessage(null);
     } catch (err: any) {
       const msg = err?.message ?? 'Unknown error';
-      setMessages((prev: MessageItem[]) => {
-        const copy = [...prev];
-        for (let i = copy.length - 1; i >= 0; i--) {
-          if (copy[i].id && copy[i].id === tempId) {
-            copy[i] = { ...copy[i], loading: false, error: msg };
-            return copy;
-          }
-        }
-        copy.push({ userPrompt: text, suggestions: [], conversation: '', loading: false, error: msg });
-        return copy;
-      });
+      // On error, re-show the textarea so the user can fix/retry
+      setShowTextarea(true);
+      // add the failed message into the list with the error
+      setMessages((prev: MessageItem[]) => [...prev, { ...newMessage, loading: false, error: msg }]);
+      setPendingMessage(null);
     } finally {
       setSending(false);
     }
@@ -156,176 +160,225 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
 
   return (
     <div className={styles.container}>
+      <div className={styles.contentInner}>
+      {/* Top area: show the input card (textarea or improved prompt) with send button */}
       <div className={styles.promptRow}>
-        {!imageResult && (
-          <Textarea
-            value={input}
-            onChange={(_e: any, data: any) => setInput(data.value)}
-            placeholder="Type a prompt and press Send"
-            rows={4}
-            resize="vertical"
-            onKeyDown={handleKeyDown}
-            disabled={sending}
-          />
-        )}
+        <div className={styles.inputArea}>
+          <div className={styles.inputCard}>
+            {showTextarea ? (
+              <Textarea
+                className={styles.nativeTextarea}
+                value={input}
+                onChange={(_e, data) => setInput(data.value)}
+                placeholder="Type a prompt and press Send"
+                appearance="outline"
+                rows={4}
+                onKeyDown={handleKeyDown}
+                disabled={sending}
+              />
+            ) : imageResult ? (
+              <div className={styles.messageCard}>
+                <div className={styles.subTitle}>Improved prompt</div>
+                <div className={styles.improvedPrompt}>{imageResult.ImprovedPrompt}</div>
 
-        <div className={styles.actions}>
-          <Button appearance="primary" onClick={handleSendClick} disabled={sending || !input.trim()} aria-label="Send prompt">
-            {sending ? 'Sending…' : 'Send'}
-          </Button>
+                {imageResult.MainDifferences && (
+                  <div className={styles.differencesSection}>
+                    <button type="button" onClick={() => setShowDifferences((s) => !s)} className={styles.differencesButton}>
+                      {showDifferences ? 'Hide main differences' : 'Show main differences'}
+                    </button>
+
+                    {showDifferences && <div className={styles.differencesText}>{imageResult.MainDifferences}</div>}
+                  </div>
+                )}
+              </div>
+            ) : (
+              // No textarea and no image result yet: show the pending message inline (user prompt + spinner)
+              (() => {
+                const pending = pendingMessage;
+                if (pending) {
+                  return (
+                    <div className={styles.messageCard} aria-live="polite">
+                      <div className={styles.cardColumn}>
+                        <div className={styles.userPrompt + ' ' + styles.userPromptFlex}>{pending.userPrompt}</div>
+                      </div>
+
+                      {pending.loading && (
+                        <div className={styles.loadingRow}>
+                          <Spinner size="small" />
+                          <span className={styles.loadingText}>Waiting for response…</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                return <div aria-hidden="true" />;
+              })()
+            )}
+          </div>
+
+          <div className={styles.sendTopColumn}>
+            <button
+              className={styles.sendIconButton}
+              onClick={handleSendClick}
+              disabled={sending || !input.trim()}
+              aria-label="Send prompt"
+              title="Send prompt"
+            >
+              <Send16Regular aria-hidden="true" focusable={false} />
+            </button>
+          </div>
         </div>
       </div>
 
       <div className={styles.messages}>
-        {messages.map((m: MessageItem, idx: number) => (
-          <div key={idx} className={styles.messageCard} aria-live="polite">
-            <div className={styles.userPrompt}>{m.userPrompt}</div>
-
-            {m.loading && (
-              <div className={styles.loadingRow}>
-                <Spinner size="small" />
-                <span className={styles.loadingText}>Waiting for response…</span>
+        {messages
+          .filter((m) => !(m.id && imageResultMessageId && m.id === imageResultMessageId))
+          .map((m: MessageItem, idx: number) => (
+            <div key={idx} className={styles.messageCard} aria-live="polite">
+              {/* If this message is the one that produced the imageResult and showUserInput is false,
+                  hide the user prompt; otherwise show it. */}
+              <div className={styles.cardColumn}>
+                <div className={styles.userPrompt + ' ' + styles.userPromptFlex}>{m.userPrompt}</div>
               </div>
-            )}
 
-            {m.error && <div className={styles.error}>Error: {m.error}</div>}
+              {m.loading && (
+                <div className={styles.loadingRow}>
+                  <Spinner size="small" />
+                  <span className={styles.loadingText}>Waiting for response…</span>
+                </div>
+              )}
 
-            {m.suggestions && m.suggestions.length > 0 && (
-              <div className={styles.chipsRow}>
-                {m.suggestions.map((s: string, i: number) => (
-                  <button key={i} className={styles.chip} onClick={() => handleSuggestionClick(s)} type="button">
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
+              {m.error && <div className={styles.error}>Error: {m.error}</div>}
 
-            {m.conversation && <div className={styles.conversation}>{m.conversation}</div>}
-          </div>
-        ))}
+              {m.suggestions && m.suggestions.length > 0 && (
+                <div className={styles.chipsRow}>
+                  {m.suggestions.map((s: string, i: number) => (
+                    <button key={i} className={styles.chip} onClick={() => handleSuggestionClick(s)} type="button">
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {m.conversation && <div className={styles.conversation}>{m.conversation}</div>}
+            </div>
+          ))}
       </div>
 
       {imageResult && (
-        <div className={styles.messageCard}>
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>Original prompt (deprecated/replaced)</div>
-          <div style={{ marginBottom: 10, whiteSpace: 'pre-wrap' }}>{imageResult.OriginalPrompt}</div>
+        <>
+          {/* Tags / POVs / Chips card */}
+          <div className={styles.messageCard}>
+            <div className={styles.tagsSection}>
+              <div className={styles.tagsTitle}>Tags</div>
 
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>Improved prompt</div>
-          <div style={{ marginBottom: 10, whiteSpace: 'pre-wrap' }}>{imageResult.ImprovedPrompt}</div>
-
-          {imageResult.MainDifferences && (
-            <div style={{ marginBottom: 10 }}>
-              <button
-                type="button"
-                onClick={() => setShowDifferences((s) => !s)}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid #3a3a3a',
-                  color: '#e6e6e6',
-                  padding: '6px 10px',
-                  borderRadius: 6,
-                  cursor: 'pointer',
-                  marginBottom: 8,
-                }}
-              >
-                {showDifferences ? 'Hide main differences' : 'Show main differences'}
-              </button>
-
-              {showDifferences && <div style={{ whiteSpace: 'pre-wrap', marginTop: 6 }}>{imageResult.MainDifferences}</div>}
-            </div>
-          )}
-
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontWeight: 700, marginBottom: 6 }}>Tags</div>
-
-            <div style={{ display: 'flex', gap: 12 }}>
-              <select
-                multiple
-                size={6}
-                style={{ minWidth: 220, background: '#1e1e1e', color: '#e6e6e6', border: '1px solid #3a3a3a', padding: 6 }}
-                onChange={(e: any) => {
-                  const selected = Array.from(e.target.selectedOptions).map((o: any) => o.value);
-                  const incMap: Record<string, boolean> = {};
-                  (imageResult.Tags?.Included || []).forEach((t: string) => (incMap[t] = selected.includes(t)));
-                  setSelectedIncluded(incMap);
-                }}
-                value={(imageResult.Tags?.Included || []).filter((t: string) => selectedIncluded[t])}
-              >
-                <optgroup label="Included">
-                  {(imageResult.Tags?.Included || []).map((t: string) => (
-                    <option key={`inc-opt-${t}`} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-
-              <select
-                multiple
-                size={6}
-                style={{ minWidth: 220, background: '#1e1e1e', color: '#e6e6e6', border: '1px solid #3a3a3a', padding: 6 }}
-                onChange={(e: any) => {
-                  const selected = Array.from(e.target.selectedOptions).map((o: any) => o.value);
-                  const notMap: Record<string, boolean> = {};
-                  (imageResult.Tags?.NotIncluded || []).forEach((t: string) => (notMap[t] = selected.includes(t)));
-                  setSelectedNotIncluded(notMap);
-                }}
-                value={(imageResult.Tags?.NotIncluded || []).filter((t: string) => selectedNotIncluded[t])}
-              >
-                <optgroup label="Not included">
-                  {(imageResult.Tags?.NotIncluded || []).map((t: string) => (
-                    <option key={`not-opt-${t}`} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-            </div>
-
-            {imageResult.PointOfViews && imageResult.PointOfViews.length > 0 && (
-              <div style={{ marginTop: 8 }}>
-                <div style={{ marginBottom: 6, fontWeight: 600 }}>Point of views</div>
+              <div className={styles.tagsRowFlex}>
                 <select
                   multiple
-                  size={Math.min(6, imageResult.PointOfViews.length)}
-                  style={{ minWidth: 460, background: '#1e1e1e', color: '#e6e6e6', border: '1px solid #3a3a3a', padding: 6 }}
+                  size={6}
+                  className={styles.tagSelect}
                   onChange={(e: any) => {
                     const selected = Array.from(e.target.selectedOptions).map((o: any) => o.value);
-                    const povMap: Record<string, boolean> = {};
-                    (imageResult.PointOfViews || []).forEach((p: string) => (povMap[p] = selected.includes(p)));
-                    setSelectedPOVs(povMap);
+                    const incMap: Record<string, boolean> = {};
+                    (imageResult.Tags?.Included || []).forEach((t: string) => (incMap[t] = selected.includes(t)));
+                    setSelectedIncluded(incMap);
                   }}
-                  value={(imageResult.PointOfViews || []).filter((p: string) => selectedPOVs[p])}
+                  value={(imageResult.Tags?.Included || []).filter((t: string) => selectedIncluded[t])}
                 >
-                  {(imageResult.PointOfViews || []).map((p: string) => (
-                    <option key={`pov-opt-${p}`} value={p}>
-                      {p}
-                    </option>
-                  ))}
+                  <optgroup label="Included">
+                    {(imageResult.Tags?.Included || []).map((t: string) => (
+                      <option key={`inc-opt-${t}`} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+
+                <select
+                  multiple
+                  size={6}
+                  className={styles.tagSelect}
+                  onChange={(e: any) => {
+                    const selected = Array.from(e.target.selectedOptions).map((o: any) => o.value);
+                    const notMap: Record<string, boolean> = {};
+                    (imageResult.Tags?.NotIncluded || []).forEach((t: string) => (notMap[t] = selected.includes(t)));
+                    setSelectedNotIncluded(notMap);
+                  }}
+                  value={(imageResult.Tags?.NotIncluded || []).filter((t: string) => selectedNotIncluded[t])}
+                >
+                  <optgroup label="Not included">
+                    {(imageResult.Tags?.NotIncluded || []).map((t: string) => (
+                      <option key={`not-opt-${t}`} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
               </div>
-            )}
+
+              {imageResult.PointOfViews && imageResult.PointOfViews.length > 0 && (
+                <div className={styles.povWrapper}>
+                  <div className={styles.subTitle}>Point of views</div>
+                  <select
+                    multiple
+                    size={Math.min(6, imageResult.PointOfViews.length)}
+                    className={styles.povSelect}
+                    onChange={(e: any) => {
+                      const selected = Array.from(e.target.selectedOptions).map((o: any) => o.value);
+                      const povMap: Record<string, boolean> = {};
+                      (imageResult.PointOfViews || []).forEach((p: string) => (povMap[p] = selected.includes(p)));
+                      setSelectedPOVs(povMap);
+                    }}
+                    value={(imageResult.PointOfViews || []).filter((p: string) => selectedPOVs[p])}
+                  >
+                    {(imageResult.PointOfViews || []).map((p: string) => (
+                      <option key={`pov-opt-${p}`} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.chipsRow} style={{ marginTop: 8 }}>
+              {Object.keys(selectedIncluded)
+                .filter((k) => selectedIncluded[k])
+                .map((t: string) => (
+                  <div key={`chip-inc-${t}`} className={styles.chip} style={{ background: '#224a2f', borderColor: '#2f6b43' }}>
+                    {t}
+                  </div>
+                ))}
+
+              {Object.keys(selectedNotIncluded)
+                .filter((k) => selectedNotIncluded[k])
+                .map((t: string) => (
+                  <div key={`chip-not-${t}`} className={styles.chip} style={{ background: '#31343a', borderColor: '#464a50' }}>
+                    {t}
+                  </div>
+                ))}
+            </div>
           </div>
 
-          <div className={styles.chipsRow} style={{ marginTop: 8 }}>
-            {Object.keys(selectedIncluded)
-              .filter((k) => selectedIncluded[k])
-              .map((t: string) => (
-                <div key={`chip-inc-${t}`} className={styles.chip} style={{ background: '#224a2f', borderColor: '#2f6b43' }}>
-                  {t}
-                </div>
-              ))}
+          {/* Show/hide original input card */}
+          <div className={styles.messageCard}>
+            <div className={styles.cardColumn}>
+              <div>
+                <button type="button" onClick={() => setShowUserInput((s) => !s)} className={styles.toggleButton}>
+                  {showUserInput ? 'Hide original input' : 'Show original input'}
+                </button>
+              </div>
 
-            {Object.keys(selectedNotIncluded)
-              .filter((k) => selectedNotIncluded[k])
-              .map((t: string) => (
-                <div key={`chip-not-${t}`} className={styles.chip} style={{ background: '#31343a', borderColor: '#464a50' }}>
-                  {t}
-                </div>
-              ))}
+              <div className={styles.userPrompt} style={{ marginTop: 8 }}>
+                {showUserInput ? imageResult.OriginalPrompt : null}
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       )}
+
+      {/* bottom send button removed — only the top send button remains */}
+      </div>
     </div>
   );
 };
