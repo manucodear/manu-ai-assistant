@@ -1,13 +1,20 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { FluentProvider, webDarkTheme } from '@fluentui/react-components'
+import { ThemeProvider, createTheme, CssBaseline } from '@mui/material'
 import './index.css'
 import App from './App.tsx'
 
+const theme = createTheme({
+  palette: {
+    mode: 'dark',
+  },
+})
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <FluentProvider theme={webDarkTheme}>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
       <App />
-    </FluentProvider>
+    </ThemeProvider>
   </StrictMode>,
 )

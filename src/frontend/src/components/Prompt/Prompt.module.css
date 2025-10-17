@@ -1,0 +1,417 @@
+.container {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	width: 100%;
+	position: relative; /* allow absolutely positioned duplicate send button */
+}
+
+.promptRow {
+	/* Use flex instead of grid so layout relies only on flexbox: left area grows, right area auto-sizes */
+	display: flex;
+	flex-direction: row;
+	/* Allow children to stretch vertically if needed */
+	align-items: stretch;
+	gap: 8px;
+}
+
+.actions {
+	display: flex;
+	align-items: center;
+	margin-left: auto; /* push actions to the right in the prompt row */
+}
+
+.inputWrapper {
+	/* allow wrapper to shrink/grow but start from 0 basis so it properly shares space with the send column */
+	flex: 1 1 0;
+	min-width: 0;
+	/* Make the wrapper a flex container so the Textarea (or its root) can stretch
+	   to take all remaining horizontal space next to the send button. */
+	display: flex;
+	align-items: stretch;
+}
+
+/* Ensure the direct child of the wrapper (the Fluent Textarea root or native textarea)
+   expands to fill available space. Using a generic child selector keeps this robust
+   against the Fluent UI markup. */
+.inputWrapper > * {
+	flex: 1 1 auto;
+	min-width: 0; /* allow shrinking when container is narrow */
+	width: 100%;
+	box-sizing: border-box;
+}
+
+/* Some UI libraries render a textarea or a textbox wrapper inside the component.
+   Target likely children (native textarea or role=textbox root) to ensure they
+   expand to fill the wrapper. This prevents the textarea from appearing
+   compacted when the library inserts extra wrapper elements. */
+.inputWrapper textarea,
+.inputWrapper [role="textbox"] {
+	flex: 1 1 auto;
+	min-width: 0;
+	width: 100%;
+	height: auto;
+	box-sizing: border-box;
+}
+
+.messages {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.messageCard {
+	background: #1e1e1e; /* dark card */
+	border: 1px solid #2e2e2e;
+	padding: 10px;
+	border-radius: 6px;
+	color: #e6e6e6;
+}
+
+/* Ensure cards do not overflow their flex containers and wrap long text */
+.messageCard {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.userPrompt {
+	/* Use normal weight for user prompt text (not bold) */
+	font-weight: 400;
+	margin-bottom: 8px;
+	white-space: pre-wrap;
+	color: #ffffff;
+}
+
+.userPromptFlex {
+	flex: 1;
+}
+
+.cardColumn {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.tagsRowFlex {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+/* Allow select elements inside the tag row to shrink and respect container width */
+.tagsRowFlex > select {
+	flex: 1 1 0;
+	min-width: 0;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+.povWrapper {
+	margin-top: 8px;
+}
+
+.chipsRowTop {
+	margin-top: 8px;
+}
+
+.toggleButton {
+	background: transparent;
+	border: 1px solid #3a3a3a;
+	color: #e6e6e6;
+	padding: 6px 10px;
+	border-radius: 6px;
+	cursor: pointer;
+}
+
+.improvedPrompt {
+	margin-bottom: 10px;
+	white-space: pre-wrap;
+}
+
+.differencesSection {
+	margin-bottom: 10px;
+}
+
+.differencesButton {
+	background: transparent;
+	border: 1px solid #3a3a3a;
+	color: #e6e6e6;
+	padding: 6px 10px;
+	border-radius: 6px;
+	cursor: pointer;
+	margin-bottom: 8px;
+}
+
+.differencesText {
+	white-space: pre-wrap;
+	margin-top: 6px;
+}
+
+.tagsSection {
+	margin-bottom: 10px;
+}
+
+.tagsTitle {
+	font-weight: 700;
+	margin-bottom: 6px;
+}
+
+.subTitle {
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.tagSelect {
+	min-width: 220px;
+	background: #1e1e1e;
+	color: #e6e6e6;
+	border: 1px solid #3a3a3a;
+	padding: 6px;
+}
+
+.povSelect {
+	min-width: 220px;
+	background: #1e1e1e;
+	color: #e6e6e6;
+	border: 1px solid #3a3a3a;
+	padding: 6px;
+}
+
+/* Keep selects responsive on narrow screens */
+@media (max-width: 720px) {
+  .tagsRowFlex > select {
+    width: 100%;
+  }
+}
+
+.sendIconButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	background: transparent;
+	border: 1px solid #3a3a3a;
+	color: #e6e6e6;
+	border-radius: 6px;
+	cursor: pointer;
+}
+
+.sendIconButton:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.sendControls {
+	/* deprecated: kept for compatibility but not used when buttons are inside component */
+	display: none;
+}
+
+.sendControls .sendIconButton {
+	pointer-events: auto;
+}
+
+.sendTopRight {
+	margin-top: 12px;
+}
+
+.sendBottomRight {
+	margin-bottom: 12px;
+	z-index: 9999;
+	box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+}
+
+/* Position the top and bottom send wrappers absolutely to the same right edge
+   so both buttons align vertically on the same horizontal line. The container
+   must be position:relative (the .container already is). */
+.topSendWrapper {
+	position: absolute;
+	right: 12px;
+	top: 12px;
+}
+
+/* bottomSendWrapper removed — bottom button no longer rendered */
+
+.inputArea {
+	display: flex;
+	gap: 8px;
+	/* Make the entire input area grow to fill the prompt row */
+	flex: 1 1 0;
+	width: 100%;
+	align-items: stretch;
+}
+
+.inputCard {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Inner content wrapper to align prompt row and message cards consistently
+	 with the rest of the app's content column. Adjust max-width to match
+	 the application's content width if needed. */
+.contentInner {
+	width: 100%;
+	max-width: 980px;
+	margin: 0 auto;
+	box-sizing: border-box;
+	padding-left: 8px;
+	padding-right: 8px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+/* Ensure the send button wrapper does not stretch vertically and aligns to the top */
+.inputArea > div {
+	display: flex;
+ 	align-items: flex-start;
+}
+
+/* ensure the input card grows while the send column stays fixed */
+.inputArea > .inputCard {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.inputArea > .sendTopColumn {
+  flex: 0 0 auto;
+}
+
+.sendTopColumn {
+	/* ensure send column does not take extra horizontal space */
+	flex: 0 0 auto;
+	/* keep the send button anchored to the top even when siblings stretch */
+	align-self: flex-start;
+}
+
+/* bottomSendWrapper styles removed */
+
+/* Responsive adjustments */
+@media (max-width: 720px) {
+ 	/* On small screens stack the prompt row vertically */
+ 	.promptRow {
+ 		flex-direction: column;
+ 	}
+
+	/* stack tag selects vertically on small screens */
+	.tagsRowFlex {
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	/* allow send controls to float fixed on small screens */
+	.sendControls {
+		position: fixed;
+		right: 12px;
+		top: auto;
+		bottom: 12px;
+		height: auto;
+		justify-content: flex-end;
+	}
+
+	.sendTopRight {
+		margin-top: 0;
+	}
+}
+
+.chipsRow {
+	display: flex;
+	/* make chips flow from left to right so new chips appear on the left and grow rightwards */
+	flex-direction: row;
+	/* keep visual spacing between chips even when reversed */
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-bottom: 8px;
+}
+
+.chip {
+	display: inline-flex;
+	/* remove forcing margin; let the container control visual alignment */
+	border: 1px solid #3a3a3a;
+	padding: 6px 10px;
+	border-radius: 999px;
+	cursor: pointer;
+	color: #e6e6e6;
+}
+
+/* Styles for diagnostic native textarea used to verify layout */
+.nativeTextarea {
+	width: 100%;
+	min-width: 0;
+	flex: 1 1 auto;
+	box-sizing: border-box;
+	padding: 8px 10px;
+	background: #0f0f0f;
+	color: #e6e6e6;
+	border: 1px solid #3a3a3a;
+	border-radius: 6px;
+	resize: vertical;
+	font: inherit;
+}
+
+/* DEBUG helpers - temporary: outlines and min-heights to find constrained element */
+.debug-inputWrapper {
+	outline: 2px dashed rgba(0,255,0,0.6);
+	min-height: 120px;
+}
+.debug-inputArea {
+	outline: 2px dashed rgba(0,0,255,0.6);
+}
+.debug-sendTopColumn {
+	outline: 2px dashed rgba(255,0,0,0.6);
+}
+.debug-nativeTextarea {
+	outline: 2px dashed rgba(255,255,0,0.6);
+	min-height: 100px;
+}
+
+/* Force the inputWrapper to occupy available horizontal space inside promptRow */
+.inputWrapper {
+	flex: 1 1 0;
+	width: 100%;
+}
+
+.tagSelectorWrapper {
+	position: relative;
+	display: inline-block;
+}
+
+.floatingPanel {
+	position: absolute;
+	right: 0;
+	top: calc(100% + 8px);
+	background: #1e1e1e;
+	border: 1px solid #3a3a3a;
+	padding: 8px;
+	border-radius: 6px;
+	z-index: 1000;
+	min-width: 260px;
+	box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+}
+
+.conversation {
+	margin-top: 6px;
+	color: #cfcfcf;
+	white-space: pre-wrap;
+}
+
+.loadingRow {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	margin-bottom: 6px;
+}
+
+.loadingText {
+	color: #bdbdbd;
+}
+
+.error {
+	color: #a80000;
+	font-weight: 600;
+}

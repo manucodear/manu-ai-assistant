@@ -4,15 +4,12 @@ import './Home.css';
 import { LoginButton, LoginButtonType } from '../../components/LoginButton';
 import { Link } from 'react-router-dom';
 import {
-  Button,
-  Card,
-  CardPreview,
-  Title1,
-  Body1,
-  Image,
-  Link as FluentLink
-} from '@fluentui/react-components';
-import { PersonFeedback20Regular } from '@fluentui/react-icons';
+  Button
+} from '@mui/material';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import { Link as MuiLink } from '@mui/material';
+import { Person } from '@mui/icons-material';
 
 const Home: React.FC = () => {
   const isGoogleAuthEnabled = import.meta.env.VITE_GOOGLE_AUTH_ENABLED === 'true';
@@ -21,40 +18,38 @@ const Home: React.FC = () => {
     <div className="home-container">
       <div className="home-header">
         <Link to="/login" style={{ textDecoration: 'none' }}>
-          <Button appearance="primary" icon={<PersonFeedback20Regular />}>
+          <Button variant="contained" color="primary" startIcon={<Person />}>
             Login
           </Button>
         </Link>
       </div>
       <div className="home-body">
-        <Card className="home-card">
+        <Paper className="home-card" elevation={3}>
           <div className="home-card-header">
-            <Title1>Welcome to My AI Assistant</Title1>
-            <Body1>Built with Vite + React + Fluent UI</Body1>
+            <Typography variant="h4">Welcome to My AI Assistant</Typography>
+            <Typography variant="body1">Built with Vite + React + Material UI</Typography>
           </div>
-          <CardPreview>
-            <div className="home-logo-container home-text-center">
-              <FluentLink href="https://vite.dev" target="_blank">
-                <Image
-                  src={viteLogo}
-                  alt="Vite logo"
-                  className="home-logo"
-                  width={96}
-                  height={96}
-                />
-              </FluentLink>
-              <FluentLink href="https://react.dev" target="_blank">
-                <Image
-                  src={reactLogo}
-                  alt="React logo"
-                  className="home-logo home-react-logo"
-                  width={96}
-                  height={96}
-                />
-              </FluentLink>
-            </div>
-          </CardPreview>
-        </Card>
+          <div className="home-logo-container home-text-center">
+            <MuiLink href="https://vite.dev" target="_blank" rel="noopener">
+              <img
+                src={viteLogo}
+                alt="Vite logo"
+                className="home-logo"
+                width={96}
+                height={96}
+              />
+            </MuiLink>
+            <MuiLink href="https://react.dev" target="_blank" rel="noopener">
+              <img
+                src={reactLogo}
+                alt="React logo"
+                className="home-logo home-react-logo"
+                width={96}
+                height={96}
+              />
+            </MuiLink>
+          </div>
+        </Paper>
         <div className="home-login-buttons">
           <LoginButton type={LoginButtonType.Microsoft} />
           {isGoogleAuthEnabled && <LoginButton type={LoginButtonType.Google} />}
@@ -63,21 +58,29 @@ const Home: React.FC = () => {
         <div className="home-button-group">
           <Link to="/showcase" style={{ textDecoration: 'none' }}>
             <Button 
-              appearance="outline"
+              variant="outlined"
             >
               View Component Showcase
             </Button>
           </Link>
+          <Link to="/material-showcase" style={{ textDecoration: 'none' }}>
+            <Button
+              variant="outlined"
+              sx={{ ml: 1 }}
+            >
+              View Material Showcase
+            </Button>
+          </Link>
           <Link to="/responsive" style={{ textDecoration: 'none' }}>
             <Button 
-              appearance="outline"
+              variant="outlined"
             >
               📱 Mobile Demo
             </Button>
           </Link>
           <Link to="/test-errors" style={{ textDecoration: 'none' }}>
             <Button 
-              appearance="subtle"
+              variant="text"
             >
               Test Error Pages
             </Button>

@@ -2,25 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { ImageGalleryProps, ImageResponse, ImageSize, ImageData } from './ImageGallery.types';
 import styles from './ImageGallery.module.css';
 import {
-  Title2,
-  Title3,
-  Body1,
-  Card,
-  CardHeader,
-  Spinner,
-  MessageBar,
-  Image,
+  Paper,
+  Typography,
+  CircularProgress,
+  Alert,
+  Box,
+  Chip,
   RadioGroup,
+  FormControlLabel,
   Radio,
-  Badge,
-  Button
-} from '@fluentui/react-components';
-import { 
-  ImageMultiple20Regular,
-  Warning20Regular,
-  CheckmarkCircle20Regular,
-  Dismiss20Regular
-} from '@fluentui/react-icons';
+  IconButton
+} from '@mui/material';
+import {
+  Collections as ImageMultiple,
+  Warning as WarningIcon,
+  CheckCircle as CheckCircleIcon,
+  Close as DismissIcon
+} from '@mui/icons-material';
 
 const ImageGallery: React.FC<ImageGalleryProps> = () => {
   const [images, setImages] = useState<ImageData[]>([]);
@@ -132,106 +130,92 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
 
   return (
     <div className={styles.container}>
-      <Card className={styles.headerCard}>
-        <CardHeader
-          header={
-            <div className={styles.header}>
-              <Title2>
-                <ImageMultiple20Regular className={styles.headerIcon} />
-                Image Gallery
-              </Title2>
-              <Badge appearance="filled" color="brand">
-                {images.length} {images.length === 1 ? 'image' : 'images'}
-              </Badge>
-            </div>
-          }
-          description={<Body1>Browse your generated images with different size options</Body1>}
-        />
-      </Card>
+      <Paper className={styles.headerCard} elevation={1} sx={{ padding: 2 }}>
+        <div className={styles.header}>
+          <Typography variant="h5" component="div">
+            <ImageMultiple className={styles.headerIcon} />
+            Image Gallery
+          </Typography>
+          <Chip label={`${images.length} ${images.length === 1 ? 'image' : 'images'}`} color="primary" />
+        </div>
+        <Typography variant="body2" sx={{ mt: 1 }}>Browse your generated images with different size options</Typography>
+      </Paper>
 
       {/* Size Selection */}
-      <Card className={styles.controlsCard}>
+      <Paper className={styles.controlsCard} elevation={1} sx={{ padding: 2 }}>
         <div className={styles.controls}>
-          <Title3>Image Size</Title3>
+          <Typography variant="h6">Image Size</Typography>
           <RadioGroup
             value={selectedSize}
-            onChange={(_e, data) => setSelectedSize(data.value as ImageSize)}
-            layout="horizontal"
+            onChange={(e) => setSelectedSize((e.target as HTMLInputElement).value as ImageSize)}
+            row
             className={styles.sizeSelector}
           >
-            <Radio value="small" label="Small" />
-            <Radio value="medium" label="Medium" />
-            <Radio value="large" label="Large" />
+            <FormControlLabel value="small" control={<Radio />} label="Small" />
+            <FormControlLabel value="medium" control={<Radio />} label="Medium" />
+            <FormControlLabel value="large" control={<Radio />} label="Large" />
           </RadioGroup>
         </div>
-      </Card>
+      </Paper>
 
       {/* Loading State */}
       {loading && (
-        <Card className={styles.statusCard}>
+        <Paper className={styles.statusCard} elevation={0} sx={{ padding: 2 }}>
           <div className={styles.loadingContainer}>
-            <Spinner size="medium" />
-            <Body1>Loading images...</Body1>
+            <CircularProgress size={28} />
+            <Typography variant="body1">Loading images...</Typography>
           </div>
-        </Card>
+        </Paper>
       )}
 
       {/* Error State */}
       {error && (
-        <MessageBar intent="error" icon={<Warning20Regular />}>
-          {error}
-        </MessageBar>
+        <Alert severity="error" icon={<WarningIcon />}>{error}</Alert>
       )}
 
       {/* Empty State */}
       {!loading && !error && images.length === 0 && (
-        <Card className={styles.emptyCard}>
+        <Paper className={styles.emptyCard} elevation={0} sx={{ padding: 2 }}>
           <div className={styles.emptyState}>
-            <ImageMultiple20Regular className={styles.emptyIcon} />
-            <Title3>No Images Found</Title3>
-            <Body1>Generate some images to see them here in the gallery.</Body1>
+            <ImageMultiple className={styles.emptyIcon} />
+            <Typography variant="h6">No Images Found</Typography>
+            <Typography variant="body1">Generate some images to see them here in the gallery.</Typography>
           </div>
-        </Card>
+        </Paper>
       )}
 
       {/* Success State with Images */}
       {!loading && !error && images.length > 0 && (
         <>
-          <MessageBar intent="success" icon={<CheckmarkCircle20Regular />}>
+          <Alert severity="success" icon={<CheckCircleIcon />}>
             Showing {images.length} {images.length === 1 ? 'image' : 'images'} in {selectedSize} size layout
-          </MessageBar>
+          </Alert>
 
           <div className={styles.gallery} data-size={selectedSize}>
             {images.map((image) => (
               <div key={`${image.id}-${selectedSize}`} className={styles.imageCard}>
                 <div className={styles.imageContainer}>
-                  <Image
-                    src={getImageUrl(image)}
-                    alt={image.prompt}
-                    className={styles.galleryImage}
-                    fit="cover"
-                  />
+                  <Box component="img" src={getImageUrl(image)} alt={image.prompt} className={styles.galleryImage} />
                   {/* X button for user-uploaded images */}
                   {image.isUserUpload && (
-                    <Button
-                      appearance="subtle"
-                      shape="circular"
-                      size="small"
-                      icon={deletingImageId === image.id ? <Spinner size="extra-small" /> : <Dismiss20Regular />}
+                    <IconButton
                       className={styles.deleteButton}
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteUserImage(image);
                       }}
                       disabled={deletingImageId === image.id}
-                      title={deletingImageId === image.id ? "Deleting..." : "Delete this image"}
-                    />
+                      title={deletingImageId === image.id ? 'Deleting...' : 'Delete this image'}
+                      size="small"
+                    >
+                      {deletingImageId === image.id ? <CircularProgress size={16} /> : <DismissIcon />}
+                    </IconButton>
                   )}
                   <div className={styles.imageOverlay}>
                     <div className={styles.imageInfo}>
-                      <Body1 className={styles.imageTimestamp}>
+                      <Typography className={styles.imageTimestamp} variant="body2">
                         {formatTimestamp(image.timestamp)}
-                      </Body1>
+                      </Typography>
                     </div>
                   </div>
                 </div>

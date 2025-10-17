@@ -5,9 +5,11 @@ import { RedditPosts } from './pages/RedditPosts';
 import { Image } from './pages/Image';
 import { Login } from './pages/Login';
 import FluentShowcase from './pages/FluentShowcase';
+import MaterialShowcase from './pages/MaterialShowcase';
 import ErrorPage from './pages/ErrorPage';
 import ErrorTestPage from './pages/ErrorTestPage';
 import ResponsiveDemo from './pages/ResponsiveDemo';
+import PromptTest from './pages/PromptTest/PromptTest';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Token } from './pages/Token';
 
@@ -18,6 +20,7 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/showcase" element={<FluentShowcase />} />
+  <Route path="/material-showcase" element={<MaterialShowcase />} />
       <Route path="/responsive" element={<ResponsiveDemo />} />
       <Route path="/error" element={<ErrorPage />} />
       <Route path="/test-errors" element={<ErrorTestPage />} />
@@ -37,6 +40,7 @@ function App() {
           <Token />
         </ProtectedRoute>
       } />
+      <Route path="/prompt-test" element={<PromptTest />} />
     </Routes>
    </Router>
   )

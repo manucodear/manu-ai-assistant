@@ -1,8 +1,11 @@
 import { LoginButtonProps } from './LoginButton.types';
 import { LoginButtonType } from './LoginButton.enums';
 import { generatePKCECode, generateRandomState } from '../../utils/random-helper';
-import { Button } from '@fluentui/react-components';
-import { PersonFeedback20Regular, WindowDevTools20Regular, CloudArrowRight20Regular, Globe20Regular } from '@fluentui/react-icons';
+import Button from '@mui/material/Button';
+import PersonIcon from '@mui/icons-material/Person';
+import WidgetsIcon from '@mui/icons-material/Widgets';
+import CloudIcon from '@mui/icons-material/Cloud';
+import PublicIcon from '@mui/icons-material/Public';
 import styles from './LoginButton.module.css';
 
 const getAuthenticationUri = async (type:LoginButtonType): Promise<string> => {
@@ -73,38 +76,38 @@ const LoginButton: React.FC<LoginButtonProps> = ({ type, text }) => {
   const getIcon = () => {
     switch (type) {
       case LoginButtonType.Microsoft:
-        return <CloudArrowRight20Regular />;
+        return <CloudIcon />;
       case LoginButtonType.X:
-        return <WindowDevTools20Regular />;
+        return <WidgetsIcon />;
       case LoginButtonType.Reddit:
-        return <PersonFeedback20Regular />;
+        return <PersonIcon />;
       case LoginButtonType.Google:
-        return <Globe20Regular />;
+        return <PublicIcon />;
       default:
-        return <PersonFeedback20Regular />;
+        return <PersonIcon />;
     }
   };
 
-  const getAppearance = () => {
+  const getVariant = () => {
     switch (type) {
       case LoginButtonType.Microsoft:
-        return 'primary' as const;
+        return 'contained' as const;
       case LoginButtonType.X:
-        return 'secondary' as const;
+        return 'outlined' as const;
       case LoginButtonType.Reddit:
-        return 'outline' as const;
+        return 'outlined' as const;
       case LoginButtonType.Google:
-        return 'primary' as const;
+        return 'contained' as const;
       default:
-        return 'primary' as const;
+        return 'contained' as const;
     }
   };
 
   return (
-    <Button 
-      onClick={() => onButtonClick(type)} 
-      appearance={getAppearance()}
-      icon={getIcon()}
+    <Button
+      onClick={() => onButtonClick(type)}
+      variant={getVariant()}
+      startIcon={getIcon()}
       className={styles.loginButton}
     >
       {buttonText}

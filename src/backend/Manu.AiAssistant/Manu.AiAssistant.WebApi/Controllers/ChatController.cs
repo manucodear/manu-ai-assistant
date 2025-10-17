@@ -2,13 +2,9 @@ using Manu.AiAssistant.WebApi.Data;
 using Manu.AiAssistant.WebApi.Models.Chat;
 using Manu.AiAssistant.WebApi.Models.Entities;
 using Manu.AiAssistant.WebApi.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {

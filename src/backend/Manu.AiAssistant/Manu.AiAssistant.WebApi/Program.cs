@@ -25,6 +25,9 @@ namespace Manu.AiAssistant.WebApi
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // Add promptSettings.json
+            builder.Configuration.AddJsonFile("promptSettings.json", optional: true, reloadOnChange: true);
+
             var keyVaultUrl = builder.Configuration["AzureKeyVault:Url"];
             if (!string.IsNullOrEmpty(keyVaultUrl))
             {
@@ -68,6 +71,9 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
             builder.Services.Configure<ChatOptions>(builder.Configuration.GetSection("Chat"));
             builder.Services.Configure<CosmosDbOptions>(builder.Configuration.GetSection("CosmosDb"));
+            // Register PromptSettingsOptions from promptSettings.json
+            builder.Services.Configure<PromptSettingsOptions>(builder.Configuration);
+
             // To use OpenAI (public API):
             // builder.Services.AddScoped<IChatProvider, OpenAiChatProvider>();
 
@@ -235,6 +241,8 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.AddScoped<IDalleProvider, DalleApiProvider>();
             // Register UserImageBlobStorageProvider for user images
             builder.Services.AddScoped<UserImageBlobStorageProvider>();
+            // Register IImagePromptProvider for DI
+            builder.Services.AddScoped<IImagePromptProvider, ImagePromptProvider>();
 
             // Build the app AFTER all service registrations
             var app = builder.Build();

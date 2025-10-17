@@ -1,39 +1,11 @@
-/* Reset and base styles for Fluent UI */
+/* Minimal global reset — styling and colors are managed by MUI theme + CssBaseline */
 * {
   box-sizing: border-box;
 }
 
-/* Since the app uses webDarkTheme directly, we need to set dark backgrounds */
-html {
-  background-color: #1a1a1a;
-  color: #ffffff;
-}
-
-body {
+html, body, #root {
+  height: 100%;
   margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #1a1a1a;
-  color: #ffffff;
 }
 
-#root {
-  min-height: 100vh;
-  background-color: #1a1a1a;
-}
-
-/* Ensure all page containers have proper dark background */
-.fui-FluentProvider {
-  background-color: #1a1a1a;
-  min-height: 100vh;
-}
-
-/* Override any white backgrounds in components */
-[data-theme="dark"], 
-.fui-FluentProvider[data-theme="dark"] {
-  background-color: #1a1a1a !important;
-}
+/* Leave color, typography and background to MUI Theme/CssBaseline */
