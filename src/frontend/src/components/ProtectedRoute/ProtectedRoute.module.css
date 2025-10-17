@@ -1,8 +1,1 @@
-.protected-loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  flex-direction: column;
-  gap: 1rem;
-}
+/* Styles removed — using MUI for styling */

@@ -14,12 +14,12 @@ import {
   Switch,
   Badge
 } from '@fluentui/react-components';
-import { 
-  Phone20Regular, 
-  Tablet20Regular, 
-  Desktop20Regular,
-  CheckmarkCircle20Regular 
-} from '@fluentui/react-icons';
+import {
+  Smartphone as PhoneAndroid,
+  Tablet as TabletAndroid,
+  DesktopWindows as DesktopWindows,
+  CheckCircle
+} from '@mui/icons-material';
 
 const useStyles = makeStyles({
   container: {
@@ -129,7 +129,7 @@ const ResponsiveDemo: React.FC = () => {
       </Card>
 
       <MessageBar intent="success">
-        <CheckmarkCircle20Regular />
+        <CheckCircle />
         Your application is now optimized for mobile devices, tablets, and desktops!
       </MessageBar>
 
@@ -138,19 +138,19 @@ const ResponsiveDemo: React.FC = () => {
         <Title2>Device Support</Title2>
         <div className={styles.deviceGrid}>
           <Card className={styles.deviceCard}>
-            <Phone20Regular className={styles.icon} />
+            <PhoneAndroid className={styles.icon} />
             <Title2>Mobile</Title2>
             <Body1>≤ 480px</Body1>
             <Badge appearance="filled" color="success">Optimized</Badge>
           </Card>
           <Card className={styles.deviceCard}>
-            <Tablet20Regular className={styles.icon} />
+            <TabletAndroid className={styles.icon} />
             <Title2>Tablet</Title2>
             <Body1>481px - 767px</Body1>
             <Badge appearance="filled" color="success">Optimized</Badge>
           </Card>
           <Card className={styles.deviceCard}>
-            <Desktop20Regular className={styles.icon} />
+            <DesktopWindows className={styles.icon} />
             <Title2>Desktop</Title2>
             <Body1>≥ 768px</Body1>
             <Badge appearance="filled" color="success">Optimized</Badge>
@@ -208,7 +208,7 @@ const ResponsiveDemo: React.FC = () => {
         <div className={styles.responsiveFeatures}>
           {responsiveFeatures.map((feature, index) => (
             <div key={index} className={styles.featureItem}>
-              <CheckmarkCircle20Regular style={{ color: '#107c10' }} />
+              <CheckCircle style={{ color: '#107c10' }} />
               <Body1>{feature}</Body1>
             </div>
           ))}

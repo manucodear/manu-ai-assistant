@@ -10,7 +10,7 @@ import {
   Button,
   MessageBar
 } from '@fluentui/react-components';
-import { Home20Regular } from '@fluentui/react-icons';
+import { Home as HomeIcon } from '@mui/icons-material';
 import './Login.css';
 
 const Login: React.FC = () => {
@@ -47,7 +47,7 @@ const Login: React.FC = () => {
         
         <div className="login-actions">
           <Link to="/" style={{ textDecoration: 'none' }}>
-            <Button appearance="subtle" icon={<Home20Regular />}>
+            <Button appearance="subtle" icon={<HomeIcon />}>
               Back to Home
             </Button>
           </Link>

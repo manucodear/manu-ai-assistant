@@ -13,8 +13,11 @@
     "generate-certs": "node certs/create-cert.cjs"
   },
   "dependencies": {
-    "@fluentui/react-components": "^9.72.1",
-    "@fluentui/react-icons": "^2.0.311",
+  "@fluentui/react-components": "^9.72.1",
+    "@mui/material": "^6.0.0",
+    "@mui/icons-material": "^6.0.0",
+    "@emotion/react": "^11.11.0",
+    "@emotion/styled": "^11.11.0",
     "axios": "^1.8.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

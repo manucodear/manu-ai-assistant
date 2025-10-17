@@ -1,6 +1,6 @@
 import { Link, Outlet } from "react-router-dom";
-import { Button } from '@fluentui/react-components';
-import { Home20Regular } from '@fluentui/react-icons';
+import Button from '@mui/material/Button';
+import HomeIcon from '@mui/icons-material/Home';
 import './Layout.css';
 
 const Layout = () => {
@@ -9,7 +9,7 @@ const Layout = () => {
     <div className="layout">
       <nav className="layout-nav">
         <Link to="/" style={{ textDecoration: 'none' }}>
-          <Button appearance="subtle" icon={<Home20Regular />}>
+          <Button variant="text" startIcon={<HomeIcon />}>
             Home
           </Button>
         </Link>

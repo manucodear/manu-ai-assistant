@@ -47,11 +47,11 @@
    compacted when the library inserts extra wrapper elements. */
 .inputWrapper textarea,
 .inputWrapper [role="textbox"] {
-	flex: 1 1 auto !important;
-	min-width: 0 !important;
-	width: 100% !important;
-	height: auto !important;
-	box-sizing: border-box !important;
+	flex: 1 1 auto;
+	min-width: 0;
+	width: 100%;
+	height: auto;
+	box-sizing: border-box;
 }
 
 .messages {
@@ -357,7 +357,7 @@
 /* DEBUG helpers - temporary: outlines and min-heights to find constrained element */
 .debug-inputWrapper {
 	outline: 2px dashed rgba(0,255,0,0.6);
-	min-height: 120px !important;
+	min-height: 120px;
 }
 .debug-inputArea {
 	outline: 2px dashed rgba(0,0,255,0.6);
@@ -367,7 +367,7 @@
 }
 .debug-nativeTextarea {
 	outline: 2px dashed rgba(255,255,0,0.6);
-	min-height: 100px !important;
+	min-height: 100px;
 }
 
 /* Force the inputWrapper to occupy available horizontal space inside promptRow */

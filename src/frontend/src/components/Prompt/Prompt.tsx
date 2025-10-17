@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { PromptProps } from './Prompt.types';
 import styles from './Prompt.module.css';
-import { Spinner, Textarea } from '@fluentui/react-components';
-import { Send16Regular } from '@fluentui/react-icons';
+import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
+import CircularProgress from '@mui/material/CircularProgress';
+import SendIcon from '@mui/icons-material/Send';
 
 interface ImagePromptTags {
   Included: string[];
@@ -144,8 +146,8 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
 
   const handleSendClick = () => sendPrompt(input);
 
-  const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
-    const ev = e as React.KeyboardEvent<HTMLTextAreaElement>;
+  const handleKeyDown: React.KeyboardEventHandler<any> = (e) => {
+    const ev = e as React.KeyboardEvent<any>;
     if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
       ev.preventDefault();
       sendPrompt(input);
@@ -166,15 +168,17 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
         <div className={styles.inputArea}>
           <div className={styles.inputCard}>
             {showTextarea ? (
-              <Textarea
+              <TextField
                 className={styles.nativeTextarea}
                 value={input}
-                onChange={(_e, data) => setInput(data.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setInput(e.target.value)}
                 placeholder="Type a prompt and press Send"
-                appearance="outline"
-                rows={4}
+                variant="outlined"
+                multiline
+                minRows={4}
                 onKeyDown={handleKeyDown}
                 disabled={sending}
+                fullWidth
               />
             ) : imageResult ? (
               <div className={styles.messageCard}>
@@ -204,7 +208,7 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
 
                       {pending.loading && (
                         <div className={styles.loadingRow}>
-                          <Spinner size="small" />
+                          <CircularProgress size={20} />
                           <span className={styles.loadingText}>Waiting for response…</span>
                         </div>
                       )}
@@ -224,7 +228,16 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
               aria-label="Send prompt"
               title="Send prompt"
             >
-              <Send16Regular aria-hidden="true" focusable={false} />
+              <IconButton
+                className={styles.sendIconButton}
+                onClick={handleSendClick}
+                disabled={sending || !input.trim()}
+                aria-label="Send prompt"
+                title="Send prompt"
+                size="medium"
+              >
+                <SendIcon />
+              </IconButton>
             </button>
           </div>
         </div>
@@ -243,7 +256,7 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
 
               {m.loading && (
                 <div className={styles.loadingRow}>
-                  <Spinner size="small" />
+                  <CircularProgress size={20} />
                   <span className={styles.loadingText}>Waiting for response…</span>
                 </div>
               )}

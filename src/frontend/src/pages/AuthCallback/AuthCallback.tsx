@@ -1,12 +1,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { 
-  Spinner, 
-  Title1, 
-  Body1, 
-  Card 
-} from '@fluentui/react-components';
+import { Paper, Typography, CircularProgress, Box } from '@mui/material';
 import { setAuthExpiration } from '../../utils/authentication-helper';
 import './AuthCallback.css';
 
@@ -122,11 +117,13 @@ const AuthCallback: React.FC = () => {
   
   return (
     <div className="auth-callback-container">
-      <Card className="auth-callback-card">
-        <Spinner size="large" />
-        <Title1>Processing Authentication...</Title1>
-        <Body1>Please wait while we complete your login process.</Body1>
-      </Card>
+      <Paper className="auth-callback-card" elevation={3} sx={{ padding: 4 }}>
+        <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
+          <CircularProgress size={48} />
+          <Typography variant="h5">Processing Authentication...</Typography>
+          <Typography variant="body1">Please wait while we complete your login process.</Typography>
+        </Box>
+      </Paper>
     </div>
   );
 };

@@ -8,7 +8,7 @@ import {
   MessageBar,
   Image
 } from '@fluentui/react-components';
-import { ImageSparkle20Regular, Add20Regular, Delete20Regular } from '@fluentui/react-icons';
+import { AutoAwesome as ImageSparkle, Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
 const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
   const [prompt, setPrompt] = useState<string>(value ?? '');
@@ -203,12 +203,12 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
         <div className={styles.addButtonWrap}>
           {/* Only show + button if no thumbnail is uploaded and not uploading */}
           {!uploadedThumbnail && !uploading && (
-            <Button
+              <Button
               appearance="subtle"
               shape="circular"
               title="Add Image"
               onClick={handleUploadClick}
-              icon={<Add20Regular />}
+              icon={<AddIcon />}
             />
           )}
           
@@ -228,7 +228,7 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
                 onClick={deleteUploadedImage}
                 disabled={deleting}
                 title={deleting ? "Deleting..." : "Delete image"}
-                icon={deleting ? <Spinner size="extra-small" /> : <Delete20Regular />}
+                icon={deleting ? <Spinner size="extra-small" /> : <DeleteIcon />}
               />
             </div>
           ) : null}
@@ -273,7 +273,7 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
               appearance="primary"
               onClick={handleGenerate} 
               disabled={loading || !prompt.trim()}
-              icon={<ImageSparkle20Regular />}
+              icon={<ImageSparkle />}
             >
               {loading ? 'Generating…' : 'Generate'}
             </Button>

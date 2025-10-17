@@ -8,11 +8,11 @@ import {
   Button,
   Divider
 } from '@fluentui/react-components';
-import { 
-  ErrorCircle20Regular, 
-  Shield20Regular,
-  Navigation20Regular 
-} from '@fluentui/react-icons';
+import {
+  Error as ErrorIcon,
+  Security as SecurityIcon,
+  Navigation as NavigationIcon
+} from '@mui/icons-material';
 
 const useStyles = makeStyles({
   container: {
@@ -50,7 +50,7 @@ const ErrorTestPage: React.FC = () => {
           <Link to="/error?type=auth-error&message=Test authentication error&details=This is a test authentication error for demonstration purposes" style={{ textDecoration: 'none' }}>
             <Button 
               appearance="secondary" 
-              icon={<ErrorCircle20Regular />}
+              icon={<ErrorIcon />}
             >
               Test Auth Error
             </Button>
@@ -59,7 +59,7 @@ const ErrorTestPage: React.FC = () => {
           <Link to="/error?type=unauthorized&message=Test unauthorized access&returnUrl=/image" style={{ textDecoration: 'none' }}>
             <Button 
               appearance="secondary" 
-              icon={<Shield20Regular />}
+              icon={<SecurityIcon />}
             >
               Test Unauthorized
             </Button>
@@ -68,7 +68,7 @@ const ErrorTestPage: React.FC = () => {
           <Link to="/error?type=general&message=Test general error&details=This is a general error for testing purposes" style={{ textDecoration: 'none' }}>
             <Button 
               appearance="secondary" 
-              icon={<Navigation20Regular />}
+              icon={<NavigationIcon />}
             >
               Test General Error
             </Button>

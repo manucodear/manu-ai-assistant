@@ -122,11 +122,7 @@
   width: 100%;
 }
 
-.home-login-buttons > * {
-  width: 240px !important;
-  min-width: 240px !important;
-  max-width: 240px !important;
-}
+/* Removed hard-coded button widths; use MUI Button fullWidth or sx props instead */
 
 .home-button-group {
   display: flex;

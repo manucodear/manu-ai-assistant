@@ -37,17 +37,17 @@ import {
   Tooltip
 } from '@fluentui/react-components';
 import {
-  Add20Regular,
-  Delete20Regular,
-  Edit20Regular,
-  Save20Regular,
-  Settings20Regular,
-  Info20Regular,
-  Warning20Regular,
-  CheckmarkCircle20Regular,
-  ErrorCircle20Regular,
-  MoreHorizontal20Regular
-} from '@fluentui/react-icons';
+  Add,
+  Delete,
+  Edit,
+  Save,
+  Settings,
+  Info,
+  Warning,
+  CheckCircle,
+  Error,
+  MoreHoriz
+} from '@mui/icons-material';
 
 const useStyles = makeStyles({
   container: {
@@ -126,12 +126,12 @@ const FluentShowcase: React.FC = () => {
         <Title2>Buttons</Title2>
         <Card className={styles.card}>
           <div className={styles.buttonGroup}>
-            <Button appearance="primary" icon={<Add20Regular />}>Primary</Button>
-            <Button appearance="secondary" icon={<Edit20Regular />}>Secondary</Button>
-            <Button appearance="outline" icon={<Save20Regular />}>Outline</Button>
-            <Button appearance="subtle" icon={<Settings20Regular />}>Subtle</Button>
-            <Button appearance="transparent" icon={<Delete20Regular />}>Transparent</Button>
-            <Button disabled icon={<Info20Regular />}>Disabled</Button>
+            <Button appearance="primary" icon={<Add />}>Primary</Button>
+            <Button appearance="secondary" icon={<Edit />}>Secondary</Button>
+            <Button appearance="outline" icon={<Save />}>Outline</Button>
+            <Button appearance="subtle" icon={<Settings />}>Subtle</Button>
+            <Button appearance="transparent" icon={<Delete />}>Transparent</Button>
+            <Button disabled icon={<Info />}>Disabled</Button>
           </div>
         </Card>
       </div>
@@ -221,16 +221,16 @@ const FluentShowcase: React.FC = () => {
       <div className={styles.section}>
         <Title2>Message Bars</Title2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <MessageBar intent="info" icon={<Info20Regular />}>
+          <MessageBar intent="info" icon={<Info />}>
             This is an informational message.
           </MessageBar>
-          <MessageBar intent="success" icon={<CheckmarkCircle20Regular />}>
+          <MessageBar intent="success" icon={<CheckCircle />}>
             Operation completed successfully!
           </MessageBar>
-          <MessageBar intent="warning" icon={<Warning20Regular />}>
+          <MessageBar intent="warning" icon={<Warning />}>
             Please review your input before proceeding.
           </MessageBar>
-          <MessageBar intent="error" icon={<ErrorCircle20Regular />}>
+          <MessageBar intent="error" icon={<Error />}>
             An error occurred while processing your request.
           </MessageBar>
         </div>
@@ -279,21 +279,21 @@ const FluentShowcase: React.FC = () => {
 
           <Menu>
             <MenuTrigger disableButtonEnhancement>
-              <Button appearance="secondary" icon={<MoreHorizontal20Regular />}>
+              <Button appearance="secondary" icon={<MoreHoriz />}>
                 Menu
               </Button>
             </MenuTrigger>
             <MenuPopover>
               <MenuList>
-                <MenuItem icon={<Add20Regular />}>New Item</MenuItem>
-                <MenuItem icon={<Edit20Regular />}>Edit</MenuItem>
-                <MenuItem icon={<Delete20Regular />}>Delete</MenuItem>
+                <MenuItem icon={<Add />}>New Item</MenuItem>
+                <MenuItem icon={<Edit />}>Edit</MenuItem>
+                <MenuItem icon={<Delete />}>Delete</MenuItem>
               </MenuList>
             </MenuPopover>
           </Menu>
 
           <Tooltip content="This is a helpful tooltip" relationship="label">
-            <Button appearance="outline" icon={<Info20Regular />}>
+            <Button appearance="outline" icon={<Info />}>
               Hover for tooltip
             </Button>
           </Tooltip>

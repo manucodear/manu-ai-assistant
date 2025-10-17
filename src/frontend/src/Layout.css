@@ -4,18 +4,7 @@
   min-height: 100vh;
 }
 
-.layout-nav {
-  padding: 0.75rem;
-  border-bottom: 1px solid #e1e1e1;
-  background-color: #f8f9fa;
-}
-
-@media (min-width: 768px) {
-  .layout-nav {
-    padding: 1rem;
-  }
-}
-
+/* Minimal layout helpers — visual styling is handled by Material UI */
 .layout-main {
   flex: 1;
   padding: 1rem;

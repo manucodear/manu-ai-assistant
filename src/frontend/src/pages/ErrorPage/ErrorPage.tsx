@@ -2,20 +2,19 @@ import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ErrorPageProps } from './ErrorPage.types';
 import {
-  Title1,
-  Title2,
-  Body1,
-  Card,
+  Paper,
+  Typography,
   Button,
-  MessageBar,
-  Divider
-} from '@fluentui/react-components';
+  Divider,
+  Alert,
+  Box
+} from '@mui/material';
 import {
-  Home20Regular,
-  ErrorCircle24Regular,
-  Shield20Regular,
-  Warning20Regular
-} from '@fluentui/react-icons';
+  Home as HomeIcon,
+  Error as ErrorIcon,
+  Security as SecurityIcon,
+  Warning as WarningIcon
+} from '@mui/icons-material';
 import './ErrorPage.css';
 
 const ErrorPage: React.FC<ErrorPageProps> = ({ 
@@ -38,7 +37,7 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
         return {
           title: title || 'Authentication Error',
           message: errorMessage || 'There was a problem during the authentication process.',
-          icon: <ErrorCircle24Regular className="error-icon" />,
+          icon: <ErrorIcon className="error-icon" />,
           intent: 'error' as const,
           defaultDetails: 'Please try logging in again. If the problem persists, check your network connection or contact support.'
         };
@@ -46,7 +45,7 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
         return {
           title: title || 'Access Denied',
           message: errorMessage || 'You need to be authenticated to access this page.',
-          icon: <Shield20Regular className="error-unauthorized-icon" />,
+          icon: <SecurityIcon className="error-unauthorized-icon" />,
           intent: 'warning' as const,
           defaultDetails: 'Please log in to your account to continue using this feature.'
         };
@@ -54,7 +53,7 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
         return {
           title: title || 'Something went wrong',
           message: errorMessage || 'An unexpected error occurred.',
-          icon: <Warning20Regular className="error-icon" />,
+          icon: <WarningIcon className="error-icon" />,
           intent: 'error' as const,
           defaultDetails: 'Please try again or return to the home page.'
         };
@@ -66,24 +65,24 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
 
   return (
     <div className="error-container">
-      <Card className="error-card">
-        <div className="error-icon-container">
+      <Paper className="error-card" elevation={3} sx={{ padding: 3 }}>
+        <Box className="error-icon-container">
           {errorConfig.icon}
-        </div>
-        
-        <div className="error-header">
-          <Title1>{errorConfig.title}</Title1>
-          <Title2>{errorConfig.message}</Title2>
-        </div>
-        
+        </Box>
+
+        <Box className="error-header" sx={{ textAlign: 'center', mb: 2 }}>
+          <Typography variant="h5">{errorConfig.title}</Typography>
+          <Typography variant="subtitle1">{errorConfig.message}</Typography>
+        </Box>
+
         <div className="error-content">
-          <MessageBar intent={errorConfig.intent}>
+          <Alert severity={errorConfig.intent === 'warning' ? 'warning' : 'error'}>
             {displayDetails}
-          </MessageBar>
-          
+          </Alert>
+
           {errorType === 'auth-error' && (
             <div className="error-additional-info">
-              <Body1>Common causes include:</Body1>
+              <Typography variant="body1">Common causes include:</Typography>
               <ul className="error-causes-list">
                 <li>Network connectivity issues</li>
                 <li>Invalid credentials</li>
@@ -92,54 +91,43 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
               </ul>
             </div>
           )}
-          
+
           {errorType === 'unauthorized' && (
             <div className="error-additional-info">
-              <Body1>
+              <Typography variant="body1">
                 This page requires authentication. Please log in with one of the available providers to continue.
-              </Body1>
+              </Typography>
             </div>
           )}
         </div>
-        
-        <Divider />
-        
+
+        <Divider sx={{ my: 2 }} />
+
         <div className="error-actions">
           <Link to="/" style={{ textDecoration: 'none' }}>
-            <Button 
-              appearance="primary" 
-              icon={<Home20Regular />}
-              size="large"
-            >
+            <Button variant="contained" size="large" startIcon={<HomeIcon />}>
               Go to Home
             </Button>
           </Link>
-          
+
           {errorType === 'unauthorized' && (
-            <Link 
-              to={returnUrl ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : '/login'} 
+            <Link
+              to={returnUrl ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : '/login'}
               style={{ textDecoration: 'none' }}
             >
-              <Button 
-                appearance="secondary"
-                size="large"
-              >
+              <Button variant="outlined" size="large" sx={{ ml: 2 }}>
                 Login
               </Button>
             </Link>
           )}
-          
+
           {errorType === 'auth-error' && (
-            <Button 
-              appearance="secondary"
-              size="large"
-              onClick={() => window.location.reload()}
-            >
+            <Button variant="outlined" size="large" sx={{ ml: 2 }} onClick={() => window.location.reload()}>
               Try Again
             </Button>
           )}
         </div>
-      </Card>
+      </Paper>
     </div>
   );
 };

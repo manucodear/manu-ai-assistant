@@ -10,10 +10,10 @@ import {
   Button,
   Divider
 } from '@fluentui/react-components';
-import { 
-  ImageSparkle20Regular, 
-  ImageMultiple20Regular
-} from '@fluentui/react-icons';
+import {
+  AutoAwesome as ImageSparkle,
+  Collections as ImageMultiple
+} from '@mui/icons-material';
 
 const Image: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'generate' | 'gallery'>('generate');
@@ -25,14 +25,14 @@ const Image: React.FC = () => {
         <div className="image-tabs">
           <Button
             appearance={activeTab === 'generate' ? 'primary' : 'secondary'}
-            icon={<ImageSparkle20Regular />}
+            icon={<ImageSparkle />}
             onClick={() => setActiveTab('generate')}
           >
             Generate
           </Button>
           <Button
             appearance={activeTab === 'gallery' ? 'primary' : 'secondary'}
-            icon={<ImageMultiple20Regular />}
+            icon={<ImageMultiple />}
             onClick={() => setActiveTab('gallery')}
           >
             Gallery

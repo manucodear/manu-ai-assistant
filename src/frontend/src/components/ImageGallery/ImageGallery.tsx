@@ -15,12 +15,12 @@ import {
   Badge,
   Button
 } from '@fluentui/react-components';
-import { 
-  ImageMultiple20Regular,
-  Warning20Regular,
-  CheckmarkCircle20Regular,
-  Dismiss20Regular
-} from '@fluentui/react-icons';
+import {
+  Collections as ImageMultiple,
+  Warning as WarningIcon,
+  CheckCircle as CheckCircleIcon,
+  Close as DismissIcon
+} from '@mui/icons-material';
 
 const ImageGallery: React.FC<ImageGalleryProps> = () => {
   const [images, setImages] = useState<ImageData[]>([]);
@@ -137,7 +137,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
           header={
             <div className={styles.header}>
               <Title2>
-                <ImageMultiple20Regular className={styles.headerIcon} />
+                <ImageMultiple className={styles.headerIcon} />
                 Image Gallery
               </Title2>
               <Badge appearance="filled" color="brand">
@@ -177,8 +177,8 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
       )}
 
       {/* Error State */}
-      {error && (
-        <MessageBar intent="error" icon={<Warning20Regular />}>
+        {error && (
+        <MessageBar intent="error" icon={<WarningIcon />}>
           {error}
         </MessageBar>
       )}
@@ -187,7 +187,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
       {!loading && !error && images.length === 0 && (
         <Card className={styles.emptyCard}>
           <div className={styles.emptyState}>
-            <ImageMultiple20Regular className={styles.emptyIcon} />
+            <ImageMultiple className={styles.emptyIcon} />
             <Title3>No Images Found</Title3>
             <Body1>Generate some images to see them here in the gallery.</Body1>
           </div>
@@ -197,7 +197,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
       {/* Success State with Images */}
       {!loading && !error && images.length > 0 && (
         <>
-          <MessageBar intent="success" icon={<CheckmarkCircle20Regular />}>
+          <MessageBar intent="success" icon={<CheckCircleIcon />}>
             Showing {images.length} {images.length === 1 ? 'image' : 'images'} in {selectedSize} size layout
           </MessageBar>
 
@@ -217,7 +217,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
                       appearance="subtle"
                       shape="circular"
                       size="small"
-                      icon={deletingImageId === image.id ? <Spinner size="extra-small" /> : <Dismiss20Regular />}
+                      icon={deletingImageId === image.id ? <Spinner size="extra-small" /> : <DismissIcon />}
                       className={styles.deleteButton}
                       onClick={(e) => {
                         e.stopPropagation();

@@ -309,22 +309,22 @@
   top: 0.5rem;
   right: 0.5rem;
   z-index: 10;
-  background-color: rgba(0, 0, 0, 0.8) !important;
-  color: white !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   opacity: 0;
   transform: scale(0.9);
   transition: opacity 0.3s ease, transform 0.3s ease;
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 32px !important;
-  min-height: 32px !important;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
 }
 
 .deleteButton:hover {
-  background-color: rgba(220, 38, 38, 0.9) !important;
-  color: white !important;
-  border-color: rgba(255, 255, 255, 0.3) !important;
+  background-color: rgba(220, 38, 38, 0.9);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
   transform: scale(1);
 }
 
@@ -337,28 +337,28 @@
 .gallery[data-size="small"] .deleteButton {
   top: 0.25rem;
   right: 0.25rem;
-  width: 24px !important;
-  height: 24px !important;
-  min-width: 24px !important;
-  min-height: 24px !important;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
 }
 
 .gallery[data-size="medium"] .deleteButton {
   top: 0.5rem;
   right: 0.5rem;
-  width: 28px !important;
-  height: 28px !important;
-  min-width: 28px !important;
-  min-height: 28px !important;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
 }
 
 .gallery[data-size="large"] .deleteButton {
   top: 0.75rem;
   right: 0.75rem;
-  width: 36px !important;
-  height: 36px !important;
-  min-width: 36px !important;
-  min-height: 36px !important;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
 }
 
 /* Image Overlay */
