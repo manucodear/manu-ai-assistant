@@ -4,6 +4,7 @@ import styles from './Prompt.module.css';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
+import Paper from '@mui/material/Paper';
 import SendIcon from '@mui/icons-material/Send';
 
 interface ImagePromptTags {
@@ -166,7 +167,7 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
       {/* Top area: show the input card (textarea or improved prompt) with send button */}
       <div className={styles.promptRow}>
         <div className={styles.inputArea}>
-          <div className={styles.inputCard}>
+          <Paper className={styles.inputCard} elevation={1} sx={{ p: 2 }}>
             {showTextarea ? (
               <TextField
                 className={styles.nativeTextarea}
@@ -181,7 +182,7 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
                 fullWidth
               />
             ) : imageResult ? (
-              <div className={styles.messageCard}>
+              <Paper className={styles.messageCard} elevation={0} sx={{ p: 1 }}>
                 <div className={styles.subTitle}>Improved prompt</div>
                 <div className={styles.improvedPrompt}>{imageResult.ImprovedPrompt}</div>
 
@@ -194,14 +195,14 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
                     {showDifferences && <div className={styles.differencesText}>{imageResult.MainDifferences}</div>}
                   </div>
                 )}
-              </div>
+              </Paper>
             ) : (
               // No textarea and no image result yet: show the pending message inline (user prompt + spinner)
               (() => {
                 const pending = pendingMessage;
                 if (pending) {
                   return (
-                    <div className={styles.messageCard} aria-live="polite">
+                    <Paper className={styles.messageCard} aria-live="polite" elevation={0} sx={{ p: 1 }}>
                       <div className={styles.cardColumn}>
                         <div className={styles.userPrompt + ' ' + styles.userPromptFlex}>{pending.userPrompt}</div>
                       </div>
@@ -212,13 +213,13 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
                           <span className={styles.loadingText}>Waiting for response…</span>
                         </div>
                       )}
-                    </div>
+                    </Paper>
                   );
                 }
                 return <div aria-hidden="true" />;
               })()
             )}
-          </div>
+          </Paper>
 
           <div className={styles.sendTopColumn}>
             <button
@@ -247,7 +248,7 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
         {messages
           .filter((m) => !(m.id && imageResultMessageId && m.id === imageResultMessageId))
           .map((m: MessageItem, idx: number) => (
-            <div key={idx} className={styles.messageCard} aria-live="polite">
+            <Paper key={idx} className={styles.messageCard} aria-live="polite" elevation={0} sx={{ p: 1 }}>
               {/* If this message is the one that produced the imageResult and showUserInput is false,
                   hide the user prompt; otherwise show it. */}
               <div className={styles.cardColumn}>
@@ -274,14 +275,14 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
               )}
 
               {m.conversation && <div className={styles.conversation}>{m.conversation}</div>}
-            </div>
+            </Paper>
           ))}
       </div>
 
       {imageResult && (
         <>
           {/* Tags / POVs / Chips card */}
-          <div className={styles.messageCard}>
+          <Paper className={styles.messageCard} elevation={0} sx={{ p: 1 }}>
             <div className={styles.tagsSection}>
               <div className={styles.tagsTitle}>Tags</div>
 
@@ -371,10 +372,10 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
                   </div>
                 ))}
             </div>
-          </div>
+          </Paper>
 
           {/* Show/hide original input card */}
-          <div className={styles.messageCard}>
+          <Paper className={styles.messageCard} elevation={0} sx={{ p: 1 }}>
             <div className={styles.cardColumn}>
               <div>
                 <button type="button" onClick={() => setShowUserInput((s) => !s)} className={styles.toggleButton}>
@@ -386,7 +387,7 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
                 {showUserInput ? imageResult.OriginalPrompt : null}
               </div>
             </div>
-          </div>
+          </Paper>
         </>
       )}
 

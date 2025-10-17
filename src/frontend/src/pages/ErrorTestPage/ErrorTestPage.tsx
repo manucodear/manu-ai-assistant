@@ -1,20 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import {
-  makeStyles,
-  Title1,
-  Body1,
-  Card,
-  Button,
-  Divider
-} from '@fluentui/react-components';
+import { Paper, Typography, Button, Divider, Box } from '@mui/material';
 import {
   Error as ErrorIcon,
   Security as SecurityIcon,
   Navigation as NavigationIcon
 } from '@mui/icons-material';
 
-const useStyles = makeStyles({
+const styles: { [key: string]: React.CSSProperties } = {
   container: {
     display: 'flex',
     flexDirection: 'column',
@@ -23,7 +16,7 @@ const useStyles = makeStyles({
     margin: '0 auto',
     padding: '2rem'
   },
-  card: {
+  paper: {
     padding: '2rem'
   },
   buttonGroup: {
@@ -31,56 +24,57 @@ const useStyles = makeStyles({
     gap: '1rem',
     flexWrap: 'wrap'
   }
-});
+};
 
 const ErrorTestPage: React.FC = () => {
-  const styles = useStyles();
-
   return (
-    <div className={styles.container}>
-      <Card className={styles.card}>
-        <Title1>Error Page Testing</Title1>
-        <Body1>
+    <div style={styles.container}>
+      <Paper elevation={3} style={styles.paper}>
+        <Typography variant="h5" component="h1" gutterBottom>
+          Error Page Testing
+        </Typography>
+
+        <Typography variant="body1" paragraph>
           Use these links to test the different error scenarios:
-        </Body1>
-        
+        </Typography>
+
         <Divider />
-        
-        <div className={styles.buttonGroup}>
-          <Link to="/error?type=auth-error&message=Test authentication error&details=This is a test authentication error for demonstration purposes" style={{ textDecoration: 'none' }}>
-            <Button 
-              appearance="secondary" 
-              icon={<ErrorIcon />}
-            >
-              Test Auth Error
-            </Button>
-          </Link>
-          
-          <Link to="/error?type=unauthorized&message=Test unauthorized access&returnUrl=/image" style={{ textDecoration: 'none' }}>
-            <Button 
-              appearance="secondary" 
-              icon={<SecurityIcon />}
-            >
-              Test Unauthorized
-            </Button>
-          </Link>
-          
-          <Link to="/error?type=general&message=Test general error&details=This is a general error for testing purposes" style={{ textDecoration: 'none' }}>
-            <Button 
-              appearance="secondary" 
-              icon={<NavigationIcon />}
-            >
-              Test General Error
-            </Button>
-          </Link>
-        </div>
-        
+
+        <Box style={styles.buttonGroup} mt={2} mb={2}>
+          <Button
+            component={Link}
+            to="/error?type=auth-error&message=Test authentication error&details=This is a test authentication error for demonstration purposes"
+            variant="outlined"
+            startIcon={<ErrorIcon />}
+          >
+            Test Auth Error
+          </Button>
+
+          <Button
+            component={Link}
+            to="/error?type=unauthorized&message=Test unauthorized access&returnUrl=/image"
+            variant="outlined"
+            startIcon={<SecurityIcon />}
+          >
+            Test Unauthorized
+          </Button>
+
+          <Button
+            component={Link}
+            to="/error?type=general&message=Test general error&details=This is a general error for testing purposes"
+            variant="outlined"
+            startIcon={<NavigationIcon />}
+          >
+            Test General Error
+          </Button>
+        </Box>
+
         <Divider />
-        
-        <Body1>
+
+        <Typography variant="body1" paragraph>
           <strong>Note:</strong> The Image page is now protected and will redirect to an error page if you're not authenticated.
-        </Body1>
-      </Card>
+        </Typography>
+      </Paper>
     </div>
   );
 };

@@ -17,7 +17,7 @@
 .error-card {
   max-width: 600px;
   width: 100%;
-  padding: 1.5rem;
+  padding: 2rem 1.5rem 1.5rem; /* extra top padding reduced to make room for overlapping avatar */
   text-align: center;
 }
 
@@ -57,6 +57,23 @@
   gap: 1rem;
   margin-bottom: 2rem;
   text-align: center;
+}
+
+/* Overlapping avatar that sits above the card */
+.error-avatar {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  top: -42px; /* pull the avatar up to overlap */
+  margin-bottom: -32px; /* collapse the space so card content moves up */
+}
+
+.avatar-error {
+  background-color: #d13438; /* red */
+}
+
+.avatar-warning {
+  background-color: #f7630c; /* orange */
 }
 
 /* Error header section */

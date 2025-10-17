@@ -1,13 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { ImagePromptProps } from './ImagePrompt.types';
 import styles from './ImagePrompt.module.css';
-import { 
-  Textarea, 
-  Button, 
-  Spinner, 
-  MessageBar,
-  Image
-} from '@fluentui/react-components';
+import {
+  TextField,
+  Button,
+  IconButton,
+  CircularProgress,
+  Alert,
+  Box
+} from '@mui/material';
 import { AutoAwesome as ImageSparkle, Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
 const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
@@ -201,38 +202,37 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
       {/* Buttons container: Add (+), thumbnail, and New button all in same row */}
       <div className={styles.buttonsRow}>
         <div className={styles.addButtonWrap}>
-          {/* Only show + button if no thumbnail is uploaded and not uploading */}
+          {/* Only show + IconButton if no thumbnail is uploaded and not uploading */}
           {!uploadedThumbnail && !uploading && (
-              <Button
-              appearance="subtle"
-              shape="circular"
-              title="Add Image"
+            <IconButton
+              aria-label="Add image"
               onClick={handleUploadClick}
-              icon={<AddIcon />}
-            />
+              size="large"
+            >
+              <AddIcon />
+            </IconButton>
           )}
-          
+
           {/* Show thumbnail or upload spinner in the same space as + button */}
           {uploading ? (
             <div className={styles.uploadThumbPlaceholder} aria-hidden>
-              <Spinner size="small" />
+              <CircularProgress size={20} />
             </div>
           ) : uploadedThumbnail ? (
             <div className={styles.thumbContainer}>
               <img src={uploadedThumbnail} alt="uploaded thumbnail" className={styles.uploadedThumb} />
-              <Button
-                appearance="subtle"
-                shape="circular"
-                size="small"
+              <IconButton
                 className={styles.deleteButton}
                 onClick={deleteUploadedImage}
                 disabled={deleting}
-                title={deleting ? "Deleting..." : "Delete image"}
-                icon={deleting ? <Spinner size="extra-small" /> : <DeleteIcon />}
-              />
+                size="small"
+                aria-label={deleting ? 'Deleting' : 'Delete image'}
+              >
+                {deleting ? <CircularProgress size={16} /> : <DeleteIcon />}
+              </IconButton>
             </div>
           ) : null}
-          
+
           {/* Hidden file input used for uploads */}
           <input
             ref={fileInputRef}
@@ -244,7 +244,7 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
         </div>
 
         <div className={styles.newButtonWrapInner}>
-          <Button appearance="secondary" onClick={handleNew}>
+          <Button variant="outlined" onClick={handleNew}>
             New
           </Button>
         </div>
@@ -253,12 +253,14 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
       <div className={styles.promptRow}>
         {/* If submitted (successful generate) hide the textarea and show the text as plain div */}
         {!submitted ? (
-          <Textarea
+          <TextField
             value={prompt}
-            onChange={(_e, data) => setPrompt(data.value)}
+            onChange={(e) => setPrompt(e.target.value)}
             placeholder="Describe the image you want (multiline supported)"
+            multiline
             rows={6}
-            resize="vertical"
+            fullWidth
+            variant="outlined"
             disabled={loading}
           />
         ) : (
@@ -269,11 +271,12 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
 
         <div className={styles.actions}>
           {!submitted && (
-            <Button 
-              appearance="primary"
-              onClick={handleGenerate} 
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleGenerate}
               disabled={loading || !prompt.trim()}
-              icon={<ImageSparkle />}
+              startIcon={<ImageSparkle />}
             >
               {loading ? 'Generating…' : 'Generate'}
             </Button>
@@ -283,27 +286,19 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
 
       {loading && (
         <div className={styles.loadingContainer}>
-          <Spinner size="small" />
+          <CircularProgress size={20} />
           <span>Generating your image...</span>
         </div>
       )}
 
       {error && (
-        <MessageBar intent="error">
-          Error: {error}
-        </MessageBar>
+        <Alert severity="error">Error: {error}</Alert>
       )}
 
       {(images.length > 0 || submitted) && (
         <div className={styles.results}>
           {images.map((src) => (
-            <Image 
-              key={src} 
-              src={src} 
-              alt="AI generated image" 
-              className={styles.resultImage}
-              fit="cover"
-            />
+            <Box key={src} className={styles.resultImage} component="img" src={src} alt="AI generated image" />
           ))}
         </div>
       )}

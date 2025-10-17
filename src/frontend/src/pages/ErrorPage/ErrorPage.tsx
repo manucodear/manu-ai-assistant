@@ -7,6 +7,7 @@ import {
   Button,
   Divider,
   Alert,
+  Avatar,
   Box
 } from '@mui/material';
 import {
@@ -37,7 +38,8 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
         return {
           title: title || 'Authentication Error',
           message: errorMessage || 'There was a problem during the authentication process.',
-          icon: <ErrorIcon className="error-icon" />,
+          // store the icon component (not an element) so we can render it inside Avatar
+          icon: ErrorIcon,
           intent: 'error' as const,
           defaultDetails: 'Please try logging in again. If the problem persists, check your network connection or contact support.'
         };
@@ -45,7 +47,7 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
         return {
           title: title || 'Access Denied',
           message: errorMessage || 'You need to be authenticated to access this page.',
-          icon: <SecurityIcon className="error-unauthorized-icon" />,
+          icon: SecurityIcon,
           intent: 'warning' as const,
           defaultDetails: 'Please log in to your account to continue using this feature.'
         };
@@ -53,7 +55,7 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
         return {
           title: title || 'Something went wrong',
           message: errorMessage || 'An unexpected error occurred.',
-          icon: <WarningIcon className="error-icon" />,
+          icon: WarningIcon,
           intent: 'error' as const,
           defaultDetails: 'Please try again or return to the home page.'
         };
@@ -66,9 +68,18 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
   return (
     <div className="error-container">
       <Paper className="error-card" elevation={3} sx={{ padding: 3 }}>
-        <Box className="error-icon-container">
-          {errorConfig.icon}
-        </Box>
+        {/* Avatar overlapping the card for better visual hierarchy */}
+        <div className="error-avatar" aria-hidden>
+          {(() => {
+            const IconComponent = errorConfig.icon as React.ElementType;
+            const bgClass = errorConfig.intent === 'warning' ? 'avatar-warning' : 'avatar-error';
+            return (
+              <Avatar className={bgClass} sx={{ width: 56, height: 56 }}>
+                <IconComponent sx={{ fontSize: 28, color: '#fff' }} />
+              </Avatar>
+            );
+          })()}
+        </div>
 
         <Box className="error-header" sx={{ textAlign: 'center', mb: 2 }}>
           <Typography variant="h5">{errorConfig.title}</Typography>

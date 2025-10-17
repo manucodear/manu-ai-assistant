@@ -2,14 +2,12 @@ import './Image.css';
 import React, { useState } from 'react';
 import { ImagePrompt } from '../../components/ImagePrompt';
 import { ImageGallery } from '../../components/ImageGallery';
-import { 
-  Title1, 
-  Card, 
-  CardHeader,
-  Body1,
+import {
+  Paper,
+  Typography,
   Button,
   Divider
-} from '@fluentui/react-components';
+} from '@mui/material';
 import {
   AutoAwesome as ImageSparkle,
   Collections as ImageMultiple
@@ -21,35 +19,36 @@ const Image: React.FC = () => {
   return (
     <div className="image-container">
       <div className="image-header">
-        <Title1 className="image-title">AI Image Studio</Title1>
+        <Typography variant="h4" className="image-title">AI Image Studio</Typography>
         <div className="image-tabs">
           <Button
-            appearance={activeTab === 'generate' ? 'primary' : 'secondary'}
-            icon={<ImageSparkle />}
+            variant={activeTab === 'generate' ? 'contained' : 'outlined'}
+            startIcon={<ImageSparkle />}
             onClick={() => setActiveTab('generate')}
           >
             Generate
           </Button>
           <Button
-            appearance={activeTab === 'gallery' ? 'primary' : 'secondary'}
-            icon={<ImageMultiple />}
+            variant={activeTab === 'gallery' ? 'contained' : 'outlined'}
+            startIcon={<ImageMultiple />}
             onClick={() => setActiveTab('gallery')}
+            sx={{ ml: 1 }}
           >
             Gallery
           </Button>
         </div>
       </div>
 
-      <Divider />
+      <Divider sx={{ my: 2 }} />
 
       {activeTab === 'generate' && (
-        <Card className="image-card">
-          <CardHeader
-            header={<Title1>AI Image Generation</Title1>}
-            description={<Body1>Enter your prompt below to generate an image</Body1>}
-          />
+        <Paper className="image-card" elevation={1} sx={{ p: 2 }}>
+          <div className="image-card-header">
+            <Typography variant="h5">AI Image Generation</Typography>
+            <Typography variant="body1">Enter your prompt below to generate an image</Typography>
+          </div>
           <ImagePrompt value={''} />
-        </Card>
+        </Paper>
       )}
 
       {activeTab === 'gallery' && (
