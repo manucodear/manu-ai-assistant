@@ -31,6 +31,7 @@ interface ImagePromptResult {
 
 const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
   const [input, setInput] = useState<string>(value ?? '');
+  const [messages, setMessages] = useState<MessageItem[]>([]);
   const [sending, setSending] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [evaluateMessage, setEvaluateMessage] = useState<string | null>(null);
@@ -40,6 +41,12 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageResult, setImageResult] = useState<ImagePromptResult | null>(null);
   // result UI is self-contained
+
+  const [selectedIncluded, setSelectedIncluded] = useState<Record<string, boolean>>({});
+  const [selectedNotIncluded, setSelectedNotIncluded] = useState<Record<string, boolean>>({});
+  const [selectedPOVs, setSelectedPOVs] = useState<Record<string, boolean>>({});
+  const [showDifferences, setShowDifferences] = useState(false);
+  const [showTextarea, setShowTextarea] = useState<boolean>(true);
 
   const sendPrompt = async (text: string) => {
     if (!text || !text.trim()) return;
@@ -54,9 +61,11 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
     // keep a copy of the user's text so we can restore it on error
     const previousInput = text;
     // clear the input immediately when sending (optimistic UX)
-    setInput('');
-    setSending(true);
-    // pendingMessage will be rendered inline in the input card until response
+  setInput('');
+  setSending(true);
+  // hide the textarea immediately when send starts
+  setShowTextarea(false);
+  // pendingMessage will be rendered inline in the input card until response
 
     try {
       const payload = { prompt: text } as any;
@@ -87,7 +96,7 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
 
       // The backend returns a canonical response with these exact keys:
       // originalPrompt, improvedPrompt, mainDifferences, tags.{included, notIncluded}, pointOfViews, pointOfView
-      const d: any = parsed || {};
+        const d: any = parsed || {};
       const tags = d.tags || {};
       const data: ImagePromptResult = {
         OriginalPrompt: d.originalPrompt ?? '',
@@ -104,7 +113,29 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
       //    - empty string -> do not select any POV (null)
       // - If the server did NOT return a singular PointOfView, fall back to the first PointOfViews entry or null
       // set the image result and update messaging state
-      setImageResult(data);
+    setImageResult(data);
+
+  // Record which message corresponds to this image result so we can
+  // hide/show the original user input for that message.
+  setImageResultMessageId(tempId);
+  setShowUserInput(false);
+
+      const inc: Record<string, boolean> = {};
+      const notInc: Record<string, boolean> = {};
+      (data.Tags?.Included || []).forEach((t: string) => (inc[t] = true));
+      (data.Tags?.NotIncluded || []).forEach((t: string) => (notInc[t] = false));
+      setSelectedIncluded(inc);
+      setSelectedNotIncluded(notInc);
+
+      const povs: Record<string, boolean> = {};
+      (data.PointOfViews || []).forEach((p: string) => (povs[p] = false));
+      setSelectedPOVs(povs);
+
+      // add the completed message to the messages list and associate it with the image result
+      setMessages((prev: MessageItem[]) => [...prev, { ...newMessage, loading: false, error: null }]);
+      setImageResultMessageId(tempId);
+      setShowUserInput(false);
+      setPendingMessage(null);
     } catch (err: any) {
       const msg = err?.message ?? 'Unknown error';
       // On error, the render logic will show the PromptInput so the user can fix/retry
@@ -137,7 +168,7 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
       if (!res.ok) {
         const txt = await res.text();
         throw new Error(txt || `Request failed: ${res.status}`);
-      }
+    }
 
       // expecting { revisedPrompt: string }
       const json = await res.json();
@@ -146,7 +177,7 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
         // invoke sendPrompt with the revised prompt returned by the evaluate endpoint
         await sendPrompt(revised);
         return;
-      }
+    }
       // if no revisedPrompt provided, fall back to showing a success message
       setEvaluateMessage('Evaluation returned no revised prompt');
       setEvaluateSeverity('success');
@@ -190,7 +221,7 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
       setGlobalError(err?.message ?? 'Unknown error');
     } finally {
       setGenerating(false);
-    }
+                }
   };
 
   const handleReset = () => {
@@ -215,17 +246,17 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
         {/* Evaluate alert (top) */}
         {evaluateMessage && evaluateSeverity === 'success' && (
           <Alert severity="success" sx={{ p: 1 }}>{evaluateMessage}</Alert>
-        )}
+              )}
         {evaluateMessage && evaluateSeverity === 'error' && (
           <Alert severity="error" sx={{ p: 1 }}>{`Error: ${evaluateMessage}`}</Alert>
-        )}
+              )}
 
         {/* show a single global error above the input when present */}
         {globalError && (
           <Alert severity="error" sx={{ p: 1 }}>
             {`Error: ${globalError}`}
           </Alert>
-        )}
+              )}
         {/* Top input area (split into PromptInput). The Prompt decides what to render:
             - initial: show the textarea + FAB (PromptInput)
             - after click Send: hide textarea and show a loading area
@@ -246,7 +277,7 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
             <Paper aria-live="polite" elevation={0} sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
               <CircularProgress size={24} />
               <Box sx={{ color: 'text.secondary' }}>{'Generating image…'}</Box>
-            </Paper>
+          </Paper>
           ) : (
             <PromptResult imageResult={imageResult} onEvaluate={onEvaluate} onReset={handleReset} onGenerate={onGenerate} generating={generating} />
           )
