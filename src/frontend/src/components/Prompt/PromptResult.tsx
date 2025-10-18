@@ -67,6 +67,28 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
   const [evaluateSuccess, setEvaluateSuccess] = React.useState<string | null>(null);
   const [evaluateError, setEvaluateError] = React.useState<string | null>(null);
 
+  // Keep originals (derived from the incoming imageResult) so we can detect changes
+  const originalIncluded = React.useMemo(() => [...(imageResult.Tags?.Included || [])], [imageResult]);
+  const originalPOV = React.useMemo(() => {
+    if (Object.prototype.hasOwnProperty.call(imageResult, 'PointOfViewRaw')) {
+      const raw = (imageResult as any).PointOfViewRaw;
+      if (raw && String(raw).trim()) return String(raw).trim();
+      return null;
+    }
+    return (imageResult.PointOfViews && imageResult.PointOfViews[0]) ?? null;
+  }, [imageResult]);
+
+  // helper to compare tag sets (order-insensitive)
+  const tagSetsEqual = (a: string[], b: string[]) => {
+    if (a.length !== b.length) return false;
+    const setB = new Set(b);
+    return a.every((x) => setB.has(x));
+  };
+
+  const hasTagChanges = !tagSetsEqual(selectedTags, originalIncluded);
+  const hasPOVChange = (selectedPOV ?? null) !== (originalPOV ?? null);
+  const hasAnyChange = hasTagChanges || hasPOVChange;
+
   const handleEvaluate = async () => {
     setEvaluateSuccess(null);
     setEvaluateError(null);
@@ -143,7 +165,8 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
             size="small"
             startIcon={<ImageSparkle />}
             onClick={() => onGenerate && onGenerate(imageResult.ImprovedPrompt)}
-            disabled={generating}
+            disabled={generating || hasAnyChange}
+            title={hasAnyChange ? 'Change tags or point of view back to original to enable generate' : undefined}
           >
             Generate
           </Button>

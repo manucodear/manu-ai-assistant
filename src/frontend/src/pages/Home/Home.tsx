@@ -1,5 +1,3 @@
-import reactLogo from '../../assets/react.svg'
-import viteLogo from '/vite.svg'
 import './Home.css';
 import { LoginButton, LoginButtonType } from '../../components/LoginButton';
 import { Link } from 'react-router-dom';
@@ -8,7 +6,6 @@ import {
 } from '@mui/material';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-import { Link as MuiLink } from '@mui/material';
 import { Person } from '@mui/icons-material';
 
 const Home: React.FC = () => {
@@ -29,27 +26,6 @@ const Home: React.FC = () => {
         <Paper className="home-card" elevation={3}>
           <div className="home-card-header">
             <Typography variant="h4">Welcome to My AI Assistant</Typography>
-            <Typography variant="body1">Built with Vite + React + Material UI</Typography>
-          </div>
-          <div className="home-logo-container home-text-center">
-            <MuiLink href="https://vite.dev" target="_blank" rel="noopener">
-              <img
-                src={viteLogo}
-                alt="Vite logo"
-                className="home-logo"
-                width={96}
-                height={96}
-              />
-            </MuiLink>
-            <MuiLink href="https://react.dev" target="_blank" rel="noopener">
-              <img
-                src={reactLogo}
-                alt="React logo"
-                className="home-logo home-react-logo"
-                width={96}
-                height={96}
-              />
-            </MuiLink>
           </div>
         </Paper>
         <div className="home-login-buttons">
