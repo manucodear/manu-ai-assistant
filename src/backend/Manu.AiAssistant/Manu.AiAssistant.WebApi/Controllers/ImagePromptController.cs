@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {
-    //[Authorize]
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class ImagePromptController : ControllerBase

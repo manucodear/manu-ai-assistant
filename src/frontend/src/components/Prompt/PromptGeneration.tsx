@@ -13,13 +13,10 @@ interface PromptGenerationProps {
 
 const PromptGeneration: React.FC<PromptGenerationProps> = ({ imageUrl, onReset }) => {
   return (
-    <Box sx={{ width: '100%', maxWidth: 980, mx: 'auto', px: 1 }}>
-      <Paper elevation={0} sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Generated image</Typography>
-        <Box component="img" src={imageUrl} alt="Generated" sx={{ maxWidth: '100%', borderRadius: 1 }} />
-      </Paper>
+    <Box sx={{ width: '100%', maxWidth: 980, mx: 'auto', px: 0 }}>
+      <Box component="img" src={imageUrl} alt="Generated" sx={{ maxWidth: '100%', borderRadius: 1 }} />
       {typeof onReset === 'function' && (
-        <Box sx={{ position: 'relative', bottom: 8, left: 0}}>
+        <Box sx={{ position: 'relative', bottom: 8, left: 0 }}>
           <Fab color="default" aria-label="Reset prompt" onClick={() => onReset && onReset()}>
             <RestartAltIcon />
           </Fab>
