@@ -11,7 +11,7 @@ const Image: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'generate' | 'gallery'>('generate');
 
   return (
-    <Container maxWidth="lg" sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 3, md: 4 }, p: { xs: 2, md: 4 }, backgroundColor: '#1b1b1b' }}>
+    <Container maxWidth="lg" sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1, md: 1 }, p: { xs: 1, md: 1 }, backgroundColor: '#1b1b1b' }}>
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, alignItems: { xs: 'flex-start', md: 'center' }, width: '100%' }}>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mx: 'auto', width: { xs: '100%', md: 'auto' }, justifyContent: 'center' }}>
           <Button
