@@ -16,13 +16,15 @@ const Home: React.FC = () => {
 
   return (
     <div className="home-container">
-      <div className="home-header">
-        <Link to="/login" style={{ textDecoration: 'none' }}>
-          <Button variant="contained" color="primary" startIcon={<Person />}>
-            Login
-          </Button>
-        </Link>
-      </div>
+      {import.meta.env.DEV && (
+        <div className="home-header">
+          <Link to="/login" style={{ textDecoration: 'none' }}>
+            <Button variant="contained" color="primary" startIcon={<Person />}>
+              Login
+            </Button>
+          </Link>
+        </div>
+      )}
       <div className="home-body">
         <Paper className="home-card" elevation={3}>
           <div className="home-card-header">
@@ -54,38 +56,40 @@ const Home: React.FC = () => {
           <LoginButton type={LoginButtonType.Microsoft} />
           {isGoogleAuthEnabled && <LoginButton type={LoginButtonType.Google} />}
         </div>
-        
-        <div className="home-button-group">
-          <Link to="/showcase" style={{ textDecoration: 'none' }}>
-            <Button 
-              variant="outlined"
-            >
-              View Component Showcase
-            </Button>
-          </Link>
-          <Link to="/material-showcase" style={{ textDecoration: 'none' }}>
-            <Button
-              variant="outlined"
-              sx={{ ml: 1 }}
-            >
-              View Material Showcase
-            </Button>
-          </Link>
-          <Link to="/responsive" style={{ textDecoration: 'none' }}>
-            <Button 
-              variant="outlined"
-            >
-              📱 Mobile Demo
-            </Button>
-          </Link>
-          <Link to="/test-errors" style={{ textDecoration: 'none' }}>
-            <Button 
-              variant="text"
-            >
-              Test Error Pages
-            </Button>
-          </Link>
-        </div>
+
+        {import.meta.env.DEV && (
+          <div className="home-button-group">
+            <Link to="/showcase" style={{ textDecoration: 'none' }}>
+              <Button
+                variant="outlined"
+              >
+                View Component Showcase
+              </Button>
+            </Link>
+            <Link to="/material-showcase" style={{ textDecoration: 'none' }}>
+              <Button
+                variant="outlined"
+                sx={{ ml: 1 }}
+              >
+                View Material Showcase
+              </Button>
+            </Link>
+            <Link to="/responsive" style={{ textDecoration: 'none' }}>
+              <Button
+                variant="outlined"
+              >
+                📱 Mobile Demo
+              </Button>
+            </Link>
+            <Link to="/test-errors" style={{ textDecoration: 'none' }}>
+              <Button
+                variant="text"
+              >
+                Test Error Pages
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

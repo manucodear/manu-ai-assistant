@@ -7,6 +7,7 @@
         public string MainDifferences { get; set; } = string.Empty;
         public ImagePromptTags Tags { get; set; } = new();
         public List<string> PointOfViews { get; set; } = new();
+        public string PointOfView { get; set; } = string.Empty;
     }
 
     public class ImagePromptTags

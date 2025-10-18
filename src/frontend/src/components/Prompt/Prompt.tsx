@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { PromptProps } from './Prompt.types';
-import styles from './Prompt.module.css';
-import TextField from '@mui/material/TextField';
-import IconButton from '@mui/material/IconButton';
-import CircularProgress from '@mui/material/CircularProgress';
+import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
-import SendIcon from '@mui/icons-material/Send';
+// input UI moved to PromptInput
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+
+// Paper/Stack removed — no historic messages UI
+// result UI moved into PromptResult
+import PromptInput from './PromptInput';
+import PromptResult from './PromptResult';
+import PromptGeneration from './PromptGeneration';
 
 interface ImagePromptTags {
   Included: string[];
@@ -18,55 +23,40 @@ interface ImagePromptResult {
   MainDifferences: string;
   Tags: ImagePromptTags;
   PointOfViews: string[];
+  // raw singular PointOfView from server when present (may be empty string)
+  PointOfViewRaw?: string | null;
 }
 
-interface MessageItem {
-  id?: string;
-  userPrompt: string;
-  suggestions: string[];
-  conversation: string;
-  loading: boolean;
-  error?: string | null;
-  isImagePrompt?: boolean;
-}
+// no message objects are stored in this flow; kept minimal
 
 const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
   const [input, setInput] = useState<string>(value ?? '');
-  const [messages, setMessages] = useState<MessageItem[]>([]);
   const [sending, setSending] = useState(false);
+  const [globalError, setGlobalError] = useState<string | null>(null);
+  const [evaluateMessage, setEvaluateMessage] = useState<string | null>(null);
+  const [evaluateSeverity, setEvaluateSeverity] = useState<'success' | 'error' | null>(null);
+  const [evaluating, setEvaluating] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageResult, setImageResult] = useState<ImagePromptResult | null>(null);
-  const [showUserInput, setShowUserInput] = useState(true);
-  const [imageResultMessageId, setImageResultMessageId] = useState<string | null>(null);
-  const [pendingMessage, setPendingMessage] = useState<MessageItem | null>(null);
-
-  const [selectedIncluded, setSelectedIncluded] = useState<Record<string, boolean>>({});
-  const [selectedNotIncluded, setSelectedNotIncluded] = useState<Record<string, boolean>>({});
-  const [selectedPOVs, setSelectedPOVs] = useState<Record<string, boolean>>({});
-  const [showDifferences, setShowDifferences] = useState(false);
-  const [showTextarea, setShowTextarea] = useState<boolean>(true);
+  // result UI is self-contained
 
   const sendPrompt = async (text: string) => {
     if (!text || !text.trim()) return;
-
-    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const newMessage: MessageItem = {
-      id: tempId,
-      userPrompt: text,
-      suggestions: [],
-      conversation: '',
-      loading: true,
-      error: null,
-      isImagePrompt: true,
-    };
-
-  // keep the new message as pending (don't add to messages list yet)
-  setPendingMessage(newMessage);
-  // clear the input immediately when sending
-  setInput('');
-  setSending(true);
-  // hide the textarea immediately when send starts
-  setShowTextarea(false);
-  // pendingMessage will be rendered inline in the input card until response
+    // clear any prior global error when the user initiates a new send
+    // also clear prior evaluate alerts
+    setEvaluateMessage(null);
+    setEvaluateSeverity(null);
+    setGlobalError(null);
+  // clear any previously generated image so a new result doesn't accidentally show it
+  setGeneratedImageUrl(null);
+    // no message history; just show sending state
+    // keep a copy of the user's text so we can restore it on error
+    const previousInput = text;
+    // clear the input immediately when sending (optimistic UX)
+    setInput('');
+    setSending(true);
+    // pendingMessage will be rendered inline in the input card until response
 
     try {
       const payload = { prompt: text } as any;
@@ -95,51 +85,33 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
 
       if (!parsed) throw new Error('Empty or invalid JSON response from server');
 
-      const data = ((): ImagePromptResult => {
-        const d: any = parsed || {};
-        const tags = d.Tags || d.tags || {};
-        return {
-          OriginalPrompt: d.OriginalPrompt ?? d.originalPrompt ?? d.original ?? '',
-          ImprovedPrompt: d.ImprovedPrompt ?? d.improvedPrompt ?? d.improved ?? '',
-          MainDifferences: d.MainDifferences ?? d.mainDifferences ?? d.mainDifferencesText ?? '',
-          Tags: {
-            Included: tags.Included ?? tags.included ?? tags.includedTags ?? [],
-            NotIncluded: tags.NotIncluded ?? tags.notIncluded ?? tags.notIncludedTags ?? [],
-          },
-          PointOfViews: d.PointOfViews ?? d.pointOfViews ?? d.pointOfViewsList ?? [],
-        } as ImagePromptResult;
-      })();
+      // The backend returns a canonical response with these exact keys:
+      // originalPrompt, improvedPrompt, mainDifferences, tags.{included, notIncluded}, pointOfViews, pointOfView
+      const d: any = parsed || {};
+      const tags = d.tags || {};
+      const data: ImagePromptResult = {
+        OriginalPrompt: d.originalPrompt ?? '',
+        ImprovedPrompt: d.improvedPrompt ?? '',
+        MainDifferences: d.mainDifferences ?? '',
+        Tags: { Included: tags.included ?? [], NotIncluded: tags.notIncluded ?? [] },
+        PointOfViews: d.pointOfViews ?? [],
+        PointOfViewRaw: d.pointOfView ?? null,
+      };
 
-    setImageResult(data);
-
-  // Record which message corresponds to this image result so we can
-  // hide/show the original user input for that message.
-  setImageResultMessageId(tempId);
-  setShowUserInput(false);
-
-      const inc: Record<string, boolean> = {};
-      const notInc: Record<string, boolean> = {};
-      (data.Tags?.Included || []).forEach((t: string) => (inc[t] = true));
-      (data.Tags?.NotIncluded || []).forEach((t: string) => (notInc[t] = false));
-      setSelectedIncluded(inc);
-      setSelectedNotIncluded(notInc);
-
-      const povs: Record<string, boolean> = {};
-      (data.PointOfViews || []).forEach((p: string) => (povs[p] = false));
-      setSelectedPOVs(povs);
-
-      // add the completed message to the messages list and associate it with the image result
-      setMessages((prev: MessageItem[]) => [...prev, { ...newMessage, loading: false, error: null }]);
-      setImageResultMessageId(tempId);
-      setShowUserInput(false);
-      setPendingMessage(null);
+      // Determine selected POV:
+      // - If the server explicitly returned a PointOfView property (possibly empty), respect it:
+      //    - non-empty -> select that value
+      //    - empty string -> do not select any POV (null)
+      // - If the server did NOT return a singular PointOfView, fall back to the first PointOfViews entry or null
+      // set the image result and update messaging state
+      setImageResult(data);
     } catch (err: any) {
       const msg = err?.message ?? 'Unknown error';
-      // On error, re-show the textarea so the user can fix/retry
-      setShowTextarea(true);
-      // add the failed message into the list with the error
-      setMessages((prev: MessageItem[]) => [...prev, { ...newMessage, loading: false, error: msg }]);
-      setPendingMessage(null);
+      // On error, the render logic will show the PromptInput so the user can fix/retry
+      // set a single global error message and reset the input/pending state
+      setGlobalError(msg);
+      // restore the user's text so they don't lose it on failure
+      setInput(previousInput);
     } finally {
       setSending(false);
     }
@@ -147,253 +119,140 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
 
   const handleSendClick = () => sendPrompt(input);
 
-  const handleKeyDown: React.KeyboardEventHandler<any> = (e) => {
-    const ev = e as React.KeyboardEvent<any>;
-    if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
-      ev.preventDefault();
-      sendPrompt(input);
-    }
-    if (ev.key === 'Enter' && !ev.ctrlKey && !ev.metaKey && input.trim()) {
-      ev.preventDefault();
-      sendPrompt(input);
+  // onEvaluate: called by PromptResult when user triggers Evaluate
+  const onEvaluate = async (payload: any) => {
+    // clear previous
+    setEvaluateMessage(null);
+    setEvaluateSeverity(null);
+    setEvaluating(true);
+    const base = import.meta.env.VITE_BACKEND_URL || '';
+    try {
+      const res = await fetch(`${base}/imagePrompt`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || `Request failed: ${res.status}`);
+      }
+
+      // expecting { revisedPrompt: string }
+      const json = await res.json();
+      const revised = (json && json.revisedPrompt) ? String(json.revisedPrompt) : '';
+      if (revised && revised.trim()) {
+        // invoke sendPrompt with the revised prompt returned by the evaluate endpoint
+        await sendPrompt(revised);
+        return;
+      }
+      // if no revisedPrompt provided, fall back to showing a success message
+      setEvaluateMessage('Evaluation returned no revised prompt');
+      setEvaluateSeverity('success');
+    } catch (err: any) {
+      const msg = err?.message ?? 'Unknown error';
+      setEvaluateMessage(msg);
+      setEvaluateSeverity('error');
+      // rethrow so child can react if needed
+      throw err;
+    } finally {
+      setEvaluating(false);
     }
   };
 
-  const handleSuggestionClick = (suggestion: string) => setInput(suggestion);
+  // onGenerate: called by PromptResult when user triggers Generate
+  const onGenerate = async (improvedPrompt: string) => {
+    // hide input/result and show generating UI
+    setGenerating(true);
+    setGlobalError(null);
+    setGeneratedImageUrl(null);
+    try {
+      const base = import.meta.env.VITE_BACKEND_URL || '';
+      const res = await fetch(`${base}/Image/Generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ prompt: improvedPrompt }),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || `Request failed: ${res.status}`);
+      }
+
+      const json = await res.json();
+      const url = json?.image?.url ?? null;
+      if (!url) throw new Error('No image URL returned');
+      // success: show the generated image and keep input/result hidden
+      setGeneratedImageUrl(url);
+    } catch (err: any) {
+      setGlobalError(err?.message ?? 'Unknown error');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleReset = () => {
+    // Reset to initial state: clear result and input, clear messages and errors
+    setImageResult(null);
+    setInput('');
+    setGlobalError(null);
+    setEvaluateMessage(null);
+    setEvaluateSeverity(null);
+    setSending(false);
+    setEvaluating(false);
+    // clear generation state as well
+    setGenerating(false);
+    setGeneratedImageUrl(null);
+  };
+
+  // key handling moved into PromptInput; keep sendPrompt available for direct calls
 
   return (
-    <div className={styles.container}>
-      <div className={styles.contentInner}>
-      {/* Top area: show the input card (textarea or improved prompt) with send button */}
-      <div className={styles.promptRow}>
-        <div className={styles.inputArea}>
-          <Paper className={styles.inputCard} elevation={1} sx={{ p: 2 }}>
-            {showTextarea ? (
-              <TextField
-                className={styles.nativeTextarea}
-                value={input}
-                onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setInput(e.target.value)}
-                placeholder="Type a prompt and press Send"
-                variant="outlined"
-                multiline
-                minRows={4}
-                onKeyDown={handleKeyDown}
-                disabled={sending}
-                fullWidth
-              />
-            ) : imageResult ? (
-              <Paper className={styles.messageCard} elevation={0} sx={{ p: 1 }}>
-                <div className={styles.subTitle}>Improved prompt</div>
-                <div className={styles.improvedPrompt}>{imageResult.ImprovedPrompt}</div>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
+      <Box sx={{ width: '100%', maxWidth: 980, mx: 'auto', px: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {/* Evaluate alert (top) */}
+        {evaluateMessage && evaluateSeverity === 'success' && (
+          <Alert severity="success" sx={{ p: 1 }}>{evaluateMessage}</Alert>
+        )}
+        {evaluateMessage && evaluateSeverity === 'error' && (
+          <Alert severity="error" sx={{ p: 1 }}>{`Error: ${evaluateMessage}`}</Alert>
+        )}
 
-                {imageResult.MainDifferences && (
-                  <div className={styles.differencesSection}>
-                    <button type="button" onClick={() => setShowDifferences((s) => !s)} className={styles.differencesButton}>
-                      {showDifferences ? 'Hide main differences' : 'Show main differences'}
-                    </button>
-
-                    {showDifferences && <div className={styles.differencesText}>{imageResult.MainDifferences}</div>}
-                  </div>
-                )}
-              </Paper>
-            ) : (
-              // No textarea and no image result yet: show the pending message inline (user prompt + spinner)
-              (() => {
-                const pending = pendingMessage;
-                if (pending) {
-                  return (
-                    <Paper className={styles.messageCard} aria-live="polite" elevation={0} sx={{ p: 1 }}>
-                      <div className={styles.cardColumn}>
-                        <div className={styles.userPrompt + ' ' + styles.userPromptFlex}>{pending.userPrompt}</div>
-                      </div>
-
-                      {pending.loading && (
-                        <div className={styles.loadingRow}>
-                          <CircularProgress size={20} />
-                          <span className={styles.loadingText}>Waiting for response…</span>
-                        </div>
-                      )}
-                    </Paper>
-                  );
-                }
-                return <div aria-hidden="true" />;
-              })()
-            )}
+        {/* show a single global error above the input when present */}
+        {globalError && (
+          <Alert severity="error" sx={{ p: 1 }}>
+            {`Error: ${globalError}`}
+          </Alert>
+        )}
+        {/* Top input area (split into PromptInput). The Prompt decides what to render:
+            - initial: show the textarea + FAB (PromptInput)
+            - after click Send: hide textarea and show a loading area
+            - on success: show PromptResult (textarea remains hidden)
+            - on error: show Alert and restore textarea */}
+        {!sending && !imageResult && !evaluating ? (
+          <PromptInput input={input} setInput={setInput} onSend={handleSendClick} sending={sending} />
+        ) : sending || evaluating ? (
+          <Paper aria-live="polite" elevation={0} sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
+            <CircularProgress size={24} />
+            <Box sx={{ color: 'text.secondary' }}>{evaluating ? 'Evaluating…' : 'Waiting for response…'}</Box>
           </Paper>
-
-          <div className={styles.sendTopColumn}>
-            <button
-              className={styles.sendIconButton}
-              onClick={handleSendClick}
-              disabled={sending || !input.trim()}
-              aria-label="Send prompt"
-              title="Send prompt"
-            >
-              <IconButton
-                className={styles.sendIconButton}
-                onClick={handleSendClick}
-                disabled={sending || !input.trim()}
-                aria-label="Send prompt"
-                title="Send prompt"
-                size="medium"
-              >
-                <SendIcon />
-              </IconButton>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.messages}>
-        {messages
-          .filter((m) => !(m.id && imageResultMessageId && m.id === imageResultMessageId))
-          .map((m: MessageItem, idx: number) => (
-            <Paper key={idx} className={styles.messageCard} aria-live="polite" elevation={0} sx={{ p: 1 }}>
-              {/* If this message is the one that produced the imageResult and showUserInput is false,
-                  hide the user prompt; otherwise show it. */}
-              <div className={styles.cardColumn}>
-                <div className={styles.userPrompt + ' ' + styles.userPromptFlex}>{m.userPrompt}</div>
-              </div>
-
-              {m.loading && (
-                <div className={styles.loadingRow}>
-                  <CircularProgress size={20} />
-                  <span className={styles.loadingText}>Waiting for response…</span>
-                </div>
-              )}
-
-              {m.error && <div className={styles.error}>Error: {m.error}</div>}
-
-              {m.suggestions && m.suggestions.length > 0 && (
-                <div className={styles.chipsRow}>
-                  {m.suggestions.map((s: string, i: number) => (
-                    <button key={i} className={styles.chip} onClick={() => handleSuggestionClick(s)} type="button">
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {m.conversation && <div className={styles.conversation}>{m.conversation}</div>}
+        ) : imageResult ? (
+          generatedImageUrl ? (
+            // show generated image while keeping prompt hidden
+            <PromptGeneration imageUrl={generatedImageUrl} onReset={handleReset} />
+          ) : generating ? (
+            <Paper aria-live="polite" elevation={0} sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
+              <CircularProgress size={24} />
+              <Box sx={{ color: 'text.secondary' }}>{'Generating image…'}</Box>
             </Paper>
-          ))}
-      </div>
-
-      {imageResult && (
-        <>
-          {/* Tags / POVs / Chips card */}
-          <Paper className={styles.messageCard} elevation={0} sx={{ p: 1 }}>
-            <div className={styles.tagsSection}>
-              <div className={styles.tagsTitle}>Tags</div>
-
-              <div className={styles.tagsRowFlex}>
-                <select
-                  multiple
-                  size={6}
-                  className={styles.tagSelect}
-                  onChange={(e: any) => {
-                    const selected = Array.from(e.target.selectedOptions).map((o: any) => o.value);
-                    const incMap: Record<string, boolean> = {};
-                    (imageResult.Tags?.Included || []).forEach((t: string) => (incMap[t] = selected.includes(t)));
-                    setSelectedIncluded(incMap);
-                  }}
-                  value={(imageResult.Tags?.Included || []).filter((t: string) => selectedIncluded[t])}
-                >
-                  <optgroup label="Included">
-                    {(imageResult.Tags?.Included || []).map((t: string) => (
-                      <option key={`inc-opt-${t}`} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </optgroup>
-                </select>
-
-                <select
-                  multiple
-                  size={6}
-                  className={styles.tagSelect}
-                  onChange={(e: any) => {
-                    const selected = Array.from(e.target.selectedOptions).map((o: any) => o.value);
-                    const notMap: Record<string, boolean> = {};
-                    (imageResult.Tags?.NotIncluded || []).forEach((t: string) => (notMap[t] = selected.includes(t)));
-                    setSelectedNotIncluded(notMap);
-                  }}
-                  value={(imageResult.Tags?.NotIncluded || []).filter((t: string) => selectedNotIncluded[t])}
-                >
-                  <optgroup label="Not included">
-                    {(imageResult.Tags?.NotIncluded || []).map((t: string) => (
-                      <option key={`not-opt-${t}`} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </optgroup>
-                </select>
-              </div>
-
-              {imageResult.PointOfViews && imageResult.PointOfViews.length > 0 && (
-                <div className={styles.povWrapper}>
-                  <div className={styles.subTitle}>Point of views</div>
-                  <select
-                    multiple
-                    size={Math.min(6, imageResult.PointOfViews.length)}
-                    className={styles.povSelect}
-                    onChange={(e: any) => {
-                      const selected = Array.from(e.target.selectedOptions).map((o: any) => o.value);
-                      const povMap: Record<string, boolean> = {};
-                      (imageResult.PointOfViews || []).forEach((p: string) => (povMap[p] = selected.includes(p)));
-                      setSelectedPOVs(povMap);
-                    }}
-                    value={(imageResult.PointOfViews || []).filter((p: string) => selectedPOVs[p])}
-                  >
-                    {(imageResult.PointOfViews || []).map((p: string) => (
-                      <option key={`pov-opt-${p}`} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-
-            <div className={styles.chipsRow} style={{ marginTop: 8 }}>
-              {Object.keys(selectedIncluded)
-                .filter((k) => selectedIncluded[k])
-                .map((t: string) => (
-                  <div key={`chip-inc-${t}`} className={styles.chip} style={{ background: '#224a2f', borderColor: '#2f6b43' }}>
-                    {t}
-                  </div>
-                ))}
-
-              {Object.keys(selectedNotIncluded)
-                .filter((k) => selectedNotIncluded[k])
-                .map((t: string) => (
-                  <div key={`chip-not-${t}`} className={styles.chip} style={{ background: '#31343a', borderColor: '#464a50' }}>
-                    {t}
-                  </div>
-                ))}
-            </div>
-          </Paper>
-
-          {/* Show/hide original input card */}
-          <Paper className={styles.messageCard} elevation={0} sx={{ p: 1 }}>
-            <div className={styles.cardColumn}>
-              <div>
-                <button type="button" onClick={() => setShowUserInput((s) => !s)} className={styles.toggleButton}>
-                  {showUserInput ? 'Hide original input' : 'Show original input'}
-                </button>
-              </div>
-
-              <div className={styles.userPrompt} style={{ marginTop: 8 }}>
-                {showUserInput ? imageResult.OriginalPrompt : null}
-              </div>
-            </div>
-          </Paper>
-        </>
-      )}
-
-      {/* bottom send button removed — only the top send button remains */}
-      </div>
-    </div>
+          ) : (
+            <PromptResult imageResult={imageResult} onEvaluate={onEvaluate} onReset={handleReset} onGenerate={onGenerate} generating={generating} />
+          )
+        ) : null}
+      </Box> 
+    </Box>
   );
 };
 

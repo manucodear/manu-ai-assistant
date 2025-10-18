@@ -1,60 +1,43 @@
-import './Image.css';
 import React, { useState } from 'react';
-import { ImagePrompt } from '../../components/ImagePrompt';
 import { ImageGallery } from '../../components/ImageGallery';
+import { Box, Button, Divider, Container } from '@mui/material';
 import {
-  Paper,
-  Typography,
-  Button,
-  Divider
-} from '@mui/material';
-import {
-  AutoAwesome as ImageSparkle,
-  Collections as ImageMultiple
+  Collections as ImageMultiple,
 } from '@mui/icons-material';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import { Prompt } from '../../components/Prompt';
 
 const Image: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'generate' | 'gallery'>('generate');
 
   return (
-    <div className="image-container">
-      <div className="image-header">
-        <Typography variant="h4" className="image-title">AI Image Studio</Typography>
-        <div className="image-tabs">
+    <Container maxWidth="lg" sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 3, md: 4 }, p: { xs: 2, md: 4 }, backgroundColor: '#1b1b1b' }}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, alignItems: { xs: 'flex-start', md: 'center' }, width: '100%' }}>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mx: 'auto', width: { xs: '100%', md: 'auto' }, justifyContent: 'center' }}>
           <Button
             variant={activeTab === 'generate' ? 'contained' : 'outlined'}
-            startIcon={<ImageSparkle />}
+            startIcon={<AutoFixHighIcon />}
             onClick={() => setActiveTab('generate')}
+            fullWidth={false}
           >
-            Generate
+            Create
           </Button>
           <Button
             variant={activeTab === 'gallery' ? 'contained' : 'outlined'}
             startIcon={<ImageMultiple />}
             onClick={() => setActiveTab('gallery')}
-            sx={{ ml: 1 }}
+            sx={{ ml: { xs: 0, md: 1 } }}
           >
             Gallery
           </Button>
-        </div>
-      </div>
+        </Box>
+      </Box>
 
-      <Divider sx={{ my: 2 }} />
+      <Divider />
 
-      {activeTab === 'generate' && (
-        <Paper className="image-card" elevation={1} sx={{ p: 2 }}>
-          <div className="image-card-header">
-            <Typography variant="h5">AI Image Generation</Typography>
-            <Typography variant="body1">Enter your prompt below to generate an image</Typography>
-          </div>
-          <ImagePrompt value={''} />
-        </Paper>
-      )}
-
-      {activeTab === 'gallery' && (
-        <ImageGallery />
-      )}
-    </div>
+      {activeTab === 'generate' && <Prompt value={''} />}
+      {activeTab === 'gallery' && <ImageGallery />}
+    </Container>
   );
 };
 

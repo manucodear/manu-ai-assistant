@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import { ImagePromptProps } from './ImagePrompt.types';
-import styles from './ImagePrompt.module.css';
 import {
   TextField,
   Button,
@@ -198,10 +197,10 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
   };
 
   return (
-    <div className={styles.container}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, position: 'relative' }}>
       {/* Buttons container: Add (+), thumbnail, and New button all in same row */}
-      <div className={styles.buttonsRow}>
-        <div className={styles.addButtonWrap}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 56 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mr: 'auto' }}>
           {/* Only show + IconButton if no thumbnail is uploaded and not uploading */}
           {!uploadedThumbnail && !uploading && (
             <IconButton
@@ -215,22 +214,22 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
 
           {/* Show thumbnail or upload spinner in the same space as + button */}
           {uploading ? (
-            <div className={styles.uploadThumbPlaceholder} aria-hidden>
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56 }} aria-hidden>
               <CircularProgress size={20} />
-            </div>
+            </Box>
           ) : uploadedThumbnail ? (
-            <div className={styles.thumbContainer}>
-              <img src={uploadedThumbnail} alt="uploaded thumbnail" className={styles.uploadedThumb} />
+            <Box sx={{ position: 'relative', display: 'inline-block' }}>
+              <Box component="img" src={uploadedThumbnail} alt="uploaded thumbnail" sx={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 1, boxShadow: '0 2px 6px rgba(0,0,0,0.12)' }} />
               <IconButton
-                className={styles.deleteButton}
                 onClick={deleteUploadedImage}
                 disabled={deleting}
                 size="small"
                 aria-label={deleting ? 'Deleting' : 'Delete image'}
+                sx={{ position: 'absolute', top: -8, right: -8, zIndex: 10, bgcolor: 'rgba(0,0,0,0.7)', color: '#fff', border: '1px solid #fff', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', width: 28, height: 28, minWidth: 28 }}
               >
                 {deleting ? <CircularProgress size={16} /> : <DeleteIcon />}
               </IconButton>
-            </div>
+            </Box>
           ) : null}
 
           {/* Hidden file input used for uploads */}
@@ -241,16 +240,14 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
             style={{ display: 'none' }}
             onChange={handleFileChange}
           />
-        </div>
+  </Box>
 
-        <div className={styles.newButtonWrapInner}>
-          <Button variant="outlined" onClick={handleNew}>
-            New
-          </Button>
-        </div>
-      </div>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Button variant="outlined" onClick={handleNew}>New</Button>
+        </Box>
+      </Box>
 
-      <div className={styles.promptRow}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {/* If submitted (successful generate) hide the textarea and show the text as plain div */}
         {!submitted ? (
           <TextField
@@ -264,31 +261,25 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
             disabled={loading}
           />
         ) : (
-          <div className={styles.promptCard} aria-live="polite">
-            <div className={styles.promptText}>{generatedPrompt}</div>
-          </div>
+          <Box sx={{ p: 1, borderRadius: 1, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }} aria-live="polite">
+            <Box sx={{ whiteSpace: 'pre-wrap', p: '0.75rem' }}>{generatedPrompt}</Box>
+          </Box>
         )}
 
-        <div className={styles.actions}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
           {!submitted && (
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleGenerate}
-              disabled={loading || !prompt.trim()}
-              startIcon={<ImageSparkle />}
-            >
+            <Button variant="contained" color="primary" onClick={handleGenerate} disabled={loading || !prompt.trim()} startIcon={<ImageSparkle />}>
               {loading ? 'Generating…' : 'Generate'}
             </Button>
           )}
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {loading && (
-        <div className={styles.loadingContainer}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
           <CircularProgress size={20} />
-          <span>Generating your image...</span>
-        </div>
+          <Box>Generating your image...</Box>
+        </Box>
       )}
 
       {error && (
@@ -296,13 +287,13 @@ const ImagePrompt: React.FC<ImagePromptProps> = ({ value }) => {
       )}
 
       {(images.length > 0 || submitted) && (
-        <div className={styles.results}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2, mt: 4 }}>
           {images.map((src) => (
-            <Box key={src} className={styles.resultImage} component="img" src={src} alt="AI generated image" />
+            <Box key={src} component="img" src={src} alt="AI generated image" sx={{ width: '100%', height: 'auto', borderRadius: 1, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
           ))}
-        </div>
+        </Box>
       )}
-    </div>
+    </Box>
   );
 };
 
