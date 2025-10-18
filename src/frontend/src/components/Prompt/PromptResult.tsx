@@ -212,15 +212,15 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
             const isNotIncluded = (imageResult.Tags?.NotIncluded || []).includes(t);
             if (isIncluded) {
               return (
-                <Chip key={`chip-${t}`} label={t} size="medium" color="primary" sx={{ mr: 1, mb: 1 }} />
+                <Chip key={`chip-${t}`} label={t} size="small" color="primary" sx={{ mr: 1, mb: 1 }} />
               );
             }
             if (isNotIncluded) {
               return (
-                <Chip key={`chip-${t}`} label={t} size="medium" color="secondary" sx={{ mr: 1, mb: 1 }} />
+                <Chip key={`chip-${t}`} label={t} size="small" color="secondary" sx={{ mr: 1, mb: 1 }} />
               );
             }
-            return <Chip key={`chip-${t}`} label={t} size="medium" sx={{ mr: 1, mb: 1 }} />;
+            return <Chip key={`chip-${t}`} label={t} size="small" sx={{ mr: 1, mb: 1 }} />;
           })}
         </Box>
       </Paper>
