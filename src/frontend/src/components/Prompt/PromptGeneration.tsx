@@ -1,8 +1,6 @@
 import React from 'react';
 import Box from '@mui/material/Box';
-import Paper from '@mui/material/Paper';
-import Typography from '@mui/material/Typography';
-import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import ClearIcon from '@mui/icons-material/Clear';
 import { Fab } from '@mui/material';
 
 interface PromptGenerationProps {
@@ -13,12 +11,27 @@ interface PromptGenerationProps {
 
 const PromptGeneration: React.FC<PromptGenerationProps> = ({ imageUrl, onReset }) => {
   return (
-    <Box sx={{ width: '100%', maxWidth: 980, mx: 'auto', px: 0 }}>
-      <Box component="img" src={imageUrl} alt="Generated" sx={{ maxWidth: '100%', borderRadius: 1 }} />
+    <Box sx={{ position: 'fixed', inset: 0, zIndex: 1300, bgcolor: 'common.black', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* full-viewport image (contained so entire image is visible) */}
+      <Box
+        component="img"
+        src={imageUrl}
+        alt="Generated"
+        sx={{
+          maxWidth: '100vw',
+          maxHeight: '100vh',
+          width: 'auto',
+          height: 'auto',
+          objectFit: 'contain',
+          display: 'block',
+        }}
+      />
+
+      {/* Reset FAB fixed in viewport */}
       {typeof onReset === 'function' && (
-        <Box sx={{ position: 'relative', bottom: 8, left: 0 }}>
+        <Box sx={{ position: 'fixed', bottom: 16, left: 16, zIndex: 1400 }}>
           <Fab color="default" aria-label="Reset prompt" onClick={() => onReset && onReset()}>
-            <RestartAltIcon />
+            <ClearIcon />
           </Fab>
         </Box>
       )}

@@ -147,6 +147,14 @@ namespace Manu.AiAssistant.WebApi
                 return new CosmosRepository<Chat>(container);
             });
 
+            // Register Prompt repository for Cosmos DB
+            builder.Services.AddSingleton(provider => {
+                var options = provider.GetRequiredService<IOptions<CosmosDbOptions>>().Value;
+                var client = provider.GetRequiredService<CosmosClient>();
+                var container = client.GetContainer(options.DatabaseName, options.Containers["Prompt"]);
+                return new CosmosRepository<Prompt>(container);
+            });
+
             // Identity (custom Cosmos user store). We only need basic user operations (external login).
             builder.Services.AddIdentityCore<ApplicationUser>(o =>
             {
@@ -179,7 +187,7 @@ namespace Manu.AiAssistant.WebApi
                     o.Events = new CookieAuthenticationEvents
                     {
                         OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; },
-                        OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; }
+                        OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = StatusCodes.Status403Forbidden; return	Task.CompletedTask; }
                     };
                 })
                 .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
@@ -243,6 +251,8 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.AddScoped<UserImageBlobStorageProvider>();
             // Register IImagePromptProvider for DI
             builder.Services.AddScoped<IImagePromptProvider, ImagePromptProvider>();
+            // Register AutoMapper and mapping profiles
+            builder.Services.AddAutoMapper(typeof(PromptMappingProfile));
 
             // Build the app AFTER all service registrations
             var app = builder.Build();

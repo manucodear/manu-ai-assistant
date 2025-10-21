@@ -25,16 +25,18 @@ import Alert from '@mui/material/Alert';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 interface ImagePromptTags {
-  Included: string[];
-  NotIncluded: string[];
+  included: string[];
+  notIncluded: string[];
 }
 
 interface ImagePromptResult {
-  OriginalPrompt: string;
-  ImprovedPrompt: string;
-  MainDifferences: string;
-  Tags: ImagePromptTags;
-  PointOfViews: string[];
+  originalPrompt: string;
+  improvedPrompt: string;
+  mainDifferences: string;
+  tags: ImagePromptTags;
+  pointOfViews: string[];
+  // Conversation identifier returned by the backend for this prompt result
+  conversationId: string;
 }
 
 import React from 'react';
@@ -46,21 +48,24 @@ interface PromptResultProps {
   // optional reset handler to return to initial input state
   onReset?: () => void;
   // optional generate handler: receives the improved prompt
-  onGenerate?: (improvedPrompt: string) => Promise<any>;
+  onGenerate?: (result: ImagePromptResult) => Promise<any>;
   // whether a generate request is in progress
   generating?: boolean;
+  // optional conversation tracking values
+  conversationId?: string | null;
+  setConversationId?: (id: string | null) => void;
 }
 
-const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, onReset, onGenerate, generating }) => {
-  const [selectedTags, setSelectedTags] = React.useState<string[]>(() => [...(imageResult.Tags?.Included || [])]);
+const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, onReset, onGenerate, generating, conversationId, setConversationId }) => {
+  const [selectedTags, setSelectedTags] = React.useState<string[]>(() => [...(imageResult.tags?.included || [])]);
   const [tagsAnchorEl, setTagsAnchorEl] = React.useState<HTMLElement | null>(null);
   const [selectedPOV, setSelectedPOV] = React.useState<string | null>(() => {
-    if (Object.prototype.hasOwnProperty.call(imageResult, 'PointOfViewRaw')) {
-      const raw = (imageResult as any).PointOfViewRaw;
+    if (Object.prototype.hasOwnProperty.call(imageResult, 'pointOfViewRaw')) {
+      const raw = (imageResult as any).pointOfViewRaw;
       if (raw && String(raw).trim()) return String(raw).trim();
       return null;
     }
-    return (imageResult.PointOfViews && imageResult.PointOfViews[0]) ?? null;
+    return (imageResult.pointOfViews && imageResult.pointOfViews[0]) ?? null;
   });
   const [copyMessage, setCopyMessage] = React.useState<string | null>(null);
   const [copyOpen, setCopyOpen] = React.useState<boolean>(false);
@@ -68,14 +73,14 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
   const [evaluateError, setEvaluateError] = React.useState<string | null>(null);
 
   // Keep originals (derived from the incoming imageResult) so we can detect changes
-  const originalIncluded = React.useMemo(() => [...(imageResult.Tags?.Included || [])], [imageResult]);
+  const originalIncluded = React.useMemo(() => [...(imageResult.tags?.included || [])], [imageResult]);
   const originalPOV = React.useMemo(() => {
-    if (Object.prototype.hasOwnProperty.call(imageResult, 'PointOfViewRaw')) {
-      const raw = (imageResult as any).PointOfViewRaw;
+    if (Object.prototype.hasOwnProperty.call(imageResult, 'pointOfViewRaw')) {
+      const raw = (imageResult as any).pointOfViewRaw;
       if (raw && String(raw).trim()) return String(raw).trim();
       return null;
     }
-    return (imageResult.PointOfViews && imageResult.PointOfViews[0]) ?? null;
+    return (imageResult.pointOfViews && imageResult.pointOfViews[0]) ?? null;
   }, [imageResult]);
 
   // helper to compare tag sets (order-insensitive)
@@ -89,22 +94,32 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
   const hasPOVChange = (selectedPOV ?? null) !== (originalPOV ?? null);
   const hasAnyChange = hasTagChanges || hasPOVChange;
 
+  // avoid unused prop lint errors - may be used by parent in future
+  if (typeof conversationId !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.debug && console.debug('conversationId (PromptResult):', conversationId, 'setConversationId:', typeof setConversationId);
+  }
+
   const handleEvaluate = async () => {
     setEvaluateSuccess(null);
     setEvaluateError(null);
 
-    const payload = {
-      prompt: imageResult.ImprovedPrompt,
+    const payloadResult: ImagePromptResult = {
+      originalPrompt: imageResult.originalPrompt,
+      improvedPrompt: imageResult.improvedPrompt,
+      mainDifferences: imageResult.mainDifferences,
       tags: {
-        toInclude: selectedTags,
-        toExclude: (imageResult.Tags?.Included || []).filter((t) => !selectedTags.includes(t)),
+        included: selectedTags,
+        notIncluded: imageResult.tags?.notIncluded ?? [],
       },
-      pointOfView: selectedPOV ?? '',
-    } as any;
+      pointOfViews: imageResult.pointOfViews || [],
+      pointOfViewRaw: selectedPOV ?? null,
+      conversationId: imageResult.conversationId ?? '',
+    } as ImagePromptResult;
 
     try {
       if (onEvaluate) {
-        await onEvaluate(payload);
+        await onEvaluate(payloadResult);
         setEvaluateSuccess('Evaluation successful');
       } else {
         const base = import.meta.env.VITE_BACKEND_URL || '';
@@ -112,7 +127,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify(payload),
+          body: JSON.stringify(payloadResult),
         });
 
         if (res.ok) {
@@ -144,7 +159,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
           size="small"
           onClick={async () => {
             try {
-              await navigator.clipboard.writeText(String(imageResult.ImprovedPrompt || ''));
+              await navigator.clipboard.writeText(String(imageResult.improvedPrompt || ''));
               setCopyMessage('Copied to clipboard');
               setCopyOpen(true);
             } catch (e) {
@@ -156,7 +171,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
         >
           <ContentCopyIcon fontSize="small" />
         </IconButton>
-        <Box sx={{ whiteSpace: 'pre-wrap', mb: 1, fontStyle: 'italic' }}>{imageResult.ImprovedPrompt}</Box>
+  <Box sx={{ whiteSpace: 'pre-wrap', mb: 1, fontStyle: 'italic' }}>{imageResult.improvedPrompt}</Box>
         {/* Visual-only Generate button (right-aligned) */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
           <Button
@@ -164,7 +179,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
             color="warning"
             size="small"
             startIcon={<ImageSparkle />}
-            onClick={() => onGenerate && onGenerate(imageResult.ImprovedPrompt)}
+            onClick={() => onGenerate && onGenerate(imageResult)}
             disabled={generating || hasAnyChange}
             title={hasAnyChange ? 'Change tags or point of view back to original to enable generate' : undefined}
           >
@@ -195,7 +210,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
             </Button>
             <Menu anchorEl={tagsAnchorEl} open={Boolean(tagsAnchorEl)} onClose={() => setTagsAnchorEl(null)} PaperProps={{ style: { maxHeight: 320 } }}>
               <ListSubheader>Included</ListSubheader>
-              {(imageResult.Tags?.Included || []).map((t: string) => (
+              {(imageResult.tags?.included || []).map((t: string) => (
                 <MenuItem
                   key={`inc-${t}`}
                   onClick={(ev) => {
@@ -209,7 +224,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
               ))}
 
               <ListSubheader>Not included</ListSubheader>
-              {(imageResult.Tags?.NotIncluded || []).map((t: string) => (
+              {(imageResult.tags?.notIncluded || []).map((t: string) => (
                 <MenuItem
                   key={`not-${t}`}
                   onClick={(ev) => {
@@ -231,8 +246,8 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
 
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
           {selectedTags.map((t: string) => {
-            const isIncluded = (imageResult.Tags?.Included || []).includes(t);
-            const isNotIncluded = (imageResult.Tags?.NotIncluded || []).includes(t);
+            const isIncluded = (imageResult.tags?.included || []).includes(t);
+            const isNotIncluded = (imageResult.tags?.notIncluded || []).includes(t);
             if (isIncluded) {
               return (
                 <Chip key={`chip-${t}`} label={t} size="small" color="primary" sx={{ mr: 1, mb: 1 }} />
@@ -249,11 +264,11 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
       </Paper>
 
       <Paper elevation={0} sx={{ p: 1, mt: 1 }}>
-        {imageResult.PointOfViews && imageResult.PointOfViews.length > 0 && (
+  {imageResult.pointOfViews && imageResult.pointOfViews.length > 0 && (
           <Box>
             <Box sx={{ fontWeight: 600, mb: 1 }}>Point of views</Box>
             <ToggleButtonGroup value={selectedPOV} exclusive onChange={(_e, newVal) => setSelectedPOV(newVal)} aria-label="Point of view" size="small">
-              {(imageResult.PointOfViews || []).map((p: string) => (
+              {(imageResult.pointOfViews || []).map((p: string) => (
                 <ToggleButton color="primary" key={p} value={p} aria-label={p}>
                   {p}
                 </ToggleButton>
@@ -282,7 +297,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
             <Typography color="info" variant="subtitle1">Source prompt</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <Typography sx={{ whiteSpace: 'pre-wrap' }}>{imageResult.OriginalPrompt}</Typography>
+            <Typography sx={{ whiteSpace: 'pre-wrap' }}>{imageResult.originalPrompt}</Typography>
           </AccordionDetails>
         </Accordion>
 
@@ -291,7 +306,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
             <Typography color="info" variant="subtitle1">Main differences</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <Typography sx={{ whiteSpace: 'pre-wrap' }}>{imageResult.MainDifferences}</Typography>
+            <Typography sx={{ whiteSpace: 'pre-wrap' }}>{imageResult.mainDifferences}</Typography>
           </AccordionDetails>
         </Accordion>
       </div>

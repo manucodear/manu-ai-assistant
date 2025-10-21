@@ -19,6 +19,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Close as DismissIcon
 } from '@mui/icons-material';
+import PromptGeneration from '../Prompt/PromptGeneration';
 
 const ImageGallery: React.FC<ImageGalleryProps> = () => {
   const [images, setImages] = useState<ImageData[]>([]);
@@ -26,6 +27,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<ImageSize>('large');
   const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
   const fetchImages = async () => {
     setLoading(true);
@@ -195,7 +197,14 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
             {images.map((image) => (
               <div key={`${image.id}-${selectedSize}`} className={styles.imageCard}>
                 <div className={styles.imageContainer}>
-                  <Box component="img" src={getImageUrl(image)} alt={image.prompt} className={styles.galleryImage} />
+                  <Box
+                    component="img"
+                    src={getImageUrl(image)}
+                    alt={image.prompt}
+                    className={styles.galleryImage}
+                    onClick={() => setSelectedImageUrl(image.url ?? getImageUrl(image))}
+                    sx={{ cursor: 'pointer' }}
+                  />
                   {/* X button for user-uploaded images */}
                   {image.isUserUpload && (
                     <IconButton
@@ -222,6 +231,10 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
               </div>
             ))}
           </div>
+          {/* Fullscreen viewer when an image is selected */}
+          {selectedImageUrl && (
+            <PromptGeneration imageUrl={selectedImageUrl} onReset={() => setSelectedImageUrl(null)} />
+          )}
         </>
       )}
     </div>

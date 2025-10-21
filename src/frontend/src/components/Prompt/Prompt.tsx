@@ -13,18 +13,20 @@ import PromptResult from './PromptResult';
 import PromptGeneration from './PromptGeneration';
 
 interface ImagePromptTags {
-  Included: string[];
-  NotIncluded: string[];
+  included: string[];
+  notIncluded: string[];
 }
 
 interface ImagePromptResult {
-  OriginalPrompt: string;
-  ImprovedPrompt: string;
-  MainDifferences: string;
-  Tags: ImagePromptTags;
-  PointOfViews: string[];
+  originalPrompt: string;
+  improvedPrompt: string;
+  mainDifferences: string;
+  tags: ImagePromptTags;
+  pointOfViews: string[];
   // raw singular PointOfView from server when present (may be empty string)
-  PointOfViewRaw?: string | null;
+  pointOfViewRaw?: string | null;
+  // Conversation identifier returned by the backend for this prompt result
+  conversationId: string;
 }
 
 // no message objects are stored in this flow; kept minimal
@@ -39,6 +41,7 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
   const [generating, setGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageResult, setImageResult] = useState<ImagePromptResult | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   // result UI is self-contained
 
   const sendPrompt = async (text: string) => {
@@ -48,8 +51,8 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
     setEvaluateMessage(null);
     setEvaluateSeverity(null);
     setGlobalError(null);
-  // clear any previously generated image so a new result doesn't accidentally show it
-  setGeneratedImageUrl(null);
+    // clear any previously generated image so a new result doesn't accidentally show it
+    setGeneratedImageUrl(null);
     // no message history; just show sending state
     // keep a copy of the user's text so we can restore it on error
     const previousInput = text;
@@ -59,7 +62,7 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
     // pendingMessage will be rendered inline in the input card until response
 
     try {
-      const payload = { prompt: text } as any;
+      const payload = { prompt: text, conversationId: conversationId ?? '' } as any;
       const base = import.meta.env.VITE_BACKEND_URL || '';
       const url = `${base}/imagePrompt`;
 
@@ -87,15 +90,18 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
 
       // The backend returns a canonical response with these exact keys:
       // originalPrompt, improvedPrompt, mainDifferences, tags.{included, notIncluded}, pointOfViews, pointOfView
-      const d: any = parsed || {};
-      const tags = d.tags || {};
+      const promptResultRaw: any = parsed || {};
+      // persist conversation id returned by backend for follow-up requests
+      if (promptResultRaw.conversationId) setConversationId(String(promptResultRaw.conversationId));
+      const tags = promptResultRaw.tags || {};
       const data: ImagePromptResult = {
-        OriginalPrompt: d.originalPrompt ?? '',
-        ImprovedPrompt: d.improvedPrompt ?? '',
-        MainDifferences: d.mainDifferences ?? '',
-        Tags: { Included: tags.included ?? [], NotIncluded: tags.notIncluded ?? [] },
-        PointOfViews: d.pointOfViews ?? [],
-        PointOfViewRaw: d.pointOfView ?? null,
+        originalPrompt: promptResultRaw.originalPrompt ?? '',
+        improvedPrompt: promptResultRaw.improvedPrompt ?? '',
+        mainDifferences: promptResultRaw.mainDifferences ?? '',
+        tags: { included: tags.included ?? [], notIncluded: tags.notIncluded ?? [] },
+        pointOfViews: promptResultRaw.pointOfViews ?? [],
+        pointOfViewRaw: promptResultRaw.pointOfView ?? null,
+        conversationId: String(promptResultRaw.conversationId ?? ''),
       };
 
       // Determine selected POV:
@@ -125,6 +131,8 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
     setEvaluateMessage(null);
     setEvaluateSeverity(null);
     setEvaluating(true);
+    // attach current conversation id so the server can correlate the evaluation
+    payload.conversationId = conversationId ?? '';
     const base = import.meta.env.VITE_BACKEND_URL || '';
     try {
       const res = await fetch(`${base}/imagePrompt`, {
@@ -141,6 +149,8 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
 
       // expecting { revisedPrompt: string }
       const json = await res.json();
+      // update conversation id if the server returned/rotated it
+      if (json && json.conversationId) setConversationId(String(json.conversationId));
       const revised = (json && json.revisedPrompt) ? String(json.revisedPrompt) : '';
       if (revised && revised.trim()) {
         // invoke sendPrompt with the revised prompt returned by the evaluate endpoint
@@ -162,7 +172,7 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
   };
 
   // onGenerate: called by PromptResult when user triggers Generate
-  const onGenerate = async (improvedPrompt: string) => {
+  const onGenerate = async (result: ImagePromptResult) => {
     // hide input/result and show generating UI
     setGenerating(true);
     setGlobalError(null);
@@ -173,7 +183,9 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ prompt: improvedPrompt }),
+        body: JSON.stringify({
+          imagePrompt: result
+        }),
       });
 
       if (!res.ok) {
@@ -205,6 +217,8 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
     // clear generation state as well
     setGenerating(false);
     setGeneratedImageUrl(null);
+    // clear conversation tracking as well
+    setConversationId(null);
   };
 
   // key handling moved into PromptInput; keep sendPrompt available for direct calls
@@ -248,10 +262,10 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
               <Box sx={{ color: 'text.secondary' }}>{'Generating image…'}</Box>
             </Paper>
           ) : (
-            <PromptResult imageResult={imageResult} onEvaluate={onEvaluate} onReset={handleReset} onGenerate={onGenerate} generating={generating} />
+            <PromptResult imageResult={imageResult} onEvaluate={onEvaluate} onReset={handleReset} onGenerate={onGenerate} generating={generating} conversationId={conversationId} setConversationId={setConversationId} />
           )
         ) : null}
-      </Box> 
+      </Box>
     </Box>
   );
 };
