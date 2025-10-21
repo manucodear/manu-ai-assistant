@@ -81,9 +81,9 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.Configure<CosmosDbOptions>(builder.Configuration.GetSection("CosmosDb"));
             builder.Services.Configure<PromptSettingsOptions>(builder.Configuration);
 
-            tempLogger.LogInformation("Registered all options classes");
-
             builder.Services.AddScoped<IChatProvider, AzureOpenAiChatProvider>();
+            
+            // Health checks
             builder.Services.AddHealthChecks();
 
             builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -235,11 +235,10 @@ namespace Manu.AiAssistant.WebApi
                     o.Cookie.SameSite = SameSiteMode.None;
                     o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                     o.Cookie.HttpOnly = true;
-                    o.SlidingExpiration = true;
                     o.Events = new CookieAuthenticationEvents
                     {
                         OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; },
-                        OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; }
+            // Build the app AFTER all service registrations
                     };
                 });
             }
@@ -251,7 +250,7 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.AddScoped<IImagePromptProvider, ImagePromptProvider>();
             builder.Services.AddAutoMapper(typeof(PromptMappingProfile));
 
-            tempLogger.LogInformation("Building WebApplication...");
+            // Build the app AFTER all service registrations
             var app = builder.Build();
             tempLogger.LogInformation("WebApplication built. Environment: {Environment}", app.Environment.EnvironmentName);
 

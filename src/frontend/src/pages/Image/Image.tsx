@@ -35,7 +35,7 @@ const Image: React.FC = () => {
 
       <Divider />
 
-      {activeTab === 'generate' && <Prompt value={''} />}
+  {activeTab === 'generate' && <Prompt value={''} onResetShowGallery={() => setActiveTab('gallery')} />}
       {activeTab === 'gallery' && <ImageGallery />}
     </Container>
   );
