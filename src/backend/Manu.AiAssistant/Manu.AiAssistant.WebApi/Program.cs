@@ -82,21 +82,7 @@ namespace Manu.AiAssistant.WebApi
             builder.Services.Configure<PromptSettingsOptions>(builder.Configuration);
 
             builder.Services.AddScoped<IChatProvider, AzureOpenAiChatProvider>();
-            // To use Azure OpenAI (default):
-            builder.Services.AddScoped<IChatProvider, AzureOpenAiChatProvider>(); // Change to OpenAiChatProvider for OpenAI public API
-
-            // Health checks
-            // To use Azure OpenAI (default):
-            builder.Services.AddScoped<IChatProvider, AzureOpenAiChatProvider>(); // Change to OpenAiChatProvider for OpenAI public API
-
-            // Health checks
-            // To use Azure OpenAI (default):
-            builder.Services.AddScoped<IChatProvider, AzureOpenAiChatProvider>(); // Change to OpenAiChatProvider for OpenAI public API
-
-            // Health checks
-            // To use Azure OpenAI (default):
-            builder.Services.AddScoped<IChatProvider, AzureOpenAiChatProvider>(); // Change to OpenAiChatProvider for OpenAI public API
-
+            
             // Health checks
             builder.Services.AddHealthChecks();
 
