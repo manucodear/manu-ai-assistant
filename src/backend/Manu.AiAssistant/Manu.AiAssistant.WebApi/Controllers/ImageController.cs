@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Manu.AiAssistant.WebApi.Data;
 using Manu.AiAssistant.WebApi.Services;
 using Manu.AiAssistant.WebApi.Extensions;
+using AutoMapper;
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {
@@ -33,6 +34,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
         private readonly IImageStorageProvider _imageStorageProvider;
         private readonly IImageProcessingProvider _imageProcessingProvider;
         private readonly IDalleProvider _dalleProvider;
+        private readonly IMapper _mapper;
 
         public ImageController(
             IHttpClientFactory httpClientFactory,
@@ -44,7 +46,8 @@ namespace Manu.AiAssistant.WebApi.Controllers
             IOptions<AppOptions> appOptions,
             IImageStorageProvider imageStorageProvider,
             IImageProcessingProvider imageProcessingProvider,
-            IDalleProvider dalleProvider)
+            IDalleProvider dalleProvider,
+            IMapper mapper)
         {
             _httpClient = httpClientFactory.CreateClient("external");
             _options = options.Value;
@@ -56,6 +59,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
             _imageStorageProvider = imageStorageProvider;
             _imageProcessingProvider = imageProcessingProvider;
             _dalleProvider = dalleProvider;
+            _mapper = mapper;
         }
 
         [HttpGet("{filename}")]
@@ -78,7 +82,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
             var payload = new
             {
                 model = request.Model,
-                prompt = request.Prompt,
+                prompt = request.ImagePrompt.ImprovedPrompt,
                 size = request.Size,
                 style = request.Style,
                 quality = request.Quality,
@@ -89,6 +93,9 @@ namespace Manu.AiAssistant.WebApi.Controllers
             bool isError = dalleResult.IsError;
             Manu.AiAssistant.WebApi.Models.Entities.ImageData? imageData = null;
             string? generatedId = null;
+            var promptEntity = _mapper.Map<Prompt>(request.ImagePrompt);
+            promptEntity.Id = Guid.NewGuid().ToString();
+            promptEntity.Username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name! : "anonymous";
 
             if (isError)
             {
@@ -99,8 +106,10 @@ namespace Manu.AiAssistant.WebApi.Controllers
                     Timestamp = DateTime.UtcNow,
                     DalleRequest = payload,
                     DalleResponse = responseContent.ParseJsonToPlainObject() ?? new { error = responseContent },
+                    ImagePrompt = promptEntity,
+                    Prompt = request.ImagePrompt.ImprovedPrompt,
                     HasError = true,
-                    ImageData = null
+                    ImageData = new()
                 };
                 await _imageRepository.AddAsync(imageEntity, cancellationToken);
                 return BadRequest(imageEntity.DalleResponse);
@@ -164,16 +173,17 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 Timestamp = DateTime.UtcNow,
                 DalleRequest = payload,
                 DalleResponse = responseContent.ParseJsonToPlainObject() ?? responseContent,
+                ImagePrompt = promptEntity,
+                Prompt = request.ImagePrompt.ImprovedPrompt,
                 HasError = false,
-                Prompt = request.Prompt,
-                ImageData = imageData
+                ImageData = imageData!
             };
             await _imageRepository.AddAsync(entity, cancellationToken);
             return Ok(new
             {
                 id = entity.Id,
                 image = entity.ImageData,
-                prompt = request.Prompt
+                prompt = request.ImagePrompt
             });
         }
 

@@ -26,7 +26,7 @@ namespace Manu.AiAssistant.WebApi.Services
             var payload = new
             {
                 model = request.Model,
-                prompt = request.Prompt,
+                prompt = request.ImagePrompt.ImprovedPrompt,
                 size = request.Size,
                 style = request.Style,
                 quality = request.Quality,

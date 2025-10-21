@@ -1,4 +1,7 @@
-﻿using Manu.AiAssistant.WebApi.Models.ImagePrompt;
+﻿using Manu.AiAssistant.WebApi.Data;
+using Manu.AiAssistant.WebApi.Models.Entities;
+using AutoMapper;
+using Manu.AiAssistant.WebApi.Models.ImagePrompt;
 using Manu.AiAssistant.WebApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +14,17 @@ namespace Manu.AiAssistant.WebApi.Controllers
     public class ImagePromptController : ControllerBase
     {
         private readonly IImagePromptProvider _imagePromptProvider;
+        private readonly CosmosRepository<Prompt> _promptRepository;
+        private readonly IMapper _mapper;
 
-        public ImagePromptController(IImagePromptProvider imagePromptProvider)
+        public ImagePromptController(
+            IImagePromptProvider imagePromptProvider,
+            CosmosRepository<Prompt> promptRepository,
+            IMapper mapper)
         {
             _imagePromptProvider = imagePromptProvider;
+            _promptRepository = promptRepository;
+            _mapper = mapper;
         }
 
         [HttpPost]
@@ -30,6 +40,18 @@ namespace Manu.AiAssistant.WebApi.Controllers
             {
                 return StatusCode(500, "Failed to parse image prompt result.");
             }
+
+            // Map and persist from ImagePromptResult
+            var promptEntity = _mapper.Map<Prompt>(result);
+            promptEntity.Id = Guid.NewGuid().ToString();
+            result.Id = promptEntity.Id;
+            promptEntity.ConversationId = string.IsNullOrEmpty(request.ConversationId) ? promptEntity.Id : request.ConversationId;
+            result.ConversationId = promptEntity.ConversationId;
+
+            promptEntity.Username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name! : "anonymous";
+
+            await _promptRepository.AddAsync(promptEntity, cancellationToken);
+
             return Ok(result);
         }
 

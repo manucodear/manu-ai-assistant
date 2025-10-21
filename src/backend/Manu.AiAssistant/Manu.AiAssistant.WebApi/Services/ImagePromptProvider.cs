@@ -54,7 +54,11 @@ namespace Manu.AiAssistant.WebApi.Services
             if (request.Tags.ToExclude.Any())
                 userMessage += $"Remove these concepts/tags: {string.Join(", ", request.Tags.ToExclude)}.\n";
             if (!string.IsNullOrWhiteSpace(request.PointOfView))
-                userMessage += $"Set the point of view to: {request.PointOfView} (override any existing one).\n";
+            {
+                //userMessage += $"Set the point of view to: {request.PointOfView} (override any existing one).\n";
+                userMessage += $"Rewrite the prompt explicitly describing the scene from this camera perspective: '{request.PointOfView}'. Use clear photographic or visual composition language (e.g. 'seen from', 'wide-angle view from', 'over-the-shoulder shot'). Override any existing viewpoint.\n";
+            }
+                
             userMessage += "Improve the prompt accordingly, preserving the original meaning as much as possible.";
 
             conversation.Add(new PromptMessage { Role = PromptRole.User, Prompt = userMessage });
