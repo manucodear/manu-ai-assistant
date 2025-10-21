@@ -131,15 +131,31 @@ const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
     setEvaluateMessage(null);
     setEvaluateSeverity(null);
     setEvaluating(true);
-    // attach current conversation id so the server can correlate the evaluation
-    payload.conversationId = conversationId ?? '';
     const base = import.meta.env.VITE_BACKEND_URL || '';
     try {
+      // Build request body in the format the backend expects
+      // payload is expected to be an ImagePromptResult-like object from PromptResult
+      const promptText = payload?.improvedPrompt ?? payload?.prompt ?? '';
+      const toInclude: string[] = (payload?.tags?.included) ? [...payload.tags.included] : (payload?.tags?.toInclude ?? []);
+      const originalIncluded: string[] = imageResult?.tags?.included ?? [];
+      // tags to exclude = original included tags that are not in the selected toInclude set
+      const toExclude = originalIncluded.filter((t) => !toInclude.includes(t));
+      const pointOfView = payload?.pointOfViewRaw ?? payload?.pointOfView ?? '';
+
+      const body = {
+        prompt: promptText,
+        tags: {
+          toInclude,
+          toExclude,
+        },
+        pointOfView,
+      } as any;
+
       const res = await fetch(`${base}/imagePrompt`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(payload),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) {
