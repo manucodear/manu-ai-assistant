@@ -34,7 +34,7 @@ jobs:
       targetType: 'inline'
       script: |
         # Use a non-default delimiter '#' for sed to avoid issues with path characters
-        BUILD_ID_VALUE=$(Build.BuildId)
+        BUILD_ID_VALUE=$(Build.BuildNumber)
         CONFIG_FILE_PATH="$(Build.SourcesDirectory)/$(backendPath)/appsettings.json"
 
         echo "--- Injecting Build ID $BUILD_ID_VALUE into backend config ---"
@@ -79,7 +79,7 @@ jobs:
     inputs:
       targetType: 'inline'
       script: |
-        BUILD_ID_VALUE=$(Build.BuildId)
+        BUILD_ID_VALUE=$(Build.BuildNumber)
         ENV_FILE_PATH="$(Build.SourcesDirectory)/$(frontendPath)/.env"
         NEW_ENV_VAR="VITE_REACT_APP_BUILD_ID=$BUILD_ID_VALUE"
 
