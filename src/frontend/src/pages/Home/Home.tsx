@@ -25,13 +25,6 @@ const Home: React.FC = () => {
           </Link>
         </div>
       )}
-      {import.meta.env.DEV && (
-        <div style={{ width: '100%', maxWidth: 980, marginTop: 8 }}>
-          <pre style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, whiteSpace: 'pre-wrap' }}>
-            {JSON.stringify(Object.fromEntries(Object.entries(import.meta.env).filter(([k]) => k.startsWith('VITE_'))), null, 2)}
-          </pre>
-        </div>
-      )}
       <div className="home-body">
         <Paper className="home-card" elevation={3}>
           <div className="home-card-header">
@@ -102,27 +95,6 @@ const Home: React.FC = () => {
             v{appVersion}
           </div>
         )}
-        <div className="legal-links">
-          {privacyUrl ? (
-            <a href={privacyUrl} target="_blank" rel="noopener noreferrer" className="legal-link">
-              Privacy Policy
-            </a>
-          ) : (
-            <Link to="/privacy" className="legal-link">
-              Privacy Policy
-            </Link>
-          )}
-
-          {termsUrl ? (
-            <a href={termsUrl} target="_blank" rel="noopener noreferrer" className="legal-link">
-              Terms of Service
-            </a>
-          ) : (
-            <Link to="/terms" className="legal-link">
-              Terms of Service
-            </Link>
-          )}
-        </div>
       </div>
     </div>
   );
