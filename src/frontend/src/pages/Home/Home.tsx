@@ -1,31 +1,31 @@
 import './Home.css';
-import { LoginButton, LoginButtonType } from '../../components/LoginButton';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Button,
   Box
 } from '@mui/material';
+import { isAuthenticationValid } from '../../utils/authentication-helper';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-import { Person } from '@mui/icons-material';
 
 const Home: React.FC = () => {
-  const isGoogleAuthEnabled = import.meta.env.VITE_GOOGLE_AUTH_ENABLED === 'true';
+  const navigate = useNavigate();
   const privacyUrl = import.meta.env.VITE_PRIVACY_URL || '';
   const termsUrl = import.meta.env.VITE_TERMS_URL || '';
   const appVersion = import.meta.env.VITE_VERSION || '';
 
+  const handleStart = () => {
+    if (isAuthenticationValid()) {
+      // User is authenticated, redirect to image generation page
+      navigate('/image-generation');
+    } else {
+      // User is not authenticated, redirect to login page
+      navigate('/login');
+    }
+  };
+
   return (
     <div className="home-container">
-      {import.meta.env.DEV && (
-        <div className="home-header">
-          <Link to="/login" style={{ textDecoration: 'none' }}>
-            <Button variant="contained" color="primary" startIcon={<Person />}>
-              Login
-            </Button>
-          </Link>
-        </div>
-      )}
       <div className="home-body">
         <Paper className="home-card" elevation={3}>
           <div className="home-card-header">
@@ -33,150 +33,195 @@ const Home: React.FC = () => {
               variant="h4" 
               gutterBottom
               sx={{ 
-                fontSize: { xs: '1.75rem', sm: '2rem', md: '2.125rem' },
-                textAlign: 'center'
+                fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' },
+                textAlign: 'center',
+                mb: { xs: 1, md: 2 }
               }}
             >
-              AI Image Generation Assistant
+              AI Image Generator
             </Typography>
             <Typography 
               variant="h6" 
               color="text.secondary" 
-              gutterBottom
               sx={{ 
-                fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
+                fontSize: { xs: '0.875rem', sm: '1.125rem', md: '1.25rem' },
                 textAlign: 'center',
-                mb: { xs: 2, md: 3 }
+                mb: { xs: 1.5, md: 3 }
               }}
             >
-              Create stunning images with AI-powered prompt optimization
+              Create stunning images with AI-powered prompts
             </Typography>
             
-            {/* Mobile-first feature cards */}
+            {/* Mobile-optimized features grid */}
             <Box sx={{ 
-              display: 'flex', 
-              flexDirection: { xs: 'column', md: 'row' },
-              gap: { xs: 2, md: 3 },
+              display: 'grid',
+              gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+              gap: { xs: 1.5, md: 3 },
               width: '100%',
-              mb: { xs: 3, md: 4 }
+              mb: { xs: 2, md: 3 }
             }}>
-              <Box className="feature-card">
-                <Typography variant="h6" sx={{ fontSize: { xs: '1rem', md: '1.125rem' }, mb: 1 }}>
-                  🎨 Smart Prompts
-                </Typography>
-                <Typography variant="body2" sx={{ fontSize: { xs: '0.875rem', md: '0.875rem' } }}>
-                  Transform simple ideas into detailed, optimized prompts
-                </Typography>
-              </Box>
-              
-              <Box className="feature-card">
-                <Typography variant="h6" sx={{ fontSize: { xs: '1rem', md: '1.125rem' }, mb: 1 }}>
-                  🖼️ AI Generation
-                </Typography>
-                <Typography variant="body2" sx={{ fontSize: { xs: '0.875rem', md: '0.875rem' } }}>
-                  Create high-quality images using advanced AI models
-                </Typography>
-              </Box>
-              
-              <Box className="feature-card">
-                <Typography variant="h6" sx={{ fontSize: { xs: '1rem', md: '1.125rem' }, mb: 1 }}>
-                  📱 Personal Gallery
-                </Typography>
-                <Typography variant="body2" sx={{ fontSize: { xs: '0.875rem', md: '0.875rem' } }}>
-                  Save and organize your generated images
-                </Typography>
-              </Box>
-            </Box>
-
-            {/* Collapsible authentication info */}
-            <Box className="auth-info-section">
-              <Typography 
-                variant="body1" 
-                sx={{ 
-                  fontWeight: 600,
-                  mb: 2,
-                  textAlign: 'center',
-                  fontSize: { xs: '0.95rem', md: '1rem' }
+              <Box 
+                className="feature-card"
+                sx={{
+                  p: { xs: 1.5, md: 2 },
+                  textAlign: 'center'
                 }}
               >
-                🔐 Secure Multi-Provider Authentication
-              </Typography>
-              
-              <Box sx={{ 
-                display: { xs: 'none', md: 'block' },
-                maxWidth: '600px',
-                mx: 'auto'
-              }}>
-                <Typography variant="body2" sx={{ mb: 2, textAlign: 'center' }}>
-                  Choose from Google, Microsoft, or other supported authentication providers.
-                  We only access basic profile information (name, email) to create your secure account
-                  and personalize your experience.
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontSize: { xs: '1rem', md: '1.125rem' }, 
+                    mb: { xs: 0.75, md: 1.5 },
+                    fontWeight: 600
+                  }}
+                >
+                  🎨 Smart Prompts
+                </Typography>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    fontSize: { xs: '0.8rem', md: '0.875rem' },
+                    lineHeight: { xs: 1.3, md: 1.4 }
+                  }}
+                >
+                  Transform ideas into optimized prompts
                 </Typography>
               </Box>
               
-              {/* Mobile-friendly short version */}
-              <Box sx={{ 
-                display: { xs: 'block', md: 'none' },
-                textAlign: 'center'
-              }}>
-                <Typography variant="body2" sx={{ fontSize: '0.875rem', mb: 2 }}>
-                  Multiple sign-in options available. We only access basic profile info to secure your account.
+              <Box 
+                className="feature-card"
+                sx={{
+                  p: { xs: 1.5, md: 2 },
+                  textAlign: 'center'
+                }}
+              >
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontSize: { xs: '1rem', md: '1.125rem' }, 
+                    mb: { xs: 0.75, md: 1.5 },
+                    fontWeight: 600
+                  }}
+                >
+                  🖼️ AI Generation
+                </Typography>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    fontSize: { xs: '0.8rem', md: '0.875rem' },
+                    lineHeight: { xs: 1.3, md: 1.4 }
+                  }}
+                >
+                  High-quality images using advanced AI
+                </Typography>
+              </Box>
+              
+              <Box 
+                className="feature-card"
+                sx={{
+                  p: { xs: 1.5, md: 2 },
+                  textAlign: 'center',
+                  gridColumn: { xs: '1 / -1', md: 'auto' }
+                }}
+              >
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontSize: { xs: '1rem', md: '1.125rem' }, 
+                    mb: { xs: 0.75, md: 1.5 },
+                    fontWeight: 600
+                  }}
+                >
+                  📱 Personal Gallery
+                </Typography>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    fontSize: { xs: '0.8rem', md: '0.875rem' },
+                    lineHeight: { xs: 1.3, md: 1.4 }
+                  }}
+                >
+                  Save and organize images securely
                 </Typography>
               </Box>
             </Box>
 
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                mt: { xs: 2, md: 3 },
-                fontStyle: 'italic', 
-                color: 'text.secondary', 
-                textAlign: 'center',
-                fontSize: { xs: '0.8rem', md: '0.875rem' }
-              }}
-            >
-              🔒 Your privacy is protected. Choose your preferred sign-in method below.
-            </Typography>
+            {/* Quick benefits row - visible on mobile */}
+            <Box sx={{ 
+              display: 'flex',
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+              gap: { xs: 1, md: 1.5 },
+              mb: { xs: 2.5, md: 3 }
+            }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 0.5,
+                px: { xs: 1, md: 1.5 },
+                py: { xs: 0.5, md: 0.75 },
+                backgroundColor: 'action.hover',
+                borderRadius: 1,
+                fontSize: { xs: '0.75rem', md: '0.8rem' }
+              }}>
+                <Typography variant="body2" sx={{ fontSize: 'inherit' }}>
+                  ⚡ Fast
+                </Typography>
+              </Box>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 0.5,
+                px: { xs: 1, md: 1.5 },
+                py: { xs: 0.5, md: 0.75 },
+                backgroundColor: 'action.hover',
+                borderRadius: 1,
+                fontSize: { xs: '0.75rem', md: '0.8rem' }
+              }}>
+                <Typography variant="body2" sx={{ fontSize: 'inherit' }}>
+                  🎯 High Quality
+                </Typography>
+              </Box>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 0.5,
+                px: { xs: 1, md: 1.5 },
+                py: { xs: 0.5, md: 0.75 },
+                backgroundColor: 'action.hover',
+                borderRadius: 1,
+                fontSize: { xs: '0.75rem', md: '0.8rem' }
+              }}>
+                <Typography variant="body2" sx={{ fontSize: 'inherit' }}>
+                  🔒 Secure
+                </Typography>
+              </Box>
+            </Box>
           </div>
         </Paper>
-        <div className="home-login-buttons">
-          <LoginButton type={LoginButtonType.Microsoft} />
-          {isGoogleAuthEnabled && <LoginButton type={LoginButtonType.Google} />}
-        </div>
-
-        {import.meta.env.DEV && (
-          <div className="home-button-group">
-            <Link to="/showcase" style={{ textDecoration: 'none' }}>
-              <Button
-                variant="outlined"
-              >
-                View Component Showcase
-              </Button>
-            </Link>
-            <Link to="/material-showcase" style={{ textDecoration: 'none' }}>
-              <Button
-                variant="outlined"
-                sx={{ ml: 1 }}
-              >
-                View Material Showcase
-              </Button>
-            </Link>
-            <Link to="/responsive" style={{ textDecoration: 'none' }}>
-              <Button
-                variant="outlined"
-              >
-                📱 Mobile Demo
-              </Button>
-            </Link>
-            <Link to="/test-errors" style={{ textDecoration: 'none' }}>
-              <Button
-                variant="text"
-              >
-                Test Error Pages
-              </Button>
-            </Link>
-          </div>
-        )}
+        
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          mt: { xs: 1.5, md: 2 }
+        }}>
+          <Button
+            variant="contained"
+            size="medium"
+            onClick={handleStart}
+            sx={{
+              px: { xs: 3, md: 4 },
+              py: { xs: 1, md: 1.25 },
+              fontSize: { xs: '0.95rem', md: '1rem' },
+              fontWeight: 600,
+              borderRadius: 2,
+              textTransform: 'none',
+              minWidth: { xs: 160, md: 200 }
+            }}
+          >
+            🚀 Start Creating
+          </Button>
+        </Box>
         <div className="legal-links">
           {privacyUrl ? (
             <a href={privacyUrl} target="_blank" rel="noopener noreferrer" className="legal-link">
