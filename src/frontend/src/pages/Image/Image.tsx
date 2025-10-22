@@ -43,7 +43,7 @@ const Image: React.FC = () => {
       <Divider />
 
   {activeTab === 'generate' && <Prompt value={''} onResetShowGallery={() => setActiveTab('gallery')} />}
-    {activeTab === 'gallery' && <ImageGallery onShowPromptResult={(result) => setIsShowingPromptResult(Boolean(result))} />}
+  {activeTab === 'gallery' && <ImageGallery onShowPromptResult={(result) => setIsShowingPromptResult(Boolean(result))} onRequestShowGenerate={() => { setIsShowingPromptResult(false); setActiveTab('generate'); }} />}
     </Container>
   );
 };
