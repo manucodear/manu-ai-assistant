@@ -25,8 +25,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { AutoAwesome as ImageSparkle } from '@mui/icons-material';
 import Snackbar from '@mui/material/Snackbar';
-import Fab from '@mui/material/Fab';
-import EvaluateIcon from '@mui/icons-material/Publish';
+import CreateIcon from '@mui/icons-material/Create';
 import Alert from '@mui/material/Alert';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
@@ -209,19 +208,45 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
           <ContentCopyIcon fontSize="small" />
         </IconButton>
         <Box sx={{ whiteSpace: 'pre-wrap', mb: 1, fontStyle: 'italic' }}>{imageResult.improvedPrompt}</Box>
-        {/* Visual-only Generate button (right-aligned) */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-          <Button
-            variant="outlined"
-            color="warning"
-            size="small"
-            startIcon={<ImageSparkle />}
-            onClick={() => onGenerate && onGenerate(imageResult)}
-            disabled={generating || hasAnyChange}
-            title={hasAnyChange ? 'Change tags or point of view back to original to enable generate' : undefined}
-          >
-            Generate
-          </Button>
+        {/* Action row: Reset (left), Generate+Evaluate (right) - single action row where Generate used to be */}
+        <Box sx={{ mt: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              {typeof onReset === 'function' && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<RestartAltIcon />}
+                  onClick={() => onReset && onReset()}
+                >
+                  Reset
+                </Button>
+              )}
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
+              <Button
+                variant="contained"
+                color="warning"
+                size="small"
+                startIcon={<ImageSparkle />}
+                onClick={() => onGenerate && onGenerate(imageResult)}
+                disabled={generating || hasAnyChange}
+                title={hasAnyChange ? 'Change tags or point of view back to original to enable generate' : undefined}
+              >
+                Generate
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                size="small"
+                startIcon={<CreateIcon />}
+                onClick={handleEvaluate}
+              >
+                ReWrite
+              </Button>
+            </Box>
+          </Box>
         </Box>
         <Snackbar
           open={copyOpen}
@@ -242,7 +267,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
       <Paper elevation={0} sx={{ p: 1, mt: 1 }}>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
           <Box>
-            <Button variant="outlined" onClick={(e: React.MouseEvent<HTMLElement>) => setTagsAnchorEl(e.currentTarget)}>
+            <Button variant="contained" onClick={(e: React.MouseEvent<HTMLElement>) => setTagsAnchorEl(e.currentTarget)}>
               Tags ({selectedTags.length})
             </Button>
             <Menu anchorEl={tagsAnchorEl} open={Boolean(tagsAnchorEl)} onClose={() => setTagsAnchorEl(null)} PaperProps={{ style: { maxHeight: 320 } }}>
@@ -293,6 +318,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
                   label={t}
                   size="small"
                   color="primary"
+                  variant="outlined"
                   onDelete={handleDelete}
                   aria-label={`Remove tag ${t}`}
                   sx={{ mr: 1, mb: 1 }}
@@ -306,6 +332,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
                   label={t}
                   size="small"
                   color="secondary"
+                  variant="outlined"
                   onDelete={handleDelete}
                   aria-label={`Remove tag ${t}`}
                   sx={{ mr: 1, mb: 1 }}
@@ -317,6 +344,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
                 key={`chip-${t}`}
                 label={t}
                 size="small"
+                variant="outlined"
                 onDelete={handleDelete}
                 aria-label={`Remove tag ${t}`}
                 sx={{ mr: 1, mb: 1 }}
@@ -465,24 +493,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
           </AccordionDetails>
         </Accordion>
       </div>
-      {/* Publish FAB (positioned inside this component's relative Box) */}
-      <Fab
-        color="primary"
-        onClick={handleEvaluate}
-        aria-label="Evaluate prompt"
-        sx={{ position: 'absolute', bottom: 8, right: 0 }}
-      >
-        <EvaluateIcon />
-      </Fab>
-
-      {/* fixed Reset FAB (viewport-fixed) rendered when onReset is available */}
-      {typeof onReset === 'function' && (
-        <Box sx={{ position: 'absolute', bottom: 8, left: 0 }}>
-          <Fab color="default" aria-label="Reset prompt" onClick={() => onReset && onReset()}>
-            <RestartAltIcon />
-          </Fab>
-        </Box>
-      )}
+      {/* action row removed from bottom to avoid duplication; buttons live next to the improved prompt */}
     </Box>
   );
 };
