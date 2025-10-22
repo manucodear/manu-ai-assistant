@@ -252,17 +252,43 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
           {selectedTags.map((t: string) => {
             const isIncluded = (imageResult.tags?.included || []).includes(t);
             const isNotIncluded = (imageResult.tags?.notIncluded || []).includes(t);
+            const handleDelete = () => setSelectedTags((prev) => prev.filter((x) => x !== t));
             if (isIncluded) {
               return (
-                <Chip key={`chip-${t}`} label={t} size="small" color="primary" sx={{ mr: 1, mb: 1 }} />
+                <Chip
+                  key={`chip-${t}`}
+                  label={t}
+                  size="small"
+                  color="primary"
+                  onDelete={handleDelete}
+                  aria-label={`Remove tag ${t}`}
+                  sx={{ mr: 1, mb: 1 }}
+                />
               );
             }
             if (isNotIncluded) {
               return (
-                <Chip key={`chip-${t}`} label={t} size="small" color="secondary" sx={{ mr: 1, mb: 1 }} />
+                <Chip
+                  key={`chip-${t}`}
+                  label={t}
+                  size="small"
+                  color="secondary"
+                  onDelete={handleDelete}
+                  aria-label={`Remove tag ${t}`}
+                  sx={{ mr: 1, mb: 1 }}
+                />
               );
             }
-            return <Chip key={`chip-${t}`} label={t} size="small" sx={{ mr: 1, mb: 1 }} />;
+            return (
+              <Chip
+                key={`chip-${t}`}
+                label={t}
+                size="small"
+                onDelete={handleDelete}
+                aria-label={`Remove tag ${t}`}
+                sx={{ mr: 1, mb: 1 }}
+              />
+            );
           })}
         </Box>
       </Paper>
