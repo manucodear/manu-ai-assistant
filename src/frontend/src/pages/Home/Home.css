@@ -96,7 +96,7 @@
 
 .home-card {
   width: 100%;
-  max-width: 600px;
+  max-width: 800px;
   margin: 0 auto;
 }
 
@@ -105,8 +105,55 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 24px;
-  gap: 8px;
+  padding: 32px;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .home-card-header {
+    padding: 24px 16px;
+  }
+}
+
+/* Feature cards for mobile-first design */
+.feature-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  flex: 1;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 768px) {
+  .feature-card {
+    padding: 12px;
+    border-radius: 8px;
+  }
+}
+
+/* Authentication info section */
+.auth-info-section {
+  width: 100%;
+  text-align: center;
+}
+
+/* Improved responsive typography */
+@media (max-width: 480px) {
+  .home-card-header {
+    padding: 20px 12px;
+  }
+  
+  .feature-card {
+    padding: 10px;
+  }
 }
 
 .home-text-center {
@@ -120,6 +167,16 @@
   align-items: center;
   justify-content: center;
   width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .home-login-buttons {
+    flex-direction: row;
+    gap: 1.5rem;
+    max-width: 600px;
+  }
 }
 
 /* Removed hard-coded button widths; use MUI Button fullWidth or sx props instead */
