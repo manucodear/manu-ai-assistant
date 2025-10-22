@@ -8,7 +8,7 @@ pool:
 variables:
   # General
   azureServiceConnection: 'azure-container-registry'  # Docker Registry service connection
-  acrName: 'manucode'               # ACR name
+  acrName: 'manucode'                  # ACR name
   imageTag: '$(Build.BuildNumber)'  # unique per build
 
   # Paths
@@ -26,6 +26,22 @@ jobs:
 - job: BackendDocker
   displayName: 'Build & Push Backend Docker'
   steps:
+  
+  # Inject Build ID into backend appsettings.json
+  - task: Bash@3
+    displayName: 'Inject Build ID into appsettings.json'
+    inputs:
+      targetType: 'inline'
+      script: |
+        # Use a non-default delimiter '#' for sed to avoid issues with path characters
+        BUILD_ID_VALUE=$(Build.BuildId)
+        CONFIG_FILE_PATH="$(Build.SourcesDirectory)/$(backendPath)/appsettings.json"
+
+        echo "--- Injecting Build ID $BUILD_ID_VALUE into backend config ---"
+        
+        # Substitute the placeholder with the actual Build ID
+        sed -i "s#__BUILD_ID_PLACEHOLDER__#$BUILD_ID_VALUE#g" "$CONFIG_FILE_PATH"
+
   - task: Docker@2
     displayName: 'Build and push backend image'
     inputs:
@@ -56,6 +72,25 @@ jobs:
 - job: FrontendDocker
   displayName: 'Build & Push Frontend Docker'
   steps:
+  
+  # Inject Build ID into frontend .env
+  - task: Bash@3
+    displayName: 'Append Build ID to frontend .env'
+    inputs:
+      targetType: 'inline'
+      script: |
+        BUILD_ID_VALUE=$(Build.BuildId)
+        ENV_FILE_PATH="$(Build.SourcesDirectory)/$(frontendPath)/.env"
+        NEW_ENV_VAR="VITE_REACT_APP_BUILD_ID=$BUILD_ID_VALUE"
+
+        echo "--- Appending Build ID $BUILD_ID_VALUE to frontend .env ---"
+
+        # Robust method: ensure a newline exists before appending
+        echo >> "$ENV_FILE_PATH"  
+        
+        # Append the new variable on its own line
+        echo "$NEW_ENV_VAR" >> "$ENV_FILE_PATH"
+  
   - task: Docker@2
     displayName: 'Build and push frontend image'
     inputs:

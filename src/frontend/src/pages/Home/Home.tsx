@@ -12,6 +12,7 @@ const Home: React.FC = () => {
   const isGoogleAuthEnabled = import.meta.env.VITE_GOOGLE_AUTH_ENABLED === 'true';
   const privacyUrl = import.meta.env.VITE_PRIVACY_URL || '';
   const termsUrl = import.meta.env.VITE_TERMS_URL || '';
+  const appVersion = import.meta.env.VITE_VERSION || '';
 
   return (
     <div className="home-container">
@@ -22,6 +23,13 @@ const Home: React.FC = () => {
               Login
             </Button>
           </Link>
+        </div>
+      )}
+      {import.meta.env.DEV && (
+        <div style={{ width: '100%', maxWidth: 980, marginTop: 8 }}>
+          <pre style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, whiteSpace: 'pre-wrap' }}>
+            {JSON.stringify(Object.fromEntries(Object.entries(import.meta.env).filter(([k]) => k.startsWith('VITE_'))), null, 2)}
+          </pre>
         </div>
       )}
       <div className="home-body">
@@ -89,6 +97,11 @@ const Home: React.FC = () => {
             </Link>
           )}
         </div>
+        {appVersion && (
+          <div className="app-version" aria-hidden>
+            v{appVersion}
+          </div>
+        )}
       </div>
     </div>
   );
