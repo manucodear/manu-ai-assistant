@@ -197,18 +197,19 @@ namespace Manu.AiAssistant.WebApi.Controllers
             var ordered = userItems.OrderByDescending(g => g.Timestamp).ToList();
 
             var images = new List<object>();
-            foreach (var g in ordered)
+            foreach (var imageItem in ordered)
             {
                 images.Add(new {
                     image = new {
-                        id = g.Id,
-                        timestamp = g.Timestamp,
-                        prompt = g.Prompt ?? string.Empty,
-                        url = g.ImageData?.Url,
-                        smallUrl = g.ImageData?.SmallUrl,
-                        mediumUrl = g.ImageData?.MediumUrl,
-                        largeUrl = g.ImageData?.LargeUrl
-                    }
+                        id = imageItem.Id,
+                        timestamp = imageItem.Timestamp,
+                        prompt = imageItem.Prompt ?? string.Empty,
+                        url = imageItem.ImageData?.Url,
+                        smallUrl = imageItem.ImageData?.SmallUrl,
+                        mediumUrl = imageItem.ImageData?.MediumUrl,
+                        largeUrl = imageItem.ImageData?.LargeUrl
+                    },
+                    imagePromptId = !string.IsNullOrEmpty(imageItem.ImagePrompt.ConversationId) ? imageItem.ImagePrompt.Id : string.Empty
                 });
             }
 

@@ -27,6 +27,24 @@ namespace Manu.AiAssistant.WebApi.Controllers
             _mapper = mapper;
         }
 
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(string id, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return BadRequest("Id is required.");
+            }
+
+            var prompt = await _promptRepository.GetAsync(id, cancellationToken);
+            if (prompt == null)
+            {
+                return NotFound();
+            }
+
+            var result = _mapper.Map<ImagePromptResult>(prompt);
+            return Ok(result);
+        }
+
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] ImagePromptRequest request, CancellationToken cancellationToken)
         {

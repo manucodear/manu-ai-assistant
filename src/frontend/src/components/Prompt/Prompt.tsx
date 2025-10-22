@@ -18,6 +18,7 @@ interface ImagePromptTags {
 }
 
 interface ImagePromptResult {
+  id: string;
   originalPrompt: string;
   improvedPrompt: string;
   mainDifferences: string;
@@ -95,6 +96,7 @@ const Prompt: React.FC<PromptProps> = ({ value, onResetShowGallery }: PromptProp
       if (promptResultRaw.conversationId) setConversationId(String(promptResultRaw.conversationId));
       const tags = promptResultRaw.tags || {};
       const data: ImagePromptResult = {
+        id: promptResultRaw.id ?? '',
         originalPrompt: promptResultRaw.originalPrompt ?? '',
         improvedPrompt: promptResultRaw.improvedPrompt ?? '',
         mainDifferences: promptResultRaw.mainDifferences ?? '',
@@ -277,7 +279,15 @@ const Prompt: React.FC<PromptProps> = ({ value, onResetShowGallery }: PromptProp
         ) : imageResult ? (
           generatedImageUrl ? (
             // show generated image while keeping prompt hidden
-            <PromptGeneration imageUrl={generatedImageUrl} onReset={handleReset} />
+            <PromptGeneration 
+              imageUrl={generatedImageUrl} 
+              id={imageResult.id}
+              onReset={handleReset}
+              onShowPromptResult={(promptResult) => {
+                setImageResult(promptResult);
+                setGeneratedImageUrl(null);
+              }}
+            />
           ) : generating ? (
             <Paper aria-live="polite" elevation={0} sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
               <CircularProgress size={24} />
