@@ -38,7 +38,7 @@ interface ImagePromptResult {
 
 // no message objects are stored in this flow; kept minimal
 
-const Prompt: React.FC<PromptProps> = ({ value, onResetShowGallery }: PromptProps) => {
+const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
   const [input, setInput] = useState<string>(value ?? '');
   const [sending, setSending] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -248,12 +248,9 @@ const Prompt: React.FC<PromptProps> = ({ value, onResetShowGallery }: PromptProp
     setGeneratedImageUrl(null);
     // clear conversation tracking as well
     setConversationId(null);
-    // If page wants to show the gallery when resetting, call the callback
-    try {
-      if (typeof onResetShowGallery === 'function') onResetShowGallery();
-    } catch (e) {
-      // noop
-    }
+    // Note: do NOT automatically call onResetShowGallery here. The gallery/tab
+    // switching should be controlled by the page that renders Prompt (e.g. Image.tsx)
+    // so main flow Reset returns to the prompt input as expected.
   };
 
   // key handling moved into PromptInput; keep sendPrompt available for direct calls

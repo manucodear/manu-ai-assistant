@@ -13,6 +13,14 @@ const Layout = () => {
             Home
           </Button>
         </Link>
+        <div style={{ marginLeft: 12 }}>
+          <Link to="/privacy" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Button variant="text">Privacy</Button>
+          </Link>
+          <Link to="/terms" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Button variant="text">Terms</Button>
+          </Link>
+        </div>
       </nav>
       <main className="layout-main">
         <Outlet /> {/* This renders the child route */}

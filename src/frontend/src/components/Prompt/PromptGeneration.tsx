@@ -1,7 +1,7 @@
 import React from 'react';
 import Box from '@mui/material/Box';
 import ClearIcon from '@mui/icons-material/Clear';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CreateIcon from '@mui/icons-material/Create';
 import { Fab } from '@mui/material';
 
 interface PromptGenerationProps {
@@ -101,7 +101,7 @@ const PromptGeneration: React.FC<PromptGenerationProps> = ({
       {showBackButton && (
         <Box sx={{ position: 'fixed', bottom: 16, left: 16, zIndex: 1400 }}>
           <Fab color="primary" aria-label="Back to prompt" onClick={handleBackClick}>
-            <ArrowBackIcon />
+            <CreateIcon />
           </Fab>
         </Box>
       )}

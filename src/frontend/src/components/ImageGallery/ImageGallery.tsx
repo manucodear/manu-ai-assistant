@@ -22,7 +22,7 @@ import {
 import PromptGeneration from '../Prompt/PromptGeneration';
 import PromptResult from '../Prompt/PromptResult';
 
-const ImageGallery: React.FC<ImageGalleryProps> = ({ onShowPromptResult }: ImageGalleryProps) => {
+const ImageGallery: React.FC<ImageGalleryProps> = ({ onShowPromptResult, onRequestShowGenerate }: ImageGalleryProps) => {
   const [images, setImages] = useState<ImageData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -280,8 +280,13 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ onShowPromptResult }: Image
         <PromptResult 
           imageResult={promptResult}
           onReset={() => {
+            // request parent to show the prompt input (switch to generate tab) first
+            if (typeof onRequestShowGenerate === 'function') {
+              try { onRequestShowGenerate(); } catch (e) { /* ignore */ }
+            }
+
+            // then clear local prompt result and notify parent
             setPromptResult(null);
-            // notify parent that prompt result is closed
             if (typeof onShowPromptResult === 'function') onShowPromptResult(null as any);
           }}
           onGenerate={async (result) => {

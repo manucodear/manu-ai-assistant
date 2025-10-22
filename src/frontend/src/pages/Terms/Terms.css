@@ -1,0 +1,9 @@
+.terms-container {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+}
+
+.terms-card {
+  max-width: 800px;
+}
