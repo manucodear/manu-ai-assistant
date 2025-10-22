@@ -38,6 +38,19 @@ const Login: React.FC = () => {
         }}
       >
         <Typography
+          variant="h4"
+          component="h1"
+          gutterBottom
+          sx={{
+            textAlign: 'center',
+            mb: 1,
+            fontSize: { xs: '1.75rem', md: '2.125rem' }
+          }}
+        >
+          Welcome Back
+        </Typography>
+        
+        <Typography
           variant="body1"
           color="text.secondary"
           sx={{
@@ -46,6 +59,25 @@ const Login: React.FC = () => {
           }}
         >
           Choose your preferred login method to continue
+        </Typography>
+
+        {/* Authentication explanation */}
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            textAlign: 'center',
+            fontSize: { xs: '0.85rem', md: '0.875rem' },
+            color: 'text.secondary',
+            mb: 3,
+            p: 2,
+            backgroundColor: 'action.hover',
+            borderRadius: 1,
+            lineHeight: 1.5
+          }}
+        >
+          🔐 <strong>Secure Authentication:</strong> Sign in with Google, Microsoft, or other providers. 
+          We only access basic profile information (name, email) to create your secure personal account 
+          and provide a personalized experience. Your privacy and data security are our top priorities.
         </Typography>
 
         {returnUrl && (
