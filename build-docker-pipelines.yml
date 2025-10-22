@@ -34,13 +34,13 @@ jobs:
       targetType: 'inline'
       script: |
         # Use a non-default delimiter '#' for sed to avoid issues with path characters
-        BUILD_ID_VALUE=$(Build.BuildNumber)
+        BUILD_NUMBER_VALUE=$(Build.BuildNumber)
         CONFIG_FILE_PATH="$(Build.SourcesDirectory)/$(backendPath)/appsettings.json"
 
-        echo "--- Injecting Build ID $BUILD_ID_VALUE into backend config ---"
-        
+        echo "--- Injecting Build ID $BUILD_NUMBER_VALUE into backend config ---"
+
         # Substitute the placeholder with the actual Build ID
-        sed -i "s#__BUILD_ID_PLACEHOLDER__#$BUILD_ID_VALUE#g" "$CONFIG_FILE_PATH"
+        sed -i "s#__BUILD_ID_PLACEHOLDER__#$BUILD_NUMBER_VALUE#g" "$CONFIG_FILE_PATH"
 
   - task: Docker@2
     displayName: 'Build and push backend image'
@@ -72,18 +72,18 @@ jobs:
 - job: FrontendDocker
   displayName: 'Build & Push Frontend Docker'
   steps:
-  
-  # Inject Build ID into frontend .env
+
+  # Inject Build ID into frontend .env.production
   - task: Bash@3
-    displayName: 'Append Build ID to frontend .env'
+    displayName: 'Append Build ID to frontend .env.production'
     inputs:
       targetType: 'inline'
       script: |
-        BUILD_ID_VALUE=$(Build.BuildNumber)
-        ENV_FILE_PATH="$(Build.SourcesDirectory)/$(frontendPath)/.env"
-        NEW_ENV_VAR="VITE_REACT_APP_BUILD_ID=$BUILD_ID_VALUE"
+        BUILD_NUMBER_VALUE=$(Build.BuildNumber)
+        ENV_FILE_PATH="$(Build.SourcesDirectory)/$(frontendPath)/.env.production"
+        NEW_ENV_VAR="VITE_VERSION=$BUILD_NUMBER_VALUE"
 
-        echo "--- Appending Build ID $BUILD_ID_VALUE to frontend .env ---"
+        echo "--- Appending Build ID $BUILD_NUMBER_VALUE to frontend .env.production ---"
 
         # Robust method: ensure a newline exists before appending
         echo >> "$ENV_FILE_PATH"  
