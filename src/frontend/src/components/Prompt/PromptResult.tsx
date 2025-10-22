@@ -30,11 +30,14 @@ interface ImagePromptTags {
 }
 
 interface ImagePromptResult {
+  id: string;
   originalPrompt: string;
   improvedPrompt: string;
   mainDifferences: string;
   tags: ImagePromptTags;
   pointOfViews: string[];
+  // raw singular PointOfView from server when present (may be empty string)
+  pointOfViewRaw?: string | null;
   // Conversation identifier returned by the backend for this prompt result
   conversationId: string;
 }
@@ -105,6 +108,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
     setEvaluateError(null);
 
     const payloadResult: ImagePromptResult = {
+      id: imageResult.id,
       originalPrompt: imageResult.originalPrompt,
       improvedPrompt: imageResult.improvedPrompt,
       mainDifferences: imageResult.mainDifferences,
@@ -115,7 +119,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
       pointOfViews: imageResult.pointOfViews || [],
       pointOfViewRaw: selectedPOV ?? null,
       conversationId: imageResult.conversationId ?? '',
-    } as ImagePromptResult;
+    };
 
     try {
       if (onEvaluate) {

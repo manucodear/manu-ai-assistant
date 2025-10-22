@@ -17,6 +17,7 @@ export interface ImageData {
 }
 
 export interface ImageResponse {
+  imagePromptId: string;
   images: Array<{
     image: ImageData;
   }>;

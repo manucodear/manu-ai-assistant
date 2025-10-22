@@ -20,6 +20,7 @@ import {
   Close as DismissIcon
 } from '@mui/icons-material';
 import PromptGeneration from '../Prompt/PromptGeneration';
+import PromptResult from '../Prompt/PromptResult';
 
 const ImageGallery: React.FC<ImageGalleryProps> = () => {
   const [images, setImages] = useState<ImageData[]>([]);
@@ -28,6 +29,8 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
   const [selectedSize, setSelectedSize] = useState<ImageSize>('large');
   const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [imagePromptId, setImagePromptId] = useState<string | null>(null);
+  const [promptResult, setPromptResult] = useState<any>(null);
 
   const fetchImages = async () => {
     setLoading(true);
@@ -48,10 +51,17 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
 
       const data: ImageResponse = await response.json();
       
+      // Debug logging - remove after testing
+      console.log('ImageGallery API Response:', data);
+      
       if (data.images && Array.isArray(data.images)) {
         setImages(data.images.map(item => item.image));
+        // Handle both old and new API formats
+        setImagePromptId(data.imagePromptId || null);
+        console.log('Set imagePromptId to:', data.imagePromptId);
       } else {
         setImages([]);
+        setImagePromptId(null);
       }
     } catch (err: any) {
       console.error('Error fetching images:', err);
@@ -233,9 +243,29 @@ const ImageGallery: React.FC<ImageGalleryProps> = () => {
           </div>
           {/* Fullscreen viewer when an image is selected */}
           {selectedImageUrl && (
-            <PromptGeneration imageUrl={selectedImageUrl} onReset={() => setSelectedImageUrl(null)} />
+            <PromptGeneration 
+              imageUrl={selectedImageUrl} 
+              imagePromptId={imagePromptId}
+              onReset={() => setSelectedImageUrl(null)}
+              onShowPromptResult={(result) => {
+                setPromptResult(result);
+                setSelectedImageUrl(null);
+              }}
+            />
           )}
         </>
+      )}
+
+      {/* Show prompt result when available */}
+      {promptResult && (
+        <PromptResult 
+          imageResult={promptResult}
+          onReset={() => setPromptResult(null)}
+          onGenerate={async (result) => {
+            // Handle image generation from prompt result if needed
+            console.log('Generate requested from ImageGallery:', result);
+          }}
+        />
       )}
     </div>
   );
