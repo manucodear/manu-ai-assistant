@@ -24,8 +24,14 @@ interface ImagePromptResult {
   mainDifferences: string;
   tags: ImagePromptTags;
   pointOfViews: string[];
+  // possible image styles returned by server
+  imageStyles: string[];
   // raw singular PointOfView from server when present (may be empty string)
   pointOfViewRaw?: string | null;
+  // raw singular ImageStyle from server when present (may be empty string)
+  imageStyleRaw?: string | null;
+  // selected image style (normalized)
+  imageStyle?: string | null;
   // Conversation identifier returned by the backend for this prompt result
   conversationId: string;
 }
@@ -102,6 +108,11 @@ const Prompt: React.FC<PromptProps> = ({ value, onResetShowGallery }: PromptProp
         mainDifferences: promptResultRaw.mainDifferences ?? '',
         tags: { included: tags.included ?? [], notIncluded: tags.notIncluded ?? [] },
         pointOfViews: promptResultRaw.pointOfViews ?? [],
+        // image styles list and raw selected style
+        imageStyles: promptResultRaw.imageStyles ?? [],
+        imageStyleRaw: promptResultRaw.imageStyle ?? null,
+  // normalized selected imageStyle follows same logic as POV
+  imageStyle: (promptResultRaw.hasOwnProperty('imageStyle') && promptResultRaw.imageStyle && String(promptResultRaw.imageStyle).trim()) ? String(promptResultRaw.imageStyle).trim() : (promptResultRaw.imageStyles && promptResultRaw.imageStyles[0]) ?? null,
         pointOfViewRaw: promptResultRaw.pointOfView ?? null,
         conversationId: String(promptResultRaw.conversationId ?? ''),
       };
