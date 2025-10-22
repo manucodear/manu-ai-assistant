@@ -10,6 +10,8 @@ import { Person } from '@mui/icons-material';
 
 const Home: React.FC = () => {
   const isGoogleAuthEnabled = import.meta.env.VITE_GOOGLE_AUTH_ENABLED === 'true';
+  const privacyUrl = import.meta.env.VITE_PRIVACY_URL || '';
+  const termsUrl = import.meta.env.VITE_TERMS_URL || '';
 
   return (
     <div className="home-container">
@@ -66,6 +68,27 @@ const Home: React.FC = () => {
             </Link>
           </div>
         )}
+        <div className="legal-links">
+          {privacyUrl ? (
+            <a href={privacyUrl} target="_blank" rel="noopener noreferrer" className="legal-link">
+              Privacy Policy
+            </a>
+          ) : (
+            <Link to="/privacy" className="legal-link">
+              Privacy Policy
+            </Link>
+          )}
+
+          {termsUrl ? (
+            <a href={termsUrl} target="_blank" rel="noopener noreferrer" className="legal-link">
+              Terms of Service
+            </a>
+          ) : (
+            <Link to="/terms" className="legal-link">
+              Terms of Service
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );
