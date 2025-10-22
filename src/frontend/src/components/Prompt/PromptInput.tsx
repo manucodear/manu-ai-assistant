@@ -1,8 +1,8 @@
 import React from 'react';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
-import Fab from '@mui/material/Fab';
-import SendIcon from '@mui/icons-material/Send';
+import Button from '@mui/material/Button';
+import CreateIcon from '@mui/icons-material/Create';
 
 interface PromptInputProps {
   input: string;
@@ -24,18 +24,27 @@ const PromptInput: React.FC<PromptInputProps> = ({ input, setInput, onSend, send
             minRows={4}
             disabled={sending}
             fullWidth
+            sx={{
+              // ensure bottom/right padding so content doesn't get obscured by the button
+              '& .MuiInputBase-root': {
+                paddingRight: '88px',
+                paddingBottom: '8px',
+              }
+            }}
           />
-        {/* place the send FAB at the top-right inside the input box */}
-        <Fab
+        {/* Send Button positioned at bottom-right inside the input box */}
+        <Button
+          variant="contained"
           color="primary"
           onClick={onSend}
           disabled={sending || !input.trim()}
           aria-label="Send prompt"
           size="small"
-          sx={{ position: 'absolute', top: 8, right: 8, zIndex: 1400 }}
+          startIcon={<CreateIcon />}
+          sx={{ position: 'absolute', bottom: 8, right: 8, zIndex: 1400 }}
         >
-          <SendIcon />
-        </Fab>
+          Write
+        </Button>
       </Box>
     </Box>
   );

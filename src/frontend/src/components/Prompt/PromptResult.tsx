@@ -9,6 +9,12 @@ import Checkbox from '@mui/material/Checkbox';
 import ListItemText from '@mui/material/ListItemText';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
+import SwipeableDrawer from '@mui/material/SwipeableDrawer';
+import List from '@mui/material/List';
+import ListItemButton from '@mui/material/ListItemButton';
+import Radio from '@mui/material/Radio';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -19,8 +25,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { AutoAwesome as ImageSparkle } from '@mui/icons-material';
 import Snackbar from '@mui/material/Snackbar';
-import Fab from '@mui/material/Fab';
-import EvaluateIcon from '@mui/icons-material/Publish';
+import CreateIcon from '@mui/icons-material/Create';
 import Alert from '@mui/material/Alert';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
@@ -30,11 +35,17 @@ interface ImagePromptTags {
 }
 
 interface ImagePromptResult {
+  id: string;
   originalPrompt: string;
   improvedPrompt: string;
   mainDifferences: string;
   tags: ImagePromptTags;
   pointOfViews: string[];
+  imageStyles: string[];
+  imageStyleRaw?: string | null;
+  imageStyle?: string | null;
+  // raw singular PointOfView from server when present (may be empty string)
+  pointOfViewRaw?: string | null;
   // Conversation identifier returned by the backend for this prompt result
   conversationId: string;
 }
@@ -67,8 +78,20 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
     }
     return (imageResult.pointOfViews && imageResult.pointOfViews[0]) ?? null;
   });
+  const [selectedImageStyle, setSelectedImageStyle] = React.useState<string | null>(() => {
+    if (Object.prototype.hasOwnProperty.call(imageResult, 'imageStyleRaw')) {
+      const raw = (imageResult as any).imageStyleRaw;
+      if (raw && String(raw).trim()) return String(raw).trim();
+      return null;
+    }
+    return (imageResult.imageStyles && imageResult.imageStyles[0]) ?? null;
+  });
   const [copyMessage, setCopyMessage] = React.useState<string | null>(null);
   const [copyOpen, setCopyOpen] = React.useState<boolean>(false);
+  const theme = useTheme();
+  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
+  const [povDrawerOpen, setPovDrawerOpen] = React.useState(false);
+  const [styleDrawerOpen, setStyleDrawerOpen] = React.useState(false);
   const [evaluateSuccess, setEvaluateSuccess] = React.useState<string | null>(null);
   const [evaluateError, setEvaluateError] = React.useState<string | null>(null);
 
@@ -82,6 +105,14 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
     }
     return (imageResult.pointOfViews && imageResult.pointOfViews[0]) ?? null;
   }, [imageResult]);
+  const originalImageStyle = React.useMemo(() => {
+    if (Object.prototype.hasOwnProperty.call(imageResult, 'imageStyleRaw')) {
+      const raw = (imageResult as any).imageStyleRaw;
+      if (raw && String(raw).trim()) return String(raw).trim();
+      return null;
+    }
+    return (imageResult.imageStyles && imageResult.imageStyles[0]) ?? null;
+  }, [imageResult]);
 
   // helper to compare tag sets (order-insensitive)
   const tagSetsEqual = (a: string[], b: string[]) => {
@@ -92,7 +123,8 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
 
   const hasTagChanges = !tagSetsEqual(selectedTags, originalIncluded);
   const hasPOVChange = (selectedPOV ?? null) !== (originalPOV ?? null);
-  const hasAnyChange = hasTagChanges || hasPOVChange;
+  const hasImageStyleChange = (selectedImageStyle ?? null) !== (originalImageStyle ?? null);
+  const hasAnyChange = hasTagChanges || hasPOVChange || hasImageStyleChange;
 
   // avoid unused prop lint errors - may be used by parent in future
   if (typeof conversationId !== 'undefined') {
@@ -105,6 +137,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
     setEvaluateError(null);
 
     const payloadResult: ImagePromptResult = {
+      id: imageResult.id,
       originalPrompt: imageResult.originalPrompt,
       improvedPrompt: imageResult.improvedPrompt,
       mainDifferences: imageResult.mainDifferences,
@@ -114,8 +147,11 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
       },
       pointOfViews: imageResult.pointOfViews || [],
       pointOfViewRaw: selectedPOV ?? null,
+      imageStyles: imageResult.imageStyles || [],
+      imageStyleRaw: selectedImageStyle ?? null,
+      imageStyle: selectedImageStyle ?? null,
       conversationId: imageResult.conversationId ?? '',
-    } as ImagePromptResult;
+    };
 
     try {
       if (onEvaluate) {
@@ -171,20 +207,46 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
         >
           <ContentCopyIcon fontSize="small" />
         </IconButton>
-  <Box sx={{ whiteSpace: 'pre-wrap', mb: 1, fontStyle: 'italic' }}>{imageResult.improvedPrompt}</Box>
-        {/* Visual-only Generate button (right-aligned) */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-          <Button
-            variant="outlined"
-            color="warning"
-            size="small"
-            startIcon={<ImageSparkle />}
-            onClick={() => onGenerate && onGenerate(imageResult)}
-            disabled={generating || hasAnyChange}
-            title={hasAnyChange ? 'Change tags or point of view back to original to enable generate' : undefined}
-          >
-            Generate
-          </Button>
+        <Box sx={{ whiteSpace: 'pre-wrap', mb: 1, fontStyle: 'italic' }}>{imageResult.improvedPrompt}</Box>
+        {/* Action row: Reset (left), Generate+Evaluate (right) - single action row where Generate used to be */}
+        <Box sx={{ mt: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              {typeof onReset === 'function' && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<RestartAltIcon />}
+                  onClick={() => onReset && onReset()}
+                >
+                  Reset
+                </Button>
+              )}
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
+              <Button
+                variant="contained"
+                color="warning"
+                size="small"
+                startIcon={<ImageSparkle />}
+                onClick={() => onGenerate && onGenerate(imageResult)}
+                disabled={generating || hasAnyChange}
+                title={hasAnyChange ? 'Change tags or point of view back to original to enable generate' : undefined}
+              >
+                Generate
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                size="small"
+                startIcon={<CreateIcon />}
+                onClick={handleEvaluate}
+              >
+                ReWrite
+              </Button>
+            </Box>
+          </Box>
         </Box>
         <Snackbar
           open={copyOpen}
@@ -205,7 +267,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
       <Paper elevation={0} sx={{ p: 1, mt: 1 }}>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
           <Box>
-            <Button variant="outlined" onClick={(e: React.MouseEvent<HTMLElement>) => setTagsAnchorEl(e.currentTarget)}>
+            <Button variant="contained" onClick={(e: React.MouseEvent<HTMLElement>) => setTagsAnchorEl(e.currentTarget)}>
               Tags ({selectedTags.length})
             </Button>
             <Menu anchorEl={tagsAnchorEl} open={Boolean(tagsAnchorEl)} onClose={() => setTagsAnchorEl(null)} PaperProps={{ style: { maxHeight: 320 } }}>
@@ -248,34 +310,155 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
           {selectedTags.map((t: string) => {
             const isIncluded = (imageResult.tags?.included || []).includes(t);
             const isNotIncluded = (imageResult.tags?.notIncluded || []).includes(t);
+            const handleDelete = () => setSelectedTags((prev) => prev.filter((x) => x !== t));
             if (isIncluded) {
               return (
-                <Chip key={`chip-${t}`} label={t} size="small" color="primary" sx={{ mr: 1, mb: 1 }} />
+                <Chip
+                  key={`chip-${t}`}
+                  label={t}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                  onDelete={handleDelete}
+                  aria-label={`Remove tag ${t}`}
+                  sx={{ mr: 1, mb: 1 }}
+                />
               );
             }
             if (isNotIncluded) {
               return (
-                <Chip key={`chip-${t}`} label={t} size="small" color="secondary" sx={{ mr: 1, mb: 1 }} />
+                <Chip
+                  key={`chip-${t}`}
+                  label={t}
+                  size="small"
+                  color="secondary"
+                  variant="outlined"
+                  onDelete={handleDelete}
+                  aria-label={`Remove tag ${t}`}
+                  sx={{ mr: 1, mb: 1 }}
+                />
               );
             }
-            return <Chip key={`chip-${t}`} label={t} size="small" sx={{ mr: 1, mb: 1 }} />;
+            return (
+              <Chip
+                key={`chip-${t}`}
+                label={t}
+                size="small"
+                variant="outlined"
+                onDelete={handleDelete}
+                aria-label={`Remove tag ${t}`}
+                sx={{ mr: 1, mb: 1 }}
+              />
+            );
           })}
         </Box>
       </Paper>
 
       <Paper elevation={0} sx={{ p: 1, mt: 1 }}>
-  {imageResult.pointOfViews && imageResult.pointOfViews.length > 0 && (
-          <Box>
-            <Box sx={{ fontWeight: 600, mb: 1 }}>Point of views</Box>
-            <ToggleButtonGroup value={selectedPOV} exclusive onChange={(_e, newVal) => setSelectedPOV(newVal)} aria-label="Point of view" size="small">
-              {(imageResult.pointOfViews || []).map((p: string) => (
-                <ToggleButton color="primary" key={p} value={p} aria-label={p}>
-                  {p}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-          </Box>
-        )}
+            {imageResult.pointOfViews && imageResult.pointOfViews.length > 0 && (
+              <Box>
+                <Box sx={{ fontWeight: 600, mb: 1 }}>Point of views</Box>
+                {isSmall ? (
+                  <>
+                    <Button variant="outlined" size="small" onClick={() => setPovDrawerOpen(true)}>
+                      {selectedPOV ?? 'Choose point of view'}
+                    </Button>
+                    <SwipeableDrawer anchor="bottom" open={povDrawerOpen} onClose={() => setPovDrawerOpen(false)} onOpen={() => setPovDrawerOpen(true)}>
+                      <Box sx={{ p: 1 }}>
+                        <List>
+                          {(imageResult.pointOfViews || []).map((p: string) => (
+                            <ListItemButton key={p} onClick={() => { setSelectedPOV(p); setPovDrawerOpen(false); }}>
+                              <Radio checked={selectedPOV === p} />
+                              <ListItemText primary={p} />
+                            </ListItemButton>
+                          ))}
+                        </List>
+                      </Box>
+                    </SwipeableDrawer>
+                  </>
+                ) : (
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    overflowX: { xs: 'auto', sm: 'visible' },
+                    whiteSpace: { xs: 'nowrap', sm: 'normal' },
+                  }}>
+                    <ToggleButtonGroup
+                      value={selectedPOV}
+                      exclusive
+                      onChange={(_e, newVal) => setSelectedPOV(newVal)}
+                      aria-label="Point of view"
+                      size="small"
+                      sx={{ display: 'inline-flex' }}
+                    >
+                      {(imageResult.pointOfViews || []).map((p: string) => (
+                        <ToggleButton
+                          color="primary"
+                          key={p}
+                          value={p}
+                          aria-label={p}
+                          sx={{ minWidth: { xs: 88, sm: 64 }, fontSize: { xs: '0.82rem', sm: '0.875rem' } }}
+                        >
+                          {p}
+                        </ToggleButton>
+                      ))}
+                    </ToggleButtonGroup>
+                  </Box>
+                )}
+              </Box>
+            )}
+      {imageResult.imageStyles && imageResult.imageStyles.length > 0 && (
+        <Box sx={{ mt: 2 }}>
+          <Box sx={{ fontWeight: 600, mb: 1 }}>Image styles</Box>
+          {isSmall ? (
+            <>
+              <Button variant="outlined" size="small" onClick={() => setStyleDrawerOpen(true)}>
+                {selectedImageStyle ?? 'Choose image style'}
+              </Button>
+              <SwipeableDrawer anchor="bottom" open={styleDrawerOpen} onClose={() => setStyleDrawerOpen(false)} onOpen={() => setStyleDrawerOpen(true)}>
+                <Box sx={{ p: 1 }}>
+                  <List>
+                    {(imageResult.imageStyles || []).map((s: string) => (
+                      <ListItemButton key={s} onClick={() => { setSelectedImageStyle(s); setStyleDrawerOpen(false); }}>
+                        <Radio checked={selectedImageStyle === s} />
+                        <ListItemText primary={s} />
+                      </ListItemButton>
+                    ))}
+                  </List>
+                </Box>
+              </SwipeableDrawer>
+            </>
+          ) : (
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              overflowX: { xs: 'auto', sm: 'visible' },
+              whiteSpace: { xs: 'nowrap', sm: 'normal' },
+            }}>
+              <ToggleButtonGroup
+                value={selectedImageStyle}
+                exclusive
+                onChange={(_e, newVal) => setSelectedImageStyle(newVal)}
+                aria-label="Image style"
+                size="small"
+                sx={{ display: 'inline-flex' }}
+              >
+                {(imageResult.imageStyles || []).map((s: string) => (
+                  <ToggleButton
+                    color="primary"
+                    key={s}
+                    value={s}
+                    aria-label={s}
+                    sx={{ minWidth: { xs: 88, sm: 64 }, fontSize: { xs: '0.82rem', sm: '0.875rem' } }}
+                  >
+                    {s}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            </Box>
+          )}
+        </Box>
+      )}
       </Paper>
       {/* publish alerts */}
       {evaluateSuccess && (
@@ -310,24 +493,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
           </AccordionDetails>
         </Accordion>
       </div>
-      {/* Publish FAB (positioned inside this component's relative Box) */}
-      <Fab
-        color="primary"
-        onClick={handleEvaluate}
-        aria-label="Evaluate prompt"
-        sx={{ position: 'absolute', bottom: 8, right: 0 }}
-      >
-        <EvaluateIcon />
-      </Fab>
-
-      {/* fixed Reset FAB (viewport-fixed) rendered when onReset is available */}
-      {typeof onReset === 'function' && (
-        <Box sx={{ position: 'absolute', bottom: 8, left: 0}}>
-          <Fab color="default" aria-label="Reset prompt" onClick={() => onReset && onReset()}>
-            <RestartAltIcon />
-          </Fab>
-        </Box>
-      )}
+      {/* action row removed from bottom to avoid duplication; buttons live next to the improved prompt */}
     </Box>
   );
 };

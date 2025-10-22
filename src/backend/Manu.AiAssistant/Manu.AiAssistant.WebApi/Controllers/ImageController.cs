@@ -94,7 +94,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
             Manu.AiAssistant.WebApi.Models.Entities.ImageData? imageData = null;
             string? generatedId = null;
             var promptEntity = _mapper.Map<Prompt>(request.ImagePrompt);
-            promptEntity.Id = Guid.NewGuid().ToString();
+            promptEntity.Id = request.ImagePrompt.Id;
             promptEntity.Username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name! : "anonymous";
 
             if (isError)
@@ -197,18 +197,19 @@ namespace Manu.AiAssistant.WebApi.Controllers
             var ordered = userItems.OrderByDescending(g => g.Timestamp).ToList();
 
             var images = new List<object>();
-            foreach (var g in ordered)
+            foreach (var imageItem in ordered)
             {
                 images.Add(new {
                     image = new {
-                        id = g.Id,
-                        timestamp = g.Timestamp,
-                        prompt = g.Prompt ?? string.Empty,
-                        url = g.ImageData?.Url,
-                        smallUrl = g.ImageData?.SmallUrl,
-                        mediumUrl = g.ImageData?.MediumUrl,
-                        largeUrl = g.ImageData?.LargeUrl
-                    }
+                        id = imageItem.Id,
+                        timestamp = imageItem.Timestamp,
+                        prompt = imageItem.Prompt ?? string.Empty,
+                        url = imageItem.ImageData?.Url,
+                        smallUrl = imageItem.ImageData?.SmallUrl,
+                        mediumUrl = imageItem.ImageData?.MediumUrl,
+                        largeUrl = imageItem.ImageData?.LargeUrl
+                    },
+                    imagePromptId = !string.IsNullOrEmpty(imageItem.ImagePrompt.ConversationId) ? imageItem.ImagePrompt.Id : string.Empty
                 });
             }
 

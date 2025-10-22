@@ -18,20 +18,27 @@ interface ImagePromptTags {
 }
 
 interface ImagePromptResult {
+  id: string;
   originalPrompt: string;
   improvedPrompt: string;
   mainDifferences: string;
   tags: ImagePromptTags;
   pointOfViews: string[];
+  // possible image styles returned by server
+  imageStyles: string[];
   // raw singular PointOfView from server when present (may be empty string)
   pointOfViewRaw?: string | null;
+  // raw singular ImageStyle from server when present (may be empty string)
+  imageStyleRaw?: string | null;
+  // selected image style (normalized)
+  imageStyle?: string | null;
   // Conversation identifier returned by the backend for this prompt result
   conversationId: string;
 }
 
 // no message objects are stored in this flow; kept minimal
 
-const Prompt: React.FC<PromptProps> = ({ value, onResetShowGallery }: PromptProps) => {
+const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
   const [input, setInput] = useState<string>(value ?? '');
   const [sending, setSending] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -95,11 +102,17 @@ const Prompt: React.FC<PromptProps> = ({ value, onResetShowGallery }: PromptProp
       if (promptResultRaw.conversationId) setConversationId(String(promptResultRaw.conversationId));
       const tags = promptResultRaw.tags || {};
       const data: ImagePromptResult = {
+        id: promptResultRaw.id ?? '',
         originalPrompt: promptResultRaw.originalPrompt ?? '',
         improvedPrompt: promptResultRaw.improvedPrompt ?? '',
         mainDifferences: promptResultRaw.mainDifferences ?? '',
         tags: { included: tags.included ?? [], notIncluded: tags.notIncluded ?? [] },
         pointOfViews: promptResultRaw.pointOfViews ?? [],
+        // image styles list and raw selected style
+        imageStyles: promptResultRaw.imageStyles ?? [],
+        imageStyleRaw: promptResultRaw.imageStyle ?? null,
+  // normalized selected imageStyle follows same logic as POV
+  imageStyle: (promptResultRaw.hasOwnProperty('imageStyle') && promptResultRaw.imageStyle && String(promptResultRaw.imageStyle).trim()) ? String(promptResultRaw.imageStyle).trim() : (promptResultRaw.imageStyles && promptResultRaw.imageStyles[0]) ?? null,
         pointOfViewRaw: promptResultRaw.pointOfView ?? null,
         conversationId: String(promptResultRaw.conversationId ?? ''),
       };
@@ -235,12 +248,9 @@ const Prompt: React.FC<PromptProps> = ({ value, onResetShowGallery }: PromptProp
     setGeneratedImageUrl(null);
     // clear conversation tracking as well
     setConversationId(null);
-    // If page wants to show the gallery when resetting, call the callback
-    try {
-      if (typeof onResetShowGallery === 'function') onResetShowGallery();
-    } catch (e) {
-      // noop
-    }
+    // Note: do NOT automatically call onResetShowGallery here. The gallery/tab
+    // switching should be controlled by the page that renders Prompt (e.g. Image.tsx)
+    // so main flow Reset returns to the prompt input as expected.
   };
 
   // key handling moved into PromptInput; keep sendPrompt available for direct calls
@@ -277,7 +287,15 @@ const Prompt: React.FC<PromptProps> = ({ value, onResetShowGallery }: PromptProp
         ) : imageResult ? (
           generatedImageUrl ? (
             // show generated image while keeping prompt hidden
-            <PromptGeneration imageUrl={generatedImageUrl} onReset={handleReset} />
+            <PromptGeneration 
+              imageUrl={generatedImageUrl} 
+              id={imageResult.id}
+              onReset={handleReset}
+              onShowPromptResult={(promptResult) => {
+                setImageResult(promptResult);
+                setGeneratedImageUrl(null);
+              }}
+            />
           ) : generating ? (
             <Paper aria-live="polite" elevation={0} sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
               <CircularProgress size={24} />
