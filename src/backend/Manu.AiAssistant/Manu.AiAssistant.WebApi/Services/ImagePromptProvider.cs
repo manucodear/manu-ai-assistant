@@ -58,7 +58,10 @@ namespace Manu.AiAssistant.WebApi.Services
                 //userMessage += $"Set the point of view to: {request.PointOfView} (override any existing one).\n";
                 userMessage += $"Rewrite the prompt explicitly describing the scene from this camera perspective: '{request.PointOfView}'. Use clear photographic or visual composition language (e.g. 'seen from', 'wide-angle view from', 'over-the-shoulder shot'). Override any existing viewpoint.\n";
             }
-                
+            if (!string.IsNullOrWhiteSpace(request.ImageStyle))
+            {
+                userMessage += $"Rewrite the prompt to use this image style: '{request.ImageStyle}'. Use clear descriptive language (e.g. 'in watercolor style', 'as a digital painting', 'in photorealistic style'). Override any existing style.\n";
+            }
             userMessage += "Improve the prompt accordingly, preserving the original meaning as much as possible.";
 
             conversation.Add(new PromptMessage { Role = PromptRole.User, Prompt = userMessage });

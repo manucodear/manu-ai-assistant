@@ -9,6 +9,8 @@
         public ImagePromptTags Tags { get; set; } = new();
         public List<string> PointOfViews { get; set; } = new();
         public string PointOfView { get; set; } = string.Empty;
+        public List<string> ImageStyles { get; set; } = new();
+        public string ImageStyle { get; set; } = string.Empty;
         public string ConversationId { get; set; } = string.Empty;
     }
 

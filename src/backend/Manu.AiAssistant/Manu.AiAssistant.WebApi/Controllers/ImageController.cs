@@ -94,7 +94,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
             Manu.AiAssistant.WebApi.Models.Entities.ImageData? imageData = null;
             string? generatedId = null;
             var promptEntity = _mapper.Map<Prompt>(request.ImagePrompt);
-            promptEntity.Id = Guid.NewGuid().ToString();
+            promptEntity.Id = request.ImagePrompt.Id;
             promptEntity.Username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name! : "anonymous";
 
             if (isError)

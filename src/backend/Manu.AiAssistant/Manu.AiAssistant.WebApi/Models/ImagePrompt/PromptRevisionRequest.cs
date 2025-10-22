@@ -7,6 +7,7 @@ namespace Manu.AiAssistant.WebApi.Models.ImagePrompt
         public string Prompt { get; set; } = string.Empty;
         public RevisionTags Tags { get; set; } = new();
         public string? PointOfView { get; set; }
+        public string? ImageStyle { get; set; }
     }
 
     public class RevisionTags

@@ -25,6 +25,12 @@ namespace Manu.AiAssistant.WebApi.Models.Entities
         [JsonProperty("pointOfViews")]
         public List<string> PointOfViews { get; set; } = new();
 
+        [JsonProperty("imageStyle")]
+        public string ImageStyle { get; set; } = string.Empty;
+
+        [JsonProperty("imageStyles")]
+        public List<string> ImageStyles { get; set; } = new();
+
         [JsonProperty("conversationId")]
         public string ConversationId { get; set; } = string.Empty;
     }
