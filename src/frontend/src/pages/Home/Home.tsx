@@ -102,6 +102,27 @@ const Home: React.FC = () => {
             v{appVersion}
           </div>
         )}
+        <div className="legal-links">
+          {privacyUrl ? (
+            <a href={privacyUrl} target="_blank" rel="noopener noreferrer" className="legal-link">
+              Privacy Policy
+            </a>
+          ) : (
+            <Link to="/privacy" className="legal-link">
+              Privacy Policy
+            </Link>
+          )}
+
+          {termsUrl ? (
+            <a href={termsUrl} target="_blank" rel="noopener noreferrer" className="legal-link">
+              Terms of Service
+            </a>
+          ) : (
+            <Link to="/terms" className="legal-link">
+              Terms of Service
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );
