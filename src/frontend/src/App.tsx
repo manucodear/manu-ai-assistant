@@ -12,6 +12,8 @@ import ResponsiveDemo from './pages/ResponsiveDemo';
 import PromptTest from './pages/PromptTest/PromptTest';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Token } from './pages/Token';
+import { Privacy } from './pages/Privacy';
+import { Terms } from './pages/Terms';
 
 function App() {
   return (
@@ -41,6 +43,8 @@ function App() {
         </ProtectedRoute>
       } />
       <Route path="/prompt-test" element={<PromptTest />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
     </Routes>
    </Router>
   )
