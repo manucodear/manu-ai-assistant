@@ -2,16 +2,15 @@ import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { LoginButton, LoginButtonType } from '../../components/LoginButton';
 import {
-  Title1,
-  Body1,
-  Card,
-  CardHeader,
-  Divider,
+  Paper,
+  Typography,
+  Box,
   Button,
-  MessageBar
-} from '@fluentui/react-components';
+  Alert,
+  Divider,
+  Container
+} from '@mui/material';
 import { Home as HomeIcon } from '@mui/icons-material';
-import './Login.css';
 
 const Login: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -19,41 +18,89 @@ const Login: React.FC = () => {
   const isGoogleAuthEnabled = import.meta.env.VITE_GOOGLE_AUTH_ENABLED === 'true';
 
   return (
-    <div className="login-container">
-      <Card className="login-card">
-        <CardHeader
-          header={<Title1>Welcome Back</Title1>}
-          description={<Body1>Choose your preferred login method to continue</Body1>}
-        />
-        
+    <Container
+      maxWidth="sm"
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        py: { xs: 2, md: 4 }
+      }}
+    >
+      <Paper
+        elevation={3}
+        sx={{
+          width: '100%',
+          maxWidth: 500,
+          p: { xs: 2, sm: 3, md: 4 }
+        }}
+      >
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{
+            textAlign: 'center',
+            mb: 3
+          }}
+        >
+          Choose your preferred login method to continue
+        </Typography>
+
         {returnUrl && (
-          <MessageBar intent="info">
+          <Alert severity="info" sx={{ mb: 3 }}>
             You'll be redirected back to your requested page after logging in.
-          </MessageBar>
+          </Alert>
         )}
-        
-        <div className="login-options">
+
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            mb: 3
+          }}
+        >
           <LoginButton type={LoginButtonType.Microsoft} />
           {isGoogleAuthEnabled && <LoginButton type={LoginButtonType.Google} />}
-          <Button disabled appearance="primary" size="large" style={{ width: '100%' }}>
+
+          <Button
+            disabled
+            variant="contained"
+            size="large"
+            fullWidth
+            sx={{ textTransform: 'none' }}
+          >
             Login with X
           </Button>
-          <Button disabled appearance="primary" size="large" style={{ width: '100%' }}>
+
+          <Button
+            disabled
+            variant="contained"
+            size="large"
+            fullWidth
+            sx={{ textTransform: 'none' }}
+          >
             Login with Reddit
           </Button>
-        </div>
-        
-        <Divider />
-        
-        <div className="login-actions">
+        </Box>
+
+        <Divider sx={{ mb: 3 }} />
+
+        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
           <Link to="/" style={{ textDecoration: 'none' }}>
-            <Button appearance="subtle" icon={<HomeIcon />}>
+            <Button
+              variant="text"
+              startIcon={<HomeIcon />}
+              sx={{ textTransform: 'none' }}
+            >
               Back to Home
             </Button>
           </Link>
-        </div>
-      </Card>
-    </div>
+        </Box>
+      </Paper>
+    </Container>
   );
 };
 

@@ -2,8 +2,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1rem;
-  gap: 1.5rem;
+  padding: 0.5rem;
+  gap: 1rem;
   min-height: 100vh;
 }
 
@@ -31,10 +31,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   max-width: 800px;
   width: 100%;
-  padding: 0 1rem;
+  padding: 0 0.5rem;
 }
 
 @media (min-width: 768px) {
@@ -105,37 +105,45 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 32px;
-  gap: 12px;
+  padding: 40px;
+  gap: 16px;
 }
 
 @media (max-width: 768px) {
   .home-card-header {
     padding: 24px 16px;
+    gap: 12px;
   }
 }
 
-/* Feature cards for mobile-first design */
+/* Enhanced feature cards */
 .feature-card {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 20px;
   text-align: center;
   flex: 1;
   min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
 }
 
 .feature-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 @media (max-width: 768px) {
   .feature-card {
-    padding: 12px;
-    border-radius: 8px;
+    padding: 16px;
+    border-radius: 12px;
+  }
+  
+  .feature-card:hover {
+    transform: translateY(-2px);
   }
 }
 
@@ -149,10 +157,21 @@
 @media (max-width: 480px) {
   .home-card-header {
     padding: 20px 12px;
+    gap: 10px;
   }
   
   .feature-card {
-    padding: 10px;
+    padding: 14px;
+  }
+  
+  .home-container {
+    padding: 0.5rem;
+    gap: 1rem;
+  }
+  
+  .home-body {
+    gap: 1rem;
+    padding: 0 0.5rem;
   }
 }
 

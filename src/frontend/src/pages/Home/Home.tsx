@@ -7,7 +7,6 @@ import {
 } from '@mui/material';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-import { Person } from '@mui/icons-material';
 
 const Home: React.FC = () => {
   const isGoogleAuthEnabled = import.meta.env.VITE_GOOGLE_AUTH_ENABLED === 'true';
@@ -17,15 +16,6 @@ const Home: React.FC = () => {
 
   return (
     <div className="home-container">
-      {import.meta.env.DEV && (
-        <div className="home-header">
-          <Link to="/login" style={{ textDecoration: 'none' }}>
-            <Button variant="contained" color="primary" startIcon={<Person />}>
-              Login
-            </Button>
-          </Link>
-        </div>
-      )}
       <div className="home-body">
         <Paper className="home-card" elevation={3}>
           <div className="home-card-header">
@@ -33,109 +23,158 @@ const Home: React.FC = () => {
               variant="h4" 
               gutterBottom
               sx={{ 
-                fontSize: { xs: '1.75rem', sm: '2rem', md: '2.125rem' },
-                textAlign: 'center'
+                fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' },
+                textAlign: 'center',
+                mb: { xs: 1, md: 2 }
               }}
             >
-              AI Image Generation Assistant
+              AI Image Generator
             </Typography>
             <Typography 
               variant="h6" 
               color="text.secondary" 
-              gutterBottom
               sx={{ 
-                fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
+                fontSize: { xs: '0.875rem', sm: '1.125rem', md: '1.25rem' },
                 textAlign: 'center',
-                mb: { xs: 2, md: 3 }
+                mb: { xs: 1.5, md: 3 }
               }}
             >
-              Create stunning images with AI-powered prompt optimization
+              Create stunning images with AI-powered prompts
             </Typography>
             
-            {/* Mobile-first feature cards */}
+            {/* Expanded features section */}
             <Box sx={{ 
-              display: 'flex', 
+              display: 'flex',
               flexDirection: { xs: 'column', md: 'row' },
-              gap: { xs: 2, md: 3 },
+              gap: { xs: 2.5, md: 3 },
               width: '100%',
               mb: { xs: 3, md: 4 }
             }}>
               <Box className="feature-card">
-                <Typography variant="h6" sx={{ fontSize: { xs: '1rem', md: '1.125rem' }, mb: 1 }}>
+                <Typography variant="h6" sx={{ fontSize: { xs: '1.1rem', md: '1.125rem' }, mb: 1.5 }}>
                   🎨 Smart Prompts
                 </Typography>
-                <Typography variant="body2" sx={{ fontSize: { xs: '0.875rem', md: '0.875rem' } }}>
-                  Transform simple ideas into detailed, optimized prompts
+                <Typography variant="body2" sx={{ fontSize: { xs: '0.9rem', md: '0.875rem' } }}>
+                  Transform simple ideas into detailed, optimized prompts for better AI image generation results
                 </Typography>
               </Box>
               
               <Box className="feature-card">
-                <Typography variant="h6" sx={{ fontSize: { xs: '1rem', md: '1.125rem' }, mb: 1 }}>
+                <Typography variant="h6" sx={{ fontSize: { xs: '1.1rem', md: '1.125rem' }, mb: 1.5 }}>
                   🖼️ AI Generation
                 </Typography>
-                <Typography variant="body2" sx={{ fontSize: { xs: '0.875rem', md: '0.875rem' } }}>
-                  Create high-quality images using advanced AI models
+                <Typography variant="body2" sx={{ fontSize: { xs: '0.9rem', md: '0.875rem' } }}>
+                  Create high-quality, unique images using state-of-the-art AI models and advanced algorithms
                 </Typography>
               </Box>
               
               <Box className="feature-card">
-                <Typography variant="h6" sx={{ fontSize: { xs: '1rem', md: '1.125rem' }, mb: 1 }}>
+                <Typography variant="h6" sx={{ fontSize: { xs: '1.1rem', md: '1.125rem' }, mb: 1.5 }}>
                   📱 Personal Gallery
                 </Typography>
-                <Typography variant="body2" sx={{ fontSize: { xs: '0.875rem', md: '0.875rem' } }}>
-                  Save and organize your generated images
+                <Typography variant="body2" sx={{ fontSize: { xs: '0.9rem', md: '0.875rem' } }}>
+                  Save, organize, and manage your generated images with secure cloud storage and easy access
                 </Typography>
               </Box>
             </Box>
 
-            {/* Collapsible authentication info */}
-            <Box className="auth-info-section">
+            {/* Enhanced benefits section */}
+            <Box sx={{ 
+              width: '100%',
+              mb: { xs: 3, md: 4 },
+              textAlign: 'center'
+            }}>
               <Typography 
-                variant="body1" 
+                variant="h6" 
                 sx={{ 
+                  fontSize: { xs: '1rem', md: '1.1rem' },
                   fontWeight: 600,
                   mb: 2,
-                  textAlign: 'center',
-                  fontSize: { xs: '0.95rem', md: '1rem' }
+                  color: 'primary.main'
                 }}
               >
-                🔐 Secure Multi-Provider Authentication
+                Why Choose Our AI Image Generator?
               </Typography>
               
               <Box sx={{ 
-                display: { xs: 'none', md: 'block' },
-                maxWidth: '600px',
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
+                gap: { xs: 1.5, md: 2 },
+                maxWidth: '800px',
                 mx: 'auto'
               }}>
-                <Typography variant="body2" sx={{ mb: 2, textAlign: 'center' }}>
-                  Choose from Google, Microsoft, or other supported authentication providers.
-                  We only access basic profile information (name, email) to create your secure account
-                  and personalize your experience.
-                </Typography>
-              </Box>
-              
-              {/* Mobile-friendly short version */}
-              <Box sx={{ 
-                display: { xs: 'block', md: 'none' },
-                textAlign: 'center'
-              }}>
-                <Typography variant="body2" sx={{ fontSize: '0.875rem', mb: 2 }}>
-                  Multiple sign-in options available. We only access basic profile info to secure your account.
-                </Typography>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.85rem', md: '0.875rem' }, fontWeight: 500 }}>
+                    ⚡ Fast Generation
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', md: '0.8rem' }, color: 'text.secondary' }}>
+                    Quick results in seconds
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.85rem', md: '0.875rem' }, fontWeight: 500 }}>
+                    🎯 High Quality
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', md: '0.8rem' }, color: 'text.secondary' }}>
+                    Professional-grade images
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.85rem', md: '0.875rem' }, fontWeight: 500 }}>
+                    � Secure & Private
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', md: '0.8rem' }, color: 'text.secondary' }}>
+                    Your data stays protected
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.85rem', md: '0.875rem' }, fontWeight: 500 }}>
+                    🎨 Multiple Styles
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', md: '0.8rem' }, color: 'text.secondary' }}>
+                    Various artistic options
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.85rem', md: '0.875rem' }, fontWeight: 500 }}>
+                    💾 Cloud Storage
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', md: '0.8rem' }, color: 'text.secondary' }}>
+                    Access anywhere, anytime
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.85rem', md: '0.875rem' }, fontWeight: 500 }}>
+                    � Iterative Improvement
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', md: '0.8rem' }, color: 'text.secondary' }}>
+                    Refine and perfect results
+                  </Typography>
+                </Box>
               </Box>
             </Box>
 
+            {/* Authentication info */}
             <Typography 
               variant="body2" 
               sx={{ 
-                mt: { xs: 2, md: 3 },
-                fontStyle: 'italic', 
-                color: 'text.secondary', 
                 textAlign: 'center',
-                fontSize: { xs: '0.8rem', md: '0.875rem' }
+                fontSize: { xs: '0.85rem', md: '0.875rem' },
+                color: 'text.secondary',
+                mb: { xs: 2, md: 2 },
+                maxWidth: '600px',
+                mx: 'auto',
+                lineHeight: 1.5
               }}
             >
-              🔒 Your privacy is protected. Choose your preferred sign-in method below.
+              🔐 <strong>Secure Authentication:</strong> Sign in with Google, Microsoft, or other providers. 
+              We only access basic profile information (name, email) to create your secure personal account 
+              and provide a personalized experience. Your privacy and data security are our top priorities.
             </Typography>
           </div>
         </Paper>

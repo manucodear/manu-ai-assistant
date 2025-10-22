@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ImageGalleryProps, ImageResponse, ImageSize, ImageData } from './ImageGallery.types';
-import styles from './ImageGallery.module.css';
 import {
   Paper,
   Typography,
@@ -8,16 +7,17 @@ import {
   Alert,
   Box,
   Chip,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
+  ToggleButtonGroup,
+  ToggleButton,
   IconButton
 } from '@mui/material';
 import {
   Collections as ImageMultiple,
   Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon,
-  Close as DismissIcon
+  Close as DismissIcon,
+  CropFree as SmallIcon,
+  CropSquare as MediumIcon,
+  AspectRatio as LargeIcon
 } from '@mui/icons-material';
 import PromptGeneration from '../Prompt/PromptGeneration';
 import PromptResult from '../Prompt/PromptResult';
@@ -150,126 +150,329 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ onShowPromptResult, onReque
   };
 
   return (
-    <div className={styles.container}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: { xs: 1.5, md: 2 },
+        width: '100%',
+        maxWidth: 1200,
+        margin: '0 auto',
+        padding: { xs: 0.5, sm: 1, md: 1.5 },
+        alignItems: 'stretch'
+      }}
+    >
       {/* Show gallery UI only when no promptResult is present. When promptResult is set (e.g., user pressed Back and we fetched the prompt), hide the gallery and show only the prompt result */}
       {!promptResult && (
         <>
-          <Paper className={styles.headerCard} elevation={1} sx={{ padding: 2 }}>
-            <div className={styles.header}>
-              <Typography variant="h5" component="div">
-                <ImageMultiple className={styles.headerIcon} />
-                Image Gallery
-              </Typography>
-              <Chip label={`${images.length} ${images.length === 1 ? 'image' : 'images'}`} color="primary" />
-            </div>
-            <Typography variant="body2" sx={{ mt: 1 }}>Browse your generated images with different size options</Typography>
-          </Paper>
-
-          {/* Size Selection */}
-          <Paper className={styles.controlsCard} elevation={1} sx={{ padding: 2 }}>
-            <div className={styles.controls}>
-              <Typography variant="h6">Image Size</Typography>
-              <RadioGroup
+          <Paper 
+            elevation={1} 
+            sx={{ 
+              p: { xs: 1.5, sm: 2, md: 2.5 }
+            }}
+          >            
+            {/* Size buttons and image counter on same level */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: { xs: 1.5, sm: 2 }
+              }}
+            >
+              <ToggleButtonGroup
                 value={selectedSize}
-                onChange={(e) => setSelectedSize((e.target as HTMLInputElement).value as ImageSize)}
-                row
-                className={styles.sizeSelector}
+                exclusive
+                onChange={(_, newSize: ImageSize | null) => {
+                  if (newSize !== null) {
+                    setSelectedSize(newSize);
+                  }
+                }}
+                size="small"
+                sx={{
+                  '& .MuiToggleButton-root': {
+                    px: { xs: 1.5, sm: 2 },
+                    py: { xs: 0.5, sm: 0.75 },
+                    fontSize: { xs: '0.8rem', md: '0.875rem' },
+                    minWidth: { xs: 60, sm: 80 },
+                    border: '1px solid',
+                    borderColor: 'action.disabled',
+                    color: 'text.secondary',
+                    '&:hover': {
+                      backgroundColor: 'action.hover',
+                      borderColor: 'text.secondary'
+                    },
+                    '&.Mui-selected': {
+                      backgroundColor: 'text.secondary',
+                      color: 'background.paper',
+                      borderColor: 'text.secondary',
+                      '&:hover': {
+                        backgroundColor: 'text.primary'
+                      }
+                    }
+                  }
+                }}
               >
-                <FormControlLabel value="small" control={<Radio />} label="Small" />
-                <FormControlLabel value="medium" control={<Radio />} label="Medium" />
-                <FormControlLabel value="large" control={<Radio />} label="Large" />
-              </RadioGroup>
-            </div>
+                <ToggleButton value="small" aria-label="Small size">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <SmallIcon fontSize="small" />
+                    <span>Small</span>
+                  </Box>
+                </ToggleButton>
+                <ToggleButton value="medium" aria-label="Medium size">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <MediumIcon fontSize="small" />
+                    <span>Medium</span>
+                  </Box>
+                </ToggleButton>
+                <ToggleButton value="large" aria-label="Large size">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <LargeIcon fontSize="small" />
+                    <span>Large</span>
+                  </Box>
+                </ToggleButton>
+              </ToggleButtonGroup>
+              
+              <Chip 
+                label={`${images.length} ${images.length === 1 ? 'image' : 'images'}`} 
+                color="default"
+                size="small"
+                variant="filled"
+              />
+            </Box>
           </Paper>
 
           {/* Loading State */}
           {loading && (
-            <Paper className={styles.statusCard} elevation={0} sx={{ padding: 2 }}>
-              <div className={styles.loadingContainer}>
+            <Paper 
+              elevation={0} 
+              sx={{ 
+                p: { xs: 2, md: 3 },
+                textAlign: 'center'
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: { xs: 1.5, sm: 2 }
+                }}
+              >
                 <CircularProgress size={28} />
-                <Typography variant="body1">Loading images...</Typography>
-              </div>
+                <Typography 
+                  variant="body1"
+                  sx={{
+                    fontSize: { xs: '0.9rem', md: '1rem' }
+                  }}
+                >
+                  Loading images...
+                </Typography>
+              </Box>
             </Paper>
           )}
 
           {/* Error State */}
           {error && (
-            <Alert severity="error" icon={<WarningIcon />}>{error}</Alert>
+            <Alert 
+              severity="error" 
+              icon={<WarningIcon />}
+              sx={{
+                '& .MuiAlert-message': {
+                  fontSize: { xs: '0.875rem', md: '0.875rem' }
+                }
+              }}
+            >
+              {error}
+            </Alert>
           )}
 
           {/* Empty State */}
           {!loading && !error && images.length === 0 && (
-            <Paper className={styles.emptyCard} elevation={0} sx={{ padding: 2 }}>
-              <div className={styles.emptyState}>
-                <ImageMultiple className={styles.emptyIcon} />
-                <Typography variant="h6">No Images Found</Typography>
-                <Typography variant="body1">Generate some images to see them here in the gallery.</Typography>
-              </div>
+            <Paper 
+              elevation={0} 
+              sx={{ 
+                p: { xs: 3, md: 4 },
+                textAlign: 'center'
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: { xs: 1.5, md: 2 },
+                  color: 'text.secondary'
+                }}
+              >
+                <ImageMultiple 
+                  sx={{ 
+                    fontSize: { xs: '2.5rem', md: '3rem' },
+                    opacity: 0.5
+                  }} 
+                />
+                <Typography 
+                  variant="h6"
+                  sx={{
+                    fontSize: { xs: '1.1rem', md: '1.25rem' }
+                  }}
+                >
+                  No Images Found
+                </Typography>
+                <Typography 
+                  variant="body1"
+                  sx={{
+                    fontSize: { xs: '0.9rem', md: '1rem' }
+                  }}
+                >
+                  Generate some images to see them here in the gallery.
+                </Typography>
+              </Box>
             </Paper>
           )}
 
           {/* Success State with Images */}
           {!loading && !error && images.length > 0 && (
             <>
-              <Alert severity="success" icon={<CheckCircleIcon />}>
-                Showing {images.length} {images.length === 1 ? 'image' : 'images'} in {selectedSize} size layout
-              </Alert>
-
-              <div className={styles.gallery} data-size={selectedSize}>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: selectedSize === 'large' ? '1fr' : 'repeat(auto-fill, minmax(120px, 1fr))',
+                    sm: selectedSize === 'small' ? 'repeat(auto-fill, minmax(100px, 1fr))' :
+                        selectedSize === 'medium' ? 'repeat(auto-fill, minmax(180px, 1fr))' :
+                        'repeat(auto-fill, minmax(280px, 1fr))',
+                    md: selectedSize === 'small' ? 'repeat(auto-fill, minmax(150px, 1fr))' :
+                        selectedSize === 'medium' ? 'repeat(auto-fill, minmax(250px, 1fr))' :
+                        'repeat(auto-fill, minmax(350px, 1fr))'
+                  },
+                  gap: {
+                    xs: selectedSize === 'small' ? 0.5 : selectedSize === 'medium' ? 1 : 1.5,
+                    sm: selectedSize === 'small' ? 1 : selectedSize === 'medium' ? 1.5 : 2,
+                    md: selectedSize === 'small' ? 1 : selectedSize === 'medium' ? 2 : 2.5
+                  },
+                  width: '100%',
+                  justifyContent: 'center'
+                }}
+              >
                 {images.map((image) => (
-                  <div key={`${image.id}-${selectedSize}`} className={styles.imageCard}>
-                    <div className={styles.imageContainer}>
-                      <Box
-                        component="img"
-                        src={getImageUrl(image)}
-                        alt={image.prompt}
-                        className={styles.galleryImage}
-                        onClick={() => {
-                          setSelectedImageUrl(image.url ?? getImageUrl(image));
-                          // also set the per-image prompt id if available so PromptGeneration can fetch it
-                          setImagePromptId(image.imagePromptId ?? null);
+                  <Box
+                    key={`${image.id}-${selectedSize}`}
+                    sx={{
+                      position: 'relative',
+                      aspectRatio: '1',
+                      borderRadius: { xs: '8px', md: '12px' },
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: 4,
+                        '& .image-overlay': {
+                          transform: 'translateY(0)'
+                        },
+                        '& .delete-button': {
+                          opacity: 1,
+                          transform: 'scale(1)'
+                        },
+                        '& img': {
+                          transform: 'scale(1.05)'
+                        }
+                      }
+                    }}
+                    onClick={() => {
+                      setSelectedImageUrl(image.url ?? getImageUrl(image));
+                      setImagePromptId(image.imagePromptId ?? null);
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={getImageUrl(image)}
+                      alt={image.prompt}
+                      sx={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        transition: 'transform 0.3s ease'
+                      }}
+                    />
+                    
+                    {/* Delete button for user-uploaded images */}
+                    {image.isUserUpload && (
+                      <IconButton
+                        className="delete-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteUserImage(image);
                         }}
-                        sx={{ cursor: 'pointer' }}
-                      />
-                      {/* X button for user-uploaded images */}
-                      {image.isUserUpload && (
-                        <IconButton
-                          className={styles.deleteButton}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteUserImage(image);
-                          }}
-                          disabled={deletingImageId === image.id}
-                          title={deletingImageId === image.id ? 'Deleting...' : 'Delete this image'}
-                          size="small"
-                        >
-                          {deletingImageId === image.id ? <CircularProgress size={16} /> : <DismissIcon />}
-                        </IconButton>
-                      )}
-                      <div className={styles.imageOverlay}>
-                        <div className={styles.imageInfo}>
-                          <Typography className={styles.imageTimestamp} variant="body2">
-                            {formatTimestamp(image.timestamp)}
-                          </Typography>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                        disabled={deletingImageId === image.id}
+                        title={deletingImageId === image.id ? 'Deleting...' : 'Delete this image'}
+                        size="small"
+                        sx={{
+                          position: 'absolute',
+                          top: { xs: 4, md: 8 },
+                          right: { xs: 4, md: 8 },
+                          zIndex: 10,
+                          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                          color: 'white',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          opacity: { xs: 1, md: 0 },
+                          transform: { xs: 'scale(1)', md: 'scale(0.9)' },
+                          transition: 'all 0.3s ease',
+                          width: { xs: 28, md: 32 },
+                          height: { xs: 28, md: 32 },
+                          '&:hover': {
+                            backgroundColor: 'error.main',
+                            transform: 'scale(1)'
+                          }
+                        }}
+                      >
+                        {deletingImageId === image.id ? <CircularProgress size={16} /> : <DismissIcon fontSize="small" />}
+                      </IconButton>
+                    )}
+                    
+                    {/* Image overlay with timestamp */}
+                    <Box
+                      className="image-overlay"
+                      sx={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        background: 'linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%)',
+                        p: { xs: 1, md: 1.5 },
+                        transform: { xs: 'translateY(0)', md: 'translateY(100%)' },
+                        transition: 'transform 0.3s ease'
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'rgba(255, 255, 255, 0.9)',
+                          fontSize: { xs: '0.75rem', md: '0.875rem' }
+                        }}
+                      >
+                        {formatTimestamp(image.timestamp)}
+                      </Typography>
+                    </Box>
+                  </Box>
                 ))}
-              </div>
-              {/* Fullscreen viewer when an image is selected */}
-              {selectedImageUrl && (
-                <PromptGeneration 
-                  imageUrl={selectedImageUrl} 
-                  imagePromptId={imagePromptId}
-                  onReset={() => setSelectedImageUrl(null)}
-                  onShowPromptResult={(result) => {
-                    setPromptResult(result);
-                    setSelectedImageUrl(null);
-                    if (typeof onShowPromptResult === 'function') onShowPromptResult(result);
-                  }}
-                />
-              )}
+              </Box>
+            {/* Fullscreen viewer when an image is selected */}
+            {selectedImageUrl && (
+              <PromptGeneration 
+                imageUrl={selectedImageUrl} 
+                imagePromptId={imagePromptId}
+                onReset={() => setSelectedImageUrl(null)}
+                onShowPromptResult={(result) => {
+                  setPromptResult(result);
+                  setSelectedImageUrl(null);
+                  if (typeof onShowPromptResult === 'function') onShowPromptResult(result);
+                }}
+              />
+            )}
             </>
           )}
         </>
@@ -295,7 +498,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ onShowPromptResult, onReque
           }}
         />
       )}
-    </div>
+    </Box>
   );
 };
 
