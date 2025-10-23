@@ -10,75 +10,37 @@ interface PromptGenerationProps {
   onReset?: () => void;
   // imagePromptId for fetching prompt result (from ImageGallery)
   imagePromptId?: string | null;
-  // id for prompt result (from Prompt component)
-  id?: string | null;
   // optional handler for showing prompt result
   onShowPromptResult?: (promptResult: any) => void;
 }
 
-const PromptGeneration: React.FC<PromptGenerationProps> = ({ 
-  imageUrl, 
-  onReset, 
-  imagePromptId, 
-  id, 
-  onShowPromptResult 
+const PromptGeneration: React.FC<PromptGenerationProps> = ({
+  imageUrl,
+  onReset,
+  imagePromptId,
+  onShowPromptResult,
 }) => {
-  const handleBackClick = async () => {
-    const promptId = imagePromptId || id;
-    
+  const handleBackClick = () => {
+    const promptId = imagePromptId;
+
     if (typeof onShowPromptResult !== 'function') {
-      console.warn('onShowPromptResult not provided');
+      if (onReset) onReset();
       return;
     }
 
     if (!promptId) {
-      console.warn('No imagePromptId or id provided, cannot fetch prompt result');
-      // For now, just call onReset as fallback
-      if (onReset) {
-        onReset();
-      }
+      // No id available — delegate to parent via onReset
+      if (onReset) onReset();
       return;
     }
 
-    try {
-      const base = import.meta.env.VITE_BACKEND_URL || '';
-      const response = await fetch(`${base}/imagePrompt/${promptId}`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch prompt result: ${response.status} ${response.statusText}`);
-      }
-
-      const promptResult = await response.json();
-      onShowPromptResult(promptResult);
-    } catch (error) {
-      console.error('Error fetching prompt result:', error);
-      // Fallback to reset if API call fails
-      if (onReset) {
-        onReset();
-      }
-    }
+    // Delegate fetching to the parent: pass the id and let the Prompt component load the prompt result
+    onShowPromptResult(promptId as any);
   };
 
-  // Show back button if we have an imagePromptId, id, or if we're from ImageGallery (has onShowPromptResult but no id)
-  const isFromImageGallery = typeof onShowPromptResult === 'function' && !id;
-  const showBackButton = (imagePromptId || id || isFromImageGallery) && typeof onShowPromptResult === 'function';
-  
-  // Log for debugging - remove after testing
-  React.useEffect(() => {
-    console.log('PromptGeneration Debug:', {
-      imagePromptId,
-      id,
-      isFromImageGallery,
-      hasOnShowPromptResult: typeof onShowPromptResult === 'function',
-      showBackButton
-    });
-  }, [imagePromptId, id, isFromImageGallery, onShowPromptResult, showBackButton]);
+  // Show back button if we have an imagePromptId or if we're from ImageGallery (has onShowPromptResult but no id)
+  const isFromImageGallery = typeof onShowPromptResult === 'function' && !imagePromptId;
+  const showBackButton = (Boolean(imagePromptId) || isFromImageGallery) && typeof onShowPromptResult === 'function';
 
   return (
     <Box sx={{ position: 'fixed', inset: 0, zIndex: 1300, bgcolor: 'common.black', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

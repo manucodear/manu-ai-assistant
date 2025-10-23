@@ -1,4 +1,5 @@
-// React imported at top
+import React from 'react';
+import { ImagePromptResult } from './Prompt.types';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Chip from '@mui/material/Chip';
@@ -26,48 +27,23 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { AutoAwesome as ImageSparkle } from '@mui/icons-material';
 import Snackbar from '@mui/material/Snackbar';
 import CreateIcon from '@mui/icons-material/Create';
+import useImagePrompt from '../../hooks/useImagePrompt';
 import Alert from '@mui/material/Alert';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
-interface ImagePromptTags {
-  included: string[];
-  notIncluded: string[];
-}
 
-interface ImagePromptResult {
-  id: string;
-  originalPrompt: string;
-  improvedPrompt: string;
-  mainDifferences: string;
-  tags: ImagePromptTags;
-  pointOfViews: string[];
-  imageStyles: string[];
-  imageStyleRaw?: string | null;
-  imageStyle?: string | null;
-  // raw singular PointOfView from server when present (may be empty string)
-  pointOfViewRaw?: string | null;
-  // Conversation identifier returned by the backend for this prompt result
-  conversationId: string;
-}
-
-import React from 'react';
 
 interface PromptResultProps {
   imageResult: ImagePromptResult;
-  // optional external handler for evaluation (receives the payload and returns a Promise)
   onEvaluate?: (payload: any) => Promise<any>;
-  // optional reset handler to return to initial input state
   onReset?: () => void;
-  // optional generate handler: receives the improved prompt
   onGenerate?: (result: ImagePromptResult) => Promise<any>;
-  // whether a generate request is in progress
   generating?: boolean;
-  // optional conversation tracking values
   conversationId?: string | null;
   setConversationId?: (id: string | null) => void;
 }
 
-const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, onReset, onGenerate, generating, conversationId, setConversationId }) => {
+const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, onReset, onGenerate, generating }) => {
   const [selectedTags, setSelectedTags] = React.useState<string[]>(() => [...(imageResult.tags?.included || [])]);
   const [tagsAnchorEl, setTagsAnchorEl] = React.useState<HTMLElement | null>(null);
   const [selectedPOV, setSelectedPOV] = React.useState<string | null>(() => {
@@ -86,6 +62,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
     }
     return (imageResult.imageStyles && imageResult.imageStyles[0]) ?? null;
   });
+
   const [copyMessage, setCopyMessage] = React.useState<string | null>(null);
   const [copyOpen, setCopyOpen] = React.useState<boolean>(false);
   const theme = useTheme();
@@ -95,7 +72,6 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
   const [evaluateSuccess, setEvaluateSuccess] = React.useState<string | null>(null);
   const [evaluateError, setEvaluateError] = React.useState<string | null>(null);
 
-  // Keep originals (derived from the incoming imageResult) so we can detect changes
   const originalIncluded = React.useMemo(() => [...(imageResult.tags?.included || [])], [imageResult]);
   const originalPOV = React.useMemo(() => {
     if (Object.prototype.hasOwnProperty.call(imageResult, 'pointOfViewRaw')) {
@@ -114,7 +90,6 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
     return (imageResult.imageStyles && imageResult.imageStyles[0]) ?? null;
   }, [imageResult]);
 
-  // helper to compare tag sets (order-insensitive)
   const tagSetsEqual = (a: string[], b: string[]) => {
     if (a.length !== b.length) return false;
     const setB = new Set(b);
@@ -126,11 +101,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
   const hasImageStyleChange = (selectedImageStyle ?? null) !== (originalImageStyle ?? null);
   const hasAnyChange = hasTagChanges || hasPOVChange || hasImageStyleChange;
 
-  // avoid unused prop lint errors - may be used by parent in future
-  if (typeof conversationId !== 'undefined') {
-    // eslint-disable-next-line no-console
-    console.debug && console.debug('conversationId (PromptResult):', conversationId, 'setConversationId:', typeof setConversationId);
-  }
+  const { evaluatePrompt, setConversationId: hookSetConversationId } = useImagePrompt();
 
   const handleEvaluate = async () => {
     setEvaluateSuccess(null);
@@ -155,28 +126,17 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
 
     try {
       if (onEvaluate) {
-        await onEvaluate(payloadResult);
+        const json = await onEvaluate(payloadResult);
+        if (json && json.conversationId && hookSetConversationId) hookSetConversationId(String(json.conversationId));
         setEvaluateSuccess('Evaluation successful');
       } else {
-        const base = import.meta.env.VITE_BACKEND_URL || '';
-        const res = await fetch(`${base}/imagePrompt`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(payloadResult),
-        });
-
-        if (res.ok) {
-          setEvaluateSuccess('Evaluation successful');
-        } else {
-          const txt = await res.text();
-          throw new Error(txt || `Request failed: ${res.status}`);
-        }
+        const json = await evaluatePrompt(payloadResult as any);
+        if (json && json.conversationId && hookSetConversationId) hookSetConversationId(String(json.conversationId));
+        setEvaluateSuccess('Evaluation successful');
       }
     } catch (err: any) {
       setEvaluateError(err?.message ?? 'Unknown error');
     } finally {
-      // auto-dismiss alerts after 5s
       if (evaluateSuccess || evaluateError) {
         window.setTimeout(() => {
           setEvaluateSuccess(null);
@@ -188,6 +148,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
 
   return (
     <Box sx={{ position: 'relative', pb: '72px' }}>
+      {/* Improved prompt + POV grouped inside a Paper */}
       <Paper elevation={0} sx={{ p: 1, position: 'relative' }}>
         <Box sx={{ fontWeight: 600, mb: 1 }}>Improved prompt</Box>
         <IconButton
@@ -207,24 +168,21 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
         >
           <ContentCopyIcon fontSize="small" />
         </IconButton>
+
         <Box sx={{ whiteSpace: 'pre-wrap', mb: 1, fontStyle: 'italic' }}>{imageResult.improvedPrompt}</Box>
-        {/* Action row: Reset (left), Generate+Evaluate (right) - single action row where Generate used to be */}
+
+        {/* Action row: Reset (left) - Generate + ReWrite (right) */}
         <Box sx={{ mt: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               {typeof onReset === 'function' && (
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<RestartAltIcon />}
-                  onClick={() => onReset && onReset()}
-                >
+                <Button variant="outlined" size="small" startIcon={<RestartAltIcon />} onClick={() => onReset && onReset()}>
                   Reset
                 </Button>
               )}
             </Box>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Button
                 variant="contained"
                 color="warning"
@@ -236,28 +194,14 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
               >
                 Generate
               </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                size="small"
-                startIcon={<CreateIcon />}
-                onClick={handleEvaluate}
-              >
+              <Button variant="contained" color="primary" size="small" startIcon={<CreateIcon />} onClick={handleEvaluate}>
                 ReWrite
               </Button>
             </Box>
           </Box>
         </Box>
-        <Snackbar
-          open={copyOpen}
-          autoHideDuration={3000}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-          onClose={() => {
-            setCopyOpen(false);
-            setCopyMessage(null);
-          }}
-        >
-          {/* use Alert inside Snackbar for consistent styling */}
+
+        <Snackbar open={copyOpen} autoHideDuration={3000} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} onClose={() => { setCopyOpen(false); setCopyMessage(null); }}>
           <Alert onClose={() => { setCopyOpen(false); setCopyMessage(null); }} severity={copyMessage === 'Copy failed' ? 'error' : 'success'} sx={{ width: '100%' }}>
             {copyMessage}
           </Alert>
@@ -265,21 +209,58 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
       </Paper>
 
       <Paper elevation={0} sx={{ p: 1, mt: 1 }}>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Box sx={{ mt: 0 }}>
+          <Box sx={{ fontWeight: 600, mb: 1 }}>Point of views</Box>
+          {isSmall ? (
+            <>
+              <Button variant="outlined" size="small" onClick={() => setPovDrawerOpen(true)}>
+                {selectedPOV ?? 'Choose point of view'}
+              </Button>
+              <SwipeableDrawer anchor="bottom" open={povDrawerOpen} onClose={() => setPovDrawerOpen(false)} onOpen={() => setPovDrawerOpen(true)}>
+                <Box sx={{ p: 1 }}>
+                  <List>
+                    {(imageResult.pointOfViews || []).map((p: string) => (
+                      <ListItemButton key={p} onClick={() => { setSelectedPOV(p); setPovDrawerOpen(false); }}>
+                        <Radio checked={selectedPOV === p} />
+                        <ListItemText primary={p} />
+                      </ListItemButton>
+                    ))}
+                  </List>
+                </Box>
+              </SwipeableDrawer>
+            </>
+          ) : (
+            <Box sx={{ display: 'flex', alignItems: 'center', overflowX: { xs: 'auto', sm: 'visible' }, whiteSpace: { xs: 'nowrap', sm: 'normal' } }}>
+              <ToggleButtonGroup
+                value={selectedPOV}
+                exclusive
+                onChange={(_e, newVal) => setSelectedPOV(newVal)}
+                aria-label="Point of view"
+                size="small"
+                sx={{ display: 'inline-flex' }}
+              >
+                {(imageResult.pointOfViews || []).map((p: string) => (
+                  <ToggleButton key={p} color="primary" value={p} aria-label={p} sx={{ minWidth: { xs: 88, sm: 64 }, fontSize: { xs: '0.82rem', sm: '0.875rem' } }}>
+                    {p}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            </Box>
+          )}
+        </Box>
+      </Paper>
+
+      {/* Tags & chips - separate Paper */}
+      <Paper elevation={0} sx={{ p: 1, mt: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
           <Box>
-            <Button variant="contained" onClick={(e: React.MouseEvent<HTMLElement>) => setTagsAnchorEl(e.currentTarget)}>
+            <Button variant="contained" size="small" onClick={(e: React.MouseEvent<HTMLElement>) => setTagsAnchorEl(e.currentTarget)}>
               Tags ({selectedTags.length})
             </Button>
             <Menu anchorEl={tagsAnchorEl} open={Boolean(tagsAnchorEl)} onClose={() => setTagsAnchorEl(null)} PaperProps={{ style: { maxHeight: 320 } }}>
               <ListSubheader>Included</ListSubheader>
               {(imageResult.tags?.included || []).map((t: string) => (
-                <MenuItem
-                  key={`inc-${t}`}
-                  onClick={(ev) => {
-                    ev.preventDefault();
-                    setSelectedTags((prev: string[]) => (prev.includes(t) ? prev.filter((x: string) => x !== t) : [...prev, t]));
-                  }}
-                >
+                <MenuItem key={`inc-${t}`} onClick={(ev) => { ev.preventDefault(); setSelectedTags((prev: string[]) => (prev.includes(t) ? prev.filter((x: string) => x !== t) : [...prev, t])); }}>
                   <Checkbox checked={selectedTags.includes(t)} />
                   <ListItemText primary={t} />
                 </MenuItem>
@@ -287,13 +268,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
 
               <ListSubheader>Not included</ListSubheader>
               {(imageResult.tags?.notIncluded || []).map((t: string) => (
-                <MenuItem
-                  key={`not-${t}`}
-                  onClick={(ev) => {
-                    ev.preventDefault();
-                    setSelectedTags((prev: string[]) => (prev.includes(t) ? prev.filter((x: string) => x !== t) : [...prev, t]));
-                  }}
-                >
+                <MenuItem key={`not-${t}`} onClick={(ev) => { ev.preventDefault(); setSelectedTags((prev: string[]) => (prev.includes(t) ? prev.filter((x: string) => x !== t) : [...prev, t])); }}>
                   <Checkbox checked={selectedTags.includes(t)} />
                   <ListItemText primary={t} />
                 </MenuItem>
@@ -304,196 +279,115 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
               </MenuItem>
             </Menu>
           </Box>
-        </Box>
 
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
-          {selectedTags.map((t: string) => {
-            const isIncluded = (imageResult.tags?.included || []).includes(t);
-            const isNotIncluded = (imageResult.tags?.notIncluded || []).includes(t);
-            const handleDelete = () => setSelectedTags((prev) => prev.filter((x) => x !== t));
-            if (isIncluded) {
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+            {selectedTags.map((t: string) => {
+              const isIncluded = (imageResult.tags?.included || []).includes(t);
+              const isNotIncluded = (imageResult.tags?.notIncluded || []).includes(t);
+              const handleDelete = () => setSelectedTags((prev) => prev.filter((x) => x !== t));
+              if (isIncluded) {
+                return (
+                  <Chip key={`chip-${t}`} label={t} size="small" color="primary" variant="outlined" onDelete={handleDelete} aria-label={`Remove tag ${t}`} sx={{ mr: 1, mb: 1 }} />
+                );
+              }
+              if (isNotIncluded) {
+                return (
+                  <Chip key={`chip-${t}`} label={t} size="small" color="secondary" variant="outlined" onDelete={handleDelete} aria-label={`Remove tag ${t}`} sx={{ mr: 1, mb: 1 }} />
+                );
+              }
               return (
-                <Chip
-                  key={`chip-${t}`}
-                  label={t}
-                  size="small"
-                  color="primary"
-                  variant="outlined"
-                  onDelete={handleDelete}
-                  aria-label={`Remove tag ${t}`}
-                  sx={{ mr: 1, mb: 1 }}
-                />
+                <Chip key={`chip-${t}`} label={t} size="small" variant="outlined" onDelete={handleDelete} aria-label={`Remove tag ${t}`} sx={{ mr: 1, mb: 1 }} />
               );
-            }
-            if (isNotIncluded) {
-              return (
-                <Chip
-                  key={`chip-${t}`}
-                  label={t}
-                  size="small"
-                  color="secondary"
-                  variant="outlined"
-                  onDelete={handleDelete}
-                  aria-label={`Remove tag ${t}`}
-                  sx={{ mr: 1, mb: 1 }}
-                />
-              );
-            }
-            return (
-              <Chip
-                key={`chip-${t}`}
-                label={t}
-                size="small"
-                variant="outlined"
-                onDelete={handleDelete}
-                aria-label={`Remove tag ${t}`}
-                sx={{ mr: 1, mb: 1 }}
-              />
-            );
-          })}
+            })}
+          </Box>
         </Box>
       </Paper>
 
       <Paper elevation={0} sx={{ p: 1, mt: 1 }}>
-            {imageResult.pointOfViews && imageResult.pointOfViews.length > 0 && (
-              <Box>
-                <Box sx={{ fontWeight: 600, mb: 1 }}>Point of views</Box>
-                {isSmall ? (
-                  <>
-                    <Button variant="outlined" size="small" onClick={() => setPovDrawerOpen(true)}>
-                      {selectedPOV ?? 'Choose point of view'}
-                    </Button>
-                    <SwipeableDrawer anchor="bottom" open={povDrawerOpen} onClose={() => setPovDrawerOpen(false)} onOpen={() => setPovDrawerOpen(true)}>
-                      <Box sx={{ p: 1 }}>
-                        <List>
-                          {(imageResult.pointOfViews || []).map((p: string) => (
-                            <ListItemButton key={p} onClick={() => { setSelectedPOV(p); setPovDrawerOpen(false); }}>
-                              <Radio checked={selectedPOV === p} />
-                              <ListItemText primary={p} />
-                            </ListItemButton>
-                          ))}
-                        </List>
-                      </Box>
-                    </SwipeableDrawer>
-                  </>
-                ) : (
-                  <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    overflowX: { xs: 'auto', sm: 'visible' },
-                    whiteSpace: { xs: 'nowrap', sm: 'normal' },
-                  }}>
-                    <ToggleButtonGroup
-                      value={selectedPOV}
-                      exclusive
-                      onChange={(_e, newVal) => setSelectedPOV(newVal)}
-                      aria-label="Point of view"
-                      size="small"
-                      sx={{ display: 'inline-flex' }}
-                    >
-                      {(imageResult.pointOfViews || []).map((p: string) => (
-                        <ToggleButton
-                          color="primary"
-                          key={p}
-                          value={p}
-                          aria-label={p}
-                          sx={{ minWidth: { xs: 88, sm: 64 }, fontSize: { xs: '0.82rem', sm: '0.875rem' } }}
-                        >
-                          {p}
-                        </ToggleButton>
+        {/* Image styles - its own Paper and responsive picker */}
+        {imageResult.imageStyles && imageResult.imageStyles.length > 0 && (
+          <Box sx={{ mt: 0 }}>
+            <Box sx={{ fontWeight: 600, mb: 1 }}>Image styles</Box>
+            {isSmall ? (
+              <>
+                <Button variant="outlined" size="small" onClick={() => setStyleDrawerOpen(true)}>
+                  {selectedImageStyle ?? 'Choose image style'}
+                </Button>
+                <SwipeableDrawer anchor="bottom" open={styleDrawerOpen} onClose={() => setStyleDrawerOpen(false)} onOpen={() => setStyleDrawerOpen(true)}>
+                  <Box sx={{ p: 1 }}>
+                    <List>
+                      {(imageResult.imageStyles || []).map((s: string) => (
+                        <ListItemButton key={s} onClick={() => { setSelectedImageStyle(s); setStyleDrawerOpen(false); }}>
+                          <Radio checked={selectedImageStyle === s} />
+                          <ListItemText primary={s} />
+                        </ListItemButton>
                       ))}
-                    </ToggleButtonGroup>
+                    </List>
                   </Box>
-                )}
+                </SwipeableDrawer>
+              </>
+            ) : (
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflowX: { xs: 'auto', sm: 'visible' },
+                whiteSpace: { xs: 'nowrap', sm: 'normal' },
+              }}>
+                <ToggleButtonGroup
+                  value={selectedImageStyle}
+                  exclusive
+                  onChange={(_e, newVal) => setSelectedImageStyle(newVal)}
+                  aria-label="Image style"
+                  size="small"
+                  sx={{ display: 'inline-flex' }}
+                >
+                  {(imageResult.imageStyles || []).map((s: string) => (
+                    <ToggleButton
+                      color="primary"
+                      key={s}
+                      value={s}
+                      aria-label={s}
+                      sx={{ minWidth: { xs: 72, sm: 56 }, fontSize: { xs: '0.72rem', sm: '0.78rem' } }}
+                    >
+                      {s}
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
               </Box>
             )}
-      {imageResult.imageStyles && imageResult.imageStyles.length > 0 && (
-        <Box sx={{ mt: 2 }}>
-          <Box sx={{ fontWeight: 600, mb: 1 }}>Image styles</Box>
-          {isSmall ? (
-            <>
-              <Button variant="outlined" size="small" onClick={() => setStyleDrawerOpen(true)}>
-                {selectedImageStyle ?? 'Choose image style'}
-              </Button>
-              <SwipeableDrawer anchor="bottom" open={styleDrawerOpen} onClose={() => setStyleDrawerOpen(false)} onOpen={() => setStyleDrawerOpen(true)}>
-                <Box sx={{ p: 1 }}>
-                  <List>
-                    {(imageResult.imageStyles || []).map((s: string) => (
-                      <ListItemButton key={s} onClick={() => { setSelectedImageStyle(s); setStyleDrawerOpen(false); }}>
-                        <Radio checked={selectedImageStyle === s} />
-                        <ListItemText primary={s} />
-                      </ListItemButton>
-                    ))}
-                  </List>
-                </Box>
-              </SwipeableDrawer>
-            </>
-          ) : (
-            <Box sx={{
-              display: 'flex',
-              alignItems: 'center',
-              overflowX: { xs: 'auto', sm: 'visible' },
-              whiteSpace: { xs: 'nowrap', sm: 'normal' },
-            }}>
-              <ToggleButtonGroup
-                value={selectedImageStyle}
-                exclusive
-                onChange={(_e, newVal) => setSelectedImageStyle(newVal)}
-                aria-label="Image style"
-                size="small"
-                sx={{ display: 'inline-flex' }}
-              >
-                {(imageResult.imageStyles || []).map((s: string) => (
-                  <ToggleButton
-                    color="primary"
-                    key={s}
-                    value={s}
-                    aria-label={s}
-                    sx={{ minWidth: { xs: 88, sm: 64 }, fontSize: { xs: '0.82rem', sm: '0.875rem' } }}
-                  >
-                    {s}
-                  </ToggleButton>
-                ))}
-              </ToggleButtonGroup>
-            </Box>
-          )}
-        </Box>
-      )}
+          </Box>
+        )}
       </Paper>
+
+
       {/* publish alerts */}
       {evaluateSuccess && (
-        <Alert severity="success" sx={{ mt: 1 }}>
-          {evaluateSuccess}
-        </Alert>
+        <Alert severity="success" sx={{ mt: 1 }}>{evaluateSuccess}</Alert>
       )}
       {evaluateError && (
-        <Alert severity="error" sx={{ mt: 1 }}>
-          {evaluateError}
-        </Alert>
+        <Alert severity="error" sx={{ mt: 1 }}>{evaluateError}</Alert>
       )}
-
-      <div>
-
-
+      <Paper elevation={0} sx={{ p: 1, mt: 1 }}>
         <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="original-content" id="original-header">
-            <Typography color="info" variant="subtitle1">Source prompt</Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Typography sx={{ whiteSpace: 'pre-wrap' }}>{imageResult.originalPrompt}</Typography>
-          </AccordionDetails>
-        </Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="original-content" id="original-header">
+          <Typography color="info" variant="subtitle1">Source prompt</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography sx={{ whiteSpace: 'pre-wrap' }}>{imageResult.originalPrompt}</Typography>
+        </AccordionDetails>
+      </Accordion>
 
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="differences-content" id="differences-header">
-            <Typography color="info" variant="subtitle1">Main differences</Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Typography sx={{ whiteSpace: 'pre-wrap' }}>{imageResult.mainDifferences}</Typography>
-          </AccordionDetails>
-        </Accordion>
-      </div>
-      {/* action row removed from bottom to avoid duplication; buttons live next to the improved prompt */}
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="differences-content" id="differences-header">
+          <Typography color="info" variant="subtitle1">Main differences</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography sx={{ whiteSpace: 'pre-wrap' }}>{imageResult.mainDifferences}</Typography>
+        </AccordionDetails>
+      </Accordion>
+      </Paper>
+      
     </Box>
   );
 };
