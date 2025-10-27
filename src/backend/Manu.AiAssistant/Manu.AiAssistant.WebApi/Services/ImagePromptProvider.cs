@@ -7,8 +7,8 @@ using Microsoft.Extensions.Options;
 using Manu.AiAssistant.WebApi.Options;
 using System.Linq;
 using Newtonsoft.Json;
-using Manu.AiAssistant.WebApi.Models.ImagePrompt;
 using Manu.AiAssistant.WebApi.Extensions;
+using Manu.AiAssistant.WebApi.Models.Api;
 
 namespace Manu.AiAssistant.WebApi.Services
 {
@@ -23,25 +23,32 @@ namespace Manu.AiAssistant.WebApi.Services
             _promptSettings = promptSettingsOptions.Value;
         }
 
-        public async Task<ImagePromptResult> GetImagePromptResponseAsync(string userPrompt, CancellationToken cancellationToken, bool useLong = false)
+        public async Task<ImagePromptResponse> GetImagePromptResponseAsync(string userPrompt, CancellationToken cancellationToken, bool useLong = false)
         {
             var basePrompts = useLong ? _promptSettings.Image.Long : _promptSettings.Image.Short;
             var promptMessages = new List<PromptMessage>(basePrompts ?? new List<PromptMessage>());
             promptMessages.Add(new PromptMessage { Role = PromptRole.User, Prompt = userPrompt });
             ChatResult chatResult = await _chatProvider.CompleteChatAsync(promptMessages, cancellationToken);
             var json = chatResult.ResponseContent.ExtractJson();
+            // TODO: improve exception handling
             try
             {
-                var result = JsonConvert.DeserializeObject<ImagePromptResult>(json);
-                return result ?? new ImagePromptResult();
+                var result = JsonConvert.DeserializeObject<ImagePromptResponse>(json);
+                if (result == null)
+                {
+                    return new ImagePromptResponse();
+                }
+                result.Id = Guid.NewGuid().ToString();
+                result.ConversationId = result.Id;
+                return result;
             }
             catch
             {
-                return new ImagePromptResult();
+                return new ImagePromptResponse();
             }
         }
 
-        public async Task<PromptRevisionResult> PromptRevisionAsync(PromptRevisionRequest request, CancellationToken cancellationToken)
+        public async Task<ImagePromptRevisionResponse> PromptRevisionAsync(ImagePromptRevisionRequest request, CancellationToken cancellationToken)
         {
             var conversation = new List<PromptMessage>
             {
@@ -69,12 +76,12 @@ namespace Manu.AiAssistant.WebApi.Services
             var json = chatResult.ResponseContent.ExtractJson();
             try
             {
-                var result = JsonConvert.DeserializeObject<PromptRevisionResult>(json);
-                return result ?? new PromptRevisionResult();
+                var result = JsonConvert.DeserializeObject<ImagePromptRevisionResponse>(json);
+                return result ?? new ImagePromptRevisionResponse();
             }
             catch
             {
-                return new PromptRevisionResult();
+                return new ImagePromptRevisionResponse();
             }
         }
     }

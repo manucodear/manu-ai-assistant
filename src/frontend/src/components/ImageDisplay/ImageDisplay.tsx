@@ -1,46 +1,43 @@
 import React from 'react';
+// imagePromptResult is fetched by parent via id; no local type import needed here
 import Box from '@mui/material/Box';
 import ClearIcon from '@mui/icons-material/Clear';
 import CreateIcon from '@mui/icons-material/Create';
 import { Fab } from '@mui/material';
 
-interface PromptGenerationProps {
+interface ImageDisplayProps {
   imageUrl: string;
   // optional reset handler to return to initial input state
   onReset?: () => void;
   // imagePromptId for fetching prompt result (from ImageGallery)
   imagePromptId?: string | null;
-  // optional handler for showing prompt result
-  onShowPromptResult?: (promptResult: any) => void;
+  // optional handler for showing prompt result; receives the imagePromptId string
+  onShowPromptResult?: (imagePromptId: string) => void;
 }
 
-const PromptGeneration: React.FC<PromptGenerationProps> = ({
+const ImageDisplay: React.FC<ImageDisplayProps> = ({
   imageUrl,
   onReset,
   imagePromptId,
   onShowPromptResult,
 }) => {
   const handleBackClick = () => {
-    const promptId = imagePromptId;
-
+    // Only pass the imagePromptId to the parent. If no id is present, fallback to onReset.
     if (typeof onShowPromptResult !== 'function') {
       if (onReset) onReset();
       return;
     }
 
-    if (!promptId) {
-      // No id available — delegate to parent via onReset
+    if (!imagePromptId) {
       if (onReset) onReset();
       return;
     }
 
-    // Delegate fetching to the parent: pass the id and let the Prompt component load the prompt result
-    onShowPromptResult(promptId as any);
+    onShowPromptResult(imagePromptId);
   };
 
-  // Show back button if we have an imagePromptId or if we're from ImageGallery (has onShowPromptResult but no id)
-  const isFromImageGallery = typeof onShowPromptResult === 'function' && !imagePromptId;
-  const showBackButton = (Boolean(imagePromptId) || isFromImageGallery) && typeof onShowPromptResult === 'function';
+  // Show back button only when we have an imagePromptId and an onShowPromptResult handler
+  const showBackButton = Boolean(imagePromptId) && typeof onShowPromptResult === 'function';
 
   return (
     <Box sx={{ position: 'fixed', inset: 0, zIndex: 1300, bgcolor: 'common.black', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -81,4 +78,4 @@ const PromptGeneration: React.FC<PromptGenerationProps> = ({
   );
 };
 
-export default PromptGeneration;
+export default ImageDisplay;

@@ -1,5 +1,4 @@
 import React from 'react';
-import { ImagePromptResult } from './Prompt.types';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Chip from '@mui/material/Chip';
@@ -30,14 +29,16 @@ import CreateIcon from '@mui/icons-material/Create';
 import useImagePrompt from '../../hooks/useImagePrompt';
 import Alert from '@mui/material/Alert';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { ImagePromptResponse } from '../../hooks/useImagePrompt.types';
 
 
 
 interface PromptResultProps {
-  imageResult: ImagePromptResult;
+  imageResult: ImagePromptResponse;
   onEvaluate?: (payload: any) => Promise<any>;
   onReset?: () => void;
-  onGenerate?: (result: ImagePromptResult) => Promise<any>;
+  // now expects an imagePromptId string
+  onGenerate?: (imagePromptId: string) => Promise<any>;
   generating?: boolean;
   conversationId?: string | null;
   setConversationId?: (id: string | null) => void;
@@ -46,21 +47,21 @@ interface PromptResultProps {
 const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, onReset, onGenerate, generating }) => {
   const [selectedTags, setSelectedTags] = React.useState<string[]>(() => [...(imageResult.tags?.included || [])]);
   const [tagsAnchorEl, setTagsAnchorEl] = React.useState<HTMLElement | null>(null);
-  const [selectedPOV, setSelectedPOV] = React.useState<string | null>(() => {
+  const [selectedPOV, setSelectedPOV] = React.useState<string>(() => {
     if (Object.prototype.hasOwnProperty.call(imageResult, 'pointOfViewRaw')) {
       const raw = (imageResult as any).pointOfViewRaw;
       if (raw && String(raw).trim()) return String(raw).trim();
-      return null;
+      return '';
     }
-    return (imageResult.pointOfViews && imageResult.pointOfViews[0]) ?? null;
+    return (imageResult.pointOfViews && imageResult.pointOfViews[0]) ?? '';
   });
-  const [selectedImageStyle, setSelectedImageStyle] = React.useState<string | null>(() => {
+  const [selectedImageStyle, setSelectedImageStyle] = React.useState<string>(() => {
     if (Object.prototype.hasOwnProperty.call(imageResult, 'imageStyleRaw')) {
       const raw = (imageResult as any).imageStyleRaw;
       if (raw && String(raw).trim()) return String(raw).trim();
-      return null;
+      return '';
     }
-    return (imageResult.imageStyles && imageResult.imageStyles[0]) ?? null;
+    return (imageResult.imageStyles && imageResult.imageStyles[0]) ?? '';
   });
 
   const [copyMessage, setCopyMessage] = React.useState<string | null>(null);
@@ -107,7 +108,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
     setEvaluateSuccess(null);
     setEvaluateError(null);
 
-    const payloadResult: ImagePromptResult = {
+    const payloadResult: ImagePromptResponse = {
       id: imageResult.id,
       originalPrompt: imageResult.originalPrompt,
       improvedPrompt: imageResult.improvedPrompt,
@@ -117,10 +118,9 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
         notIncluded: imageResult.tags?.notIncluded ?? [],
       },
       pointOfViews: imageResult.pointOfViews || [],
-      pointOfViewRaw: selectedPOV ?? null,
+      pointOfView: selectedPOV,
       imageStyles: imageResult.imageStyles || [],
-      imageStyleRaw: selectedImageStyle ?? null,
-      imageStyle: selectedImageStyle ?? null,
+      imageStyle: selectedImageStyle,
       conversationId: imageResult.conversationId ?? '',
     };
 
@@ -188,7 +188,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
                 color="warning"
                 size="small"
                 startIcon={<ImageSparkle />}
-                onClick={() => onGenerate && onGenerate(imageResult)}
+                onClick={() => onGenerate && onGenerate(String(imageResult.id))}
                 disabled={generating || hasAnyChange}
                 title={hasAnyChange ? 'Change tags or point of view back to original to enable generate' : undefined}
               >

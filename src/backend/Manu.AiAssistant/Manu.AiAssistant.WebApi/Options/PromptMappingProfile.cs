@@ -1,6 +1,6 @@
 using AutoMapper;
+using Manu.AiAssistant.WebApi.Models.Api;
 using Manu.AiAssistant.WebApi.Models.Entities;
-using Manu.AiAssistant.WebApi.Models.ImagePrompt;
 
 namespace Manu.AiAssistant.WebApi.Options
 {
@@ -10,12 +10,12 @@ namespace Manu.AiAssistant.WebApi.Options
         {
             // Entity -> DTO
             CreateMap<Tag, ImagePromptTags>();
-            CreateMap<Prompt, ImagePromptResult>()
+            CreateMap<Prompt, ImagePromptResponse>()
                 .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.Tags));
 
             // DTO -> Entity
             CreateMap<ImagePromptTags, Tag>();
-            CreateMap<ImagePromptResult, Prompt>()
+            CreateMap<ImagePromptResponse, Prompt>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.Username, opt => opt.Ignore());
         }

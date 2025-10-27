@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ImageGalleryProps, ImageSize, ImageData } from './ImageGallery.types';
+import { ImageGalleryProps, ImageSize } from './ImageGallery.types';
 import {
   Paper,
   Typography,
@@ -8,28 +8,26 @@ import {
   Box,
   Chip,
   ToggleButtonGroup,
-  ToggleButton,
-  IconButton
+  ToggleButton
 } from '@mui/material';
 import {
   Collections as ImageMultiple,
   Warning as WarningIcon,
-  Close as DismissIcon,
+  
   CropFree as SmallIcon,
   CropSquare as MediumIcon,
   AspectRatio as LargeIcon
 } from '@mui/icons-material';
-import PromptGeneration from '../Prompt/PromptGeneration';
-import { fetchImagesApi, deleteUserImageApi } from '../../hooks/useImage';
+import { fetchImagesApi } from '../../hooks/useImage';
+import { ImageDataResponse, ImageResponse } from '../../hooks/useImage.types';
 
 const ImageGallery: React.FC<ImageGalleryProps> = ({ onShowPromptResult }: ImageGalleryProps) => {
-  const [images, setImages] = useState<ImageData[]>([]);
+  const [images, setImages] = useState<ImageResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<ImageSize>('large');
-  const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
-  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
-  const [imagePromptId, setImagePromptId] = useState<string | null>(null);
+  // Gallery does not own the full-screen ImageDisplay view anymore.
+  // Parent `Prompt` will render ImageDisplay when notified via onShowPromptResult.
 
   const fetchImages = async () => {
     setLoading(true);
@@ -37,16 +35,9 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ onShowPromptResult }: Image
     try {
       const data = await fetchImagesApi();
       if (data.images && Array.isArray(data.images)) {
-        const mapped = data.images.map((item: any) => {
-          const img = item.image as ImageData;
-          if (!img.imagePromptId && (item as any).imagePromptId) img.imagePromptId = (item as any).imagePromptId;
-          return img;
-        });
-        setImages(mapped);
-        setImagePromptId((data as any).imagePromptId || null);
+        setImages(data.images);
       } else {
         setImages([]);
-        setImagePromptId(null);
       }
     } catch (err: any) {
       console.error('Error fetching images:', err);
@@ -60,7 +51,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ onShowPromptResult }: Image
     fetchImages();
   }, []);
 
-  const getImageUrl = (img: ImageData) => img.url || img.largeUrl || img.mediumUrl || img.smallUrl || '';
+  const getImageUrl = (img: ImageDataResponse) => img.url || img.largeUrl || img.mediumUrl || img.smallUrl || '';
 
   const formatTimestamp = (ts?: string) => {
     if (!ts) return '';
@@ -69,20 +60,6 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ onShowPromptResult }: Image
       return d.toLocaleString();
     } catch {
       return ts;
-    }
-  };
-
-  const deleteUserImage = async (image: ImageData) => {
-    if (!image.url) return;
-    setDeletingImageId(image.id);
-    try {
-      await deleteUserImageApi(image.url);
-      setImages((prev) => prev.filter((i) => i.id !== image.id));
-    } catch (err: any) {
-      console.error('Delete image failed', err);
-      setError(err.message || 'Failed to delete image');
-    } finally {
-      setDeletingImageId(null);
     }
   };
 
@@ -132,11 +109,13 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ onShowPromptResult }: Image
         <>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: selectedSize === 'large' ? '1fr' : 'repeat(auto-fill, minmax(120px, 1fr))', sm: selectedSize === 'small' ? 'repeat(auto-fill, minmax(100px, 1fr))' : selectedSize === 'medium' ? 'repeat(auto-fill, minmax(180px, 1fr))' : 'repeat(auto-fill, minmax(280px, 1fr))', md: selectedSize === 'small' ? 'repeat(auto-fill, minmax(150px, 1fr))' : selectedSize === 'medium' ? 'repeat(auto-fill, minmax(250px, 1fr))' : 'repeat(auto-fill, minmax(350px, 1fr))' }, gap: { xs: selectedSize === 'small' ? 0.5 : selectedSize === 'medium' ? 1 : 1.5, sm: selectedSize === 'small' ? 1 : selectedSize === 'medium' ? 1.5 : 2, md: selectedSize === 'small' ? 1 : selectedSize === 'medium' ? 2 : 2.5 }, width: '100%', justifyContent: 'center' }}>
             {images.map((image) => (
-              <Box key={`${image.id}-${selectedSize}`} sx={{ position: 'relative', aspectRatio: '1', borderRadius: { xs: '8px', md: '12px' }, overflow: 'hidden', cursor: 'pointer', transition: 'all 0.3s ease', '&:hover': { transform: 'translateY(-4px)', boxShadow: 4, '& .image-overlay': { transform: 'translateY(0)' }, '& .delete-button': { opacity: 1, transform: 'scale(1)' }, '& img': { transform: 'scale(1.05)' } } }} onClick={() => { setSelectedImageUrl(image.url ?? getImageUrl(image)); setImagePromptId(image.imagePromptId ?? null); }}>
-                <Box component="img" src={getImageUrl(image)} alt={image.prompt} sx={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s ease' }} />
-                {image.isUserUpload && (
-                  <IconButton className="delete-button" onClick={(e) => { e.stopPropagation(); deleteUserImage(image); }} disabled={deletingImageId === image.id} title={deletingImageId === image.id ? 'Deleting...' : 'Delete this image'} size="small" sx={{ position: 'absolute', top: { xs: 4, md: 8 }, right: { xs: 4, md: 8 }, zIndex: 10, backgroundColor: 'rgba(0, 0, 0, 0.8)', color: 'white', border: '1px solid rgba(255, 255, 255, 0.2)', opacity: { xs: 1, md: 0 }, transform: { xs: 'scale(1)', md: 'scale(0.9)' }, transition: 'all 0.3s ease', width: { xs: 28, md: 32 }, height: { xs: 28, md: 32 }, '&:hover': { backgroundColor: 'error.main', transform: 'scale(1)' } }}>{deletingImageId === image.id ? <CircularProgress size={16} /> : <DismissIcon fontSize="small" />}</IconButton>
-                )}
+                <Box key={`${image.id}-${selectedSize}`} sx={{ position: 'relative', aspectRatio: '1', borderRadius: { xs: '8px', md: '12px' }, overflow: 'hidden', cursor: 'pointer', transition: 'all 0.3s ease', '&:hover': { transform: 'translateY(-4px)', boxShadow: 4, '& .image-overlay': { transform: 'translateY(0)' }, '& .delete-button': { opacity: 1, transform: 'scale(1)' }, '& img': { transform: 'scale(1.05)' } } }} onClick={() => {
+                  // notify parent that an image was clicked; parent (Prompt) will show ImageDisplay
+                  if (typeof onShowPromptResult === 'function') {
+                    onShowPromptResult({ imageUrl: getImageUrl(image.imageData), imagePromptId: image.imagePrompt.id ?? null });
+                  }
+                }}>
+                <Box component="img" src={getImageUrl(image.imageData)} alt={image.imagePrompt.improvedPrompt} sx={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s ease' }} />
                 <Box className="image-overlay" sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%)', p: { xs: 1, md: 1.5 }, transform: { xs: 'translateY(0)', md: 'translateY(100%)' }, transition: 'transform 0.3s ease' }}>
                   <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: { xs: '0.75rem', md: '0.875rem' } }}>{formatTimestamp(image.timestamp)}</Typography>
                 </Box>
@@ -144,17 +123,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ onShowPromptResult }: Image
             ))}
           </Box>
 
-          {selectedImageUrl && (
-            <PromptGeneration
-              imageUrl={selectedImageUrl}
-              imagePromptId={imagePromptId}
-              onReset={() => setSelectedImageUrl(null)}
-              onShowPromptResult={(result) => {
-                setSelectedImageUrl(null);
-                if (typeof onShowPromptResult === 'function') onShowPromptResult(result);
-              }}
-            />
-          )}
+          {/* ImageDisplay is rendered by the parent `Prompt` component when it receives an imagePromptId via `onShowPromptResult` */}
         </>
       )}
     </Box>

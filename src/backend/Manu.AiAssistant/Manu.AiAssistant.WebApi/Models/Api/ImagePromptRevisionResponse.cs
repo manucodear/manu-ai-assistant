@@ -1,14 +1,14 @@
 using System.Collections.Generic;
 
-namespace Manu.AiAssistant.WebApi.Models.ImagePrompt
+namespace Manu.AiAssistant.WebApi.Models.Api
 {
-    public class PromptRevisionResult
+    public class ImagePromptRevisionResponse
     {
         public string RevisedPrompt { get; set; } = string.Empty;
-        public SummaryOfChanges SummaryOfChanges { get; set; } = new SummaryOfChanges();
+        public SummaryOfChangesResponse SummaryOfChanges { get; set; } = new SummaryOfChangesResponse();
     }
 
-    public class SummaryOfChanges
+    public class SummaryOfChangesResponse
     {
         public string PointOfViewAdjustment { get; set; } = string.Empty;
         public string Clarity { get; set; } = string.Empty;

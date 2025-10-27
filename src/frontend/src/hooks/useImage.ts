@@ -1,4 +1,4 @@
-export interface ImageResponse { images?: any[]; imagePromptId?: string | null }
+import { ImagesResponse } from "./useImage.types";
 
 export const fetchImagesApi = async () => {
   const base = import.meta.env.VITE_BACKEND_URL || '';
@@ -12,7 +12,7 @@ export const fetchImagesApi = async () => {
     throw new Error(txt || `Request failed: ${response.status}`);
   }
   const json = await response.json();
-  return json as ImageResponse;
+  return json as ImagesResponse;
 };
 
 export const deleteUserImageApi = async (imageUrl: string) => {

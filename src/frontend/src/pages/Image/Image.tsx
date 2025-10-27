@@ -1,6 +1,6 @@
 import React from 'react';
 import { Container } from '@mui/material';
-import { Prompt } from '../../components/Prompt';
+import { Prompt } from '../../components/Prompt/Prompt';
 
 const Image: React.FC = () => {
   return (

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ImagePromptResult } from '../components/Prompt/Prompt.types';
+import { ImagePromptResponse, ImagePromptRevisionRequest, ImagePromptRevisionResponse } from './useImagePrompt.types';
+import { ImageResponse } from './useImage.types';
 
 export const useImagePrompt = () => {
   const [sending, setSending] = useState(false);
@@ -9,11 +10,10 @@ export const useImagePrompt = () => {
 
   const base = (import.meta as any).env.VITE_BACKEND_URL || '';
 
-  const sendPrompt = async (text: string) => {
-    if (!text || !text.trim()) throw new Error('Empty prompt');
+  const sendPrompt = async (prompt: string): Promise<ImagePromptResponse> => {
     setSending(true);
     try {
-      const payload = { prompt: text, conversationId: conversationId ?? '' } as any;
+      const payload = { prompt: prompt, conversationId: conversationId ?? '' } as any;
       const res = await fetch(`${base}/imagePrompt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -25,42 +25,19 @@ export const useImagePrompt = () => {
         const txt = await res.text();
         throw new Error(txt || `Request failed: ${res.status}`);
       }
+      // parse as typed JSON response
+      const promptResultRaw = (await res.json()) as ImagePromptResponse | null;
+      if (!promptResultRaw) throw new Error('Empty or invalid JSON response from server');
 
-      const raw = await res.text();
-      let parsed: any = null;
-      try {
-        parsed = raw ? JSON.parse(raw) : null;
-      } catch (e) {
-        parsed = null;
-      }
-
-      if (!parsed) throw new Error('Empty or invalid JSON response from server');
-
-      const promptResultRaw: any = parsed || {};
+      if (!promptResultRaw.tags) promptResultRaw.tags = { included: [], notIncluded: [] } as any;
       if (promptResultRaw.conversationId) setConversationId(String(promptResultRaw.conversationId));
-
-      const tags = promptResultRaw.tags || {};
-      const data: ImagePromptResult = {
-        id: promptResultRaw.id ?? '',
-        originalPrompt: promptResultRaw.originalPrompt ?? '',
-        improvedPrompt: promptResultRaw.improvedPrompt ?? '',
-        mainDifferences: promptResultRaw.mainDifferences ?? '',
-        tags: { included: tags.included ?? [], notIncluded: tags.notIncluded ?? [] },
-        pointOfViews: promptResultRaw.pointOfViews ?? [],
-        imageStyles: promptResultRaw.imageStyles ?? [],
-        imageStyleRaw: promptResultRaw.imageStyle ?? null,
-        imageStyle: (promptResultRaw.hasOwnProperty('imageStyle') && promptResultRaw.imageStyle && String(promptResultRaw.imageStyle).trim()) ? String(promptResultRaw.imageStyle).trim() : (promptResultRaw.imageStyles && promptResultRaw.imageStyles[0]) ?? null,
-        pointOfViewRaw: promptResultRaw.pointOfView ?? null,
-        conversationId: String(promptResultRaw.conversationId ?? ''),
-      };
-
-      return data;
+      return promptResultRaw;
     } finally {
       setSending(false);
     }
   };
 
-  const evaluatePrompt = async (payload: any) => {
+  const evaluatePrompt = async (payload: ImagePromptRevisionRequest): Promise<ImagePromptRevisionResponse & { conversationId?: string }> => {
     setEvaluating(true);
     try {
       const res = await fetch(`${base}/imagePrompt`, {
@@ -75,7 +52,8 @@ export const useImagePrompt = () => {
         throw new Error(txt || `Request failed: ${res.status}`);
       }
 
-      const json = await res.json();
+      const json = (await res.json()) as ImagePromptRevisionResponse & { conversationId?: string } & any;
+      // conversationId may also be returned; preserve previous behavior if present
       if (json && json.conversationId) setConversationId(String(json.conversationId));
       return json;
     } finally {
@@ -83,14 +61,15 @@ export const useImagePrompt = () => {
     }
   };
 
-  const generateImage = async (result: ImagePromptResult) => {
+  const generateImage = async (imagePromptId: string) => {
     setGenerating(true);
     try {
+      // backend expects { ImagePromptId: string }
       const res = await fetch(`${base}/Image/Generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ imagePrompt: result }),
+        body: JSON.stringify({ ImagePromptId: imagePromptId }),
       });
 
       if (!res.ok) {
@@ -98,29 +77,34 @@ export const useImagePrompt = () => {
         throw new Error(txt || `Request failed: ${res.status}`);
       }
 
-      const json = await res.json();
-      const url = json?.image?.url ?? null;
-      if (!url) throw new Error('No image URL returned');
-      return url;
+      const json = (await res.json()) as ImageResponse;
+      return json;
     } finally {
       setGenerating(false);
     }
   };
 
-  const getPromptResultById = async (id: string) => {
+  const getImagePromptById = async (id: string): Promise<ImagePromptResponse> => {
     if (!id) throw new Error('Missing id');
-  const base = (import.meta as any).env.VITE_BACKEND_URL || '';
     const response = await fetch(`${base}/imagePrompt/${id}`, {
       method: 'GET',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
     });
+
     if (!response.ok) {
       const txt = await response.text();
       throw new Error(txt || `Request failed: ${response.status}`);
     }
-    const json = await response.json();
-    return json;
+
+    // parse as typed JSON and ensure tags default
+    const promptResultRaw = (await response.json()) as ImagePromptResponse | null;
+    if (!promptResultRaw) throw new Error('Empty or invalid JSON response from server');
+
+    // ensure tags are present (match server shape expectations)
+    if (!promptResultRaw.tags) promptResultRaw.tags = { included: [], notIncluded: [] } as any;
+
+    return promptResultRaw;
   };
 
   return {
@@ -132,7 +116,7 @@ export const useImagePrompt = () => {
     generating,
     conversationId,
     setConversationId,
-    getPromptResultById,
+    getImagePromptById,
   };
 };
 

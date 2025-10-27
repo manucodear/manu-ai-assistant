@@ -1,6 +1,6 @@
-﻿namespace Manu.AiAssistant.WebApi.Models.ImagePrompt
+﻿namespace Manu.AiAssistant.WebApi.Models.Api
 {
-    public class ImagePromptResult
+    public class ImagePromptResponse
     {
         public string Id { get; set; } = string.Empty;
         public string OriginalPrompt { get; set; } = string.Empty;
