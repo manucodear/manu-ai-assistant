@@ -30,7 +30,7 @@ const ImageActionSelector: React.FC<Props> = ({ activeTab = 'generate', isShowin
                 exclusive
                 onChange={handleChange}
                 aria-label="image action selector"
-                size="medium"
+                size="small"
                 color="primary"
             >
                 <ToggleButton
