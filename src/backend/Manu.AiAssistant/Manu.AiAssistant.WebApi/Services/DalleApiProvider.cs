@@ -6,7 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using Manu.AiAssistant.WebApi.Options;
-using Manu.AiAssistant.WebApi.Models.Image;
+using Manu.AiAssistant.WebApi.Models.Api;
+using Manu.AiAssistant.WebApi.Models.Entities;
 
 namespace Manu.AiAssistant.WebApi.Services
 {
@@ -14,6 +15,11 @@ namespace Manu.AiAssistant.WebApi.Services
     {
         private readonly HttpClient _httpClient;
         private readonly DalleOptions _options;
+        private readonly string _model = "dall-e-3";
+        private readonly string _size = "1024x1024";
+        private readonly string _style = "vivid";
+        private readonly string _quality = "standard";
+        private readonly int _n = 1;
 
         public DalleApiProvider(IHttpClientFactory httpClientFactory, IOptions<DalleOptions> options)
         {
@@ -21,16 +27,16 @@ namespace Manu.AiAssistant.WebApi.Services
             _options = options.Value;
         }
 
-        public async Task<DalleResult> GenerateImageAsync(GenerateRequest request, CancellationToken cancellationToken)
+        public async Task<DalleResult> GenerateImageAsync(Prompt prompt, CancellationToken cancellationToken)
         {
             var payload = new
             {
-                model = request.Model,
-                prompt = request.ImagePrompt.ImprovedPrompt,
-                size = request.Size,
-                style = request.Style,
-                quality = request.Quality,
-                n = request.N > 0 ? request.N : 1
+                model = _model,
+                prompt = prompt.ImprovedPrompt,
+                size = _size,
+                style = _style,
+                quality = _quality,
+                n = _n > 0 ? _n : 1
             };
             var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions(JsonSerializerDefaults.Web));
             using var httpRequest = new HttpRequestMessage(HttpMethod.Post, _options.Endpoint)
@@ -71,6 +77,7 @@ namespace Manu.AiAssistant.WebApi.Services
             return new DalleResult
             {
                 ResponseContent = responseContent,
+                DalleRequest = payload,
                 IsError = isError
             };
         }

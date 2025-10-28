@@ -29,7 +29,7 @@ namespace Manu.AiAssistant.WebApi.Models.Entities
         public ImageData ImageData { get; set; } = new();
 
         [JsonProperty("imagePrompt")]
-        public Prompt ImagePrompt { get; set; } = new();
+        public Prompt? ImagePrompt { get; set; }
     }
 
     public class ImageData

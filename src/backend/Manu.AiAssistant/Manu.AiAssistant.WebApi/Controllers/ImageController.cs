@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Manu.AiAssistant.WebApi.Options;
-using Manu.AiAssistant.WebApi.Models.Image;
 using Manu.AiAssistant.WebApi.Models.Entities;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Logging;
@@ -15,6 +14,7 @@ using Manu.AiAssistant.WebApi.Data;
 using Manu.AiAssistant.WebApi.Services;
 using Manu.AiAssistant.WebApi.Extensions;
 using AutoMapper;
+using Manu.AiAssistant.WebApi.Models.Api;
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {
@@ -30,6 +30,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
         private readonly AzureStorageOptions _storageOptions;
         private readonly ILogger<ImageController> _logger;
         private readonly CosmosRepository<Image> _imageRepository;
+        private readonly CosmosRepository<Prompt> _promptRepository;
         private readonly AppOptions _appOptions;
         private readonly IImageStorageProvider _imageStorageProvider;
         private readonly IImageProcessingProvider _imageProcessingProvider;
@@ -43,6 +44,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
             IOptions<AzureStorageOptions> storageOptions,
             ILogger<ImageController> logger,
             CosmosRepository<Image> imageRepository,
+            CosmosRepository<Prompt> promptRepository,
             IOptions<AppOptions> appOptions,
             IImageStorageProvider imageStorageProvider,
             IImageProcessingProvider imageProcessingProvider,
@@ -55,6 +57,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
             _storageOptions = storageOptions.Value;
             _logger = logger;
             _imageRepository = imageRepository;
+            _promptRepository = promptRepository;
             _appOptions = appOptions.Value;
             _imageStorageProvider = imageStorageProvider;
             _imageProcessingProvider = imageProcessingProvider;
@@ -79,24 +82,22 @@ namespace Manu.AiAssistant.WebApi.Controllers
         [Route("Generate")]
         public async Task<IActionResult> Generate([FromBody] GenerateRequest request, CancellationToken cancellationToken)
         {
+            var imagePrompt = await _promptRepository.GetAsync(request.ImagePromptId, cancellationToken);
             var payload = new
             {
                 model = request.Model,
-                prompt = request.ImagePrompt.ImprovedPrompt,
+                prompt = imagePrompt.ImprovedPrompt,
                 size = request.Size,
                 style = request.Style,
                 quality = request.Quality,
                 n = request.N > 0 ? request.N : 1
             };
-            var dalleResult = await _dalleProvider.GenerateImageAsync(request, cancellationToken);
+            var dalleResult = await _dalleProvider.GenerateImageAsync(imagePrompt, cancellationToken);
             var responseContent = dalleResult.ResponseContent;
             bool isError = dalleResult.IsError;
             Manu.AiAssistant.WebApi.Models.Entities.ImageData? imageData = null;
             string? generatedId = null;
-            var promptEntity = _mapper.Map<Prompt>(request.ImagePrompt);
-            promptEntity.Id = request.ImagePrompt.Id;
-            promptEntity.Username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name! : "anonymous";
-
+            
             if (isError)
             {
                 var imageEntity = new Image
@@ -106,8 +107,8 @@ namespace Manu.AiAssistant.WebApi.Controllers
                     Timestamp = DateTime.UtcNow,
                     DalleRequest = payload,
                     DalleResponse = responseContent.ParseJsonToPlainObject() ?? new { error = responseContent },
-                    ImagePrompt = promptEntity,
-                    Prompt = request.ImagePrompt.ImprovedPrompt,
+                    ImagePrompt = imagePrompt,
+                    Prompt = imagePrompt.ImprovedPrompt,
                     HasError = true,
                     ImageData = new()
                 };
@@ -173,17 +174,25 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 Timestamp = DateTime.UtcNow,
                 DalleRequest = payload,
                 DalleResponse = responseContent.ParseJsonToPlainObject() ?? responseContent,
-                ImagePrompt = promptEntity,
-                Prompt = request.ImagePrompt.ImprovedPrompt,
+                ImagePrompt = imagePrompt,
+                Prompt = imagePrompt.ImprovedPrompt,
                 HasError = false,
                 ImageData = imageData!
             };
             await _imageRepository.AddAsync(entity, cancellationToken);
-            return Ok(new
+            var imagePromptResponse = _mapper.Map<ImagePromptResponse>(imagePrompt);
+            return Ok(new ImageResponse
             {
-                id = entity.Id,
-                image = entity.ImageData,
-                prompt = request.ImagePrompt
+                Id = entity.Id,
+                Timestamp = entity.Timestamp,
+                ImageData = new ImageDataResponse
+                {
+                    Url = entity.ImageData.Url,
+                    SmallUrl = entity.ImageData.SmallUrl,
+                    MediumUrl = entity.ImageData.MediumUrl,
+                    LargeUrl = entity.ImageData.LargeUrl
+                },
+                ImagePrompt = imagePromptResponse
             });
         }
 
@@ -196,20 +205,23 @@ namespace Manu.AiAssistant.WebApi.Controllers
             var userItems = await _imageRepository.GetByUsernameAndNoErrorAsync(username, cancellationToken);
             var ordered = userItems.OrderByDescending(g => g.Timestamp).ToList();
 
-            var images = new List<object>();
-            foreach (var imageItem in ordered)
+            var images = new List<ImageResponse>();
+            foreach (var imageItem in ordered.Where(item => !item.HasError && item.ImagePrompt != null && !string.IsNullOrEmpty(item.ImagePrompt.Id)))
             {
-                images.Add(new {
-                    image = new {
-                        id = imageItem.Id,
-                        timestamp = imageItem.Timestamp,
-                        prompt = imageItem.Prompt ?? string.Empty,
-                        url = imageItem.ImageData?.Url,
-                        smallUrl = imageItem.ImageData?.SmallUrl,
-                        mediumUrl = imageItem.ImageData?.MediumUrl,
-                        largeUrl = imageItem.ImageData?.LargeUrl
+                var imagePrompt = _mapper.Map<ImagePromptResponse>(imageItem.ImagePrompt);
+                imagePrompt.ImageId = imageItem.Id;
+                images.Add(new ImageResponse
+                {
+                    Id = imageItem.Id,
+                    Timestamp = imageItem.Timestamp,
+                    ImageData = new ImageDataResponse
+                    {
+                        Url = imageItem.ImageData.Url,
+                        SmallUrl = imageItem.ImageData.SmallUrl,
+                        MediumUrl = imageItem.ImageData.MediumUrl,
+                        LargeUrl = imageItem.ImageData.LargeUrl
                     },
-                    imagePromptId = !string.IsNullOrEmpty(imageItem.ImagePrompt.ConversationId) ? imageItem.ImagePrompt.Id : string.Empty
+                    ImagePrompt = imagePrompt
                 });
             }
 

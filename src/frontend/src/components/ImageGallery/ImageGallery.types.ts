@@ -1,30 +1,12 @@
 export interface ImageGalleryProps {
   value?: string;
-  // notify parent when a prompt result is shown from the gallery (image -> prompt result)
-  onShowPromptResult?: (result: any) => void;
-  // request the parent show the prompt input (e.g. switch to generate tab)
-  onRequestShowGenerate?: () => void;
+  // notify parent when a prompt result needs to be shown.
+  // When an image is clicked the gallery will call the handler with the
+  // full ImagePromptResponse (non-null). The gallery will not call the
+  // handler with undefined/null for selection events.
+  // The handler receives the full ImageResponse so the parent has both
+  // the prompt and the image metadata available.
+  onShowPromptResult?: (payload: import('../../hooks/useImage.types').ImageResponse) => void;
 }
 
 export type ImageSize = 'small' | 'medium' | 'large';
-
-export interface ImageData {
-  id: string;
-  timestamp: string;
-  prompt: string;
-  url: string;
-  smallUrl: string;
-  mediumUrl: string;
-  largeUrl: string;
-  // prompt id returned by the server that relates this image to its ImagePromptResult
-  imagePromptId?: string | null;
-  isUserUpload?: boolean; // Flag to identify user-uploaded images
-  deleteUrl?: string; // URL to use for deleting user-uploaded images
-}
-
-export interface ImageResponse {
-  imagePromptId: string;
-  images: Array<{
-    image: ImageData;
-  }>;
-}

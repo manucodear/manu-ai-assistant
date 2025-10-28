@@ -1,13 +1,13 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Manu.AiAssistant.WebApi.Models.Api;
 using Manu.AiAssistant.WebApi.Models.Chat;
-using Manu.AiAssistant.WebApi.Models.ImagePrompt;
 
 namespace Manu.AiAssistant.WebApi.Services
 {
     public interface IImagePromptProvider
     {
-        Task<ImagePromptResult> GetImagePromptResponseAsync(string userPrompt, CancellationToken cancellationToken, bool useLong = false);
-        Task<PromptRevisionResult> PromptRevisionAsync(PromptRevisionRequest request, CancellationToken cancellationToken);
+        Task<ImagePromptResponse> GetImagePromptResponseAsync(string userPrompt, string? conversationId, CancellationToken cancellationToken, bool useLong = false);
+        Task<ImagePromptRevisionResponse> PromptRevisionAsync(ImagePromptRevisionRequest request, CancellationToken cancellationToken);
     }
 }

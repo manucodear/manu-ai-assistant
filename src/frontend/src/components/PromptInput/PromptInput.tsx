@@ -7,11 +7,11 @@ import CreateIcon from '@mui/icons-material/Create';
 interface PromptInputProps {
   input: string;
   setInput: (s: string) => void;
-  onSend: () => void;
-  sending: boolean;
+  onSend: (prompt: string, conversationId: string | null) => void;
+  disable: boolean;
 }
 
-const PromptInput: React.FC<PromptInputProps> = ({ input, setInput, onSend, sending }) => {
+const PromptInput: React.FC<PromptInputProps> = ({ input, setInput, onSend, disable }) => {
   return (
     <Box sx={{ position: 'relative', display: 'flex', gap: 1 }}>
       <Box sx={{ flex: 1, position: 'relative' }}>
@@ -22,26 +22,33 @@ const PromptInput: React.FC<PromptInputProps> = ({ input, setInput, onSend, send
             variant="outlined"
             multiline
             minRows={4}
-            disabled={sending}
+            disabled={disable}
             fullWidth
             sx={{
-              // ensure bottom/right padding so content doesn't get obscured by the button
-              '& .MuiInputBase-root': {
-                paddingRight: '88px',
-                paddingBottom: '8px',
-              }
-            }}
+                // ensure bottom/right padding so content doesn't get obscured by the button
+                '& .MuiInputBase-root': {
+                  paddingRight: { xs: '16px', md: '88px' },
+                  paddingBottom: '8px',
+                }
+              }}
           />
         {/* Send Button positioned at bottom-right inside the input box */}
         <Button
           variant="contained"
           color="primary"
-          onClick={onSend}
-          disabled={sending || !input.trim()}
+          onClick={() => onSend(input, null)}
+          disabled={disable || !input.trim()}
           aria-label="Send prompt"
           size="small"
           startIcon={<CreateIcon />}
-          sx={{ position: 'absolute', bottom: 8, right: 8, zIndex: 1400 }}
+          sx={{
+            position: { xs: 'static', md: 'absolute' },
+            bottom: { md: 8 },
+            right: { md: 8 },
+            zIndex: 1400,
+            width: { xs: '100%', md: 'auto' },
+            mt: { xs: 1, md: 0 }
+          }}
         >
           Write
         </Button>

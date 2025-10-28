@@ -1,7 +1,4 @@
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using Manu.AiAssistant.WebApi.Models.Image;
+using Manu.AiAssistant.WebApi.Models.Entities;
 
 namespace Manu.AiAssistant.WebApi.Services
 {
@@ -9,10 +6,11 @@ namespace Manu.AiAssistant.WebApi.Services
     {
         public string ResponseContent { get; set; } = string.Empty;
         public bool IsError { get; set; }
+        public object DalleRequest { get; set; } = new { };
     }
 
     public interface IDalleProvider
     {
-        Task<DalleResult> GenerateImageAsync(GenerateRequest request, CancellationToken cancellationToken);
+        Task<DalleResult> GenerateImageAsync(Prompt prompt, CancellationToken cancellationToken);
     }
 }

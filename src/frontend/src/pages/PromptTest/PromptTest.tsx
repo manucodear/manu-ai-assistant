@@ -1,5 +1,5 @@
 import React from 'react';
-import Prompt from '../../components/Prompt/Prompt';
+import { Prompt } from '../../components/Prompt/Prompt';
 import styles from './PromptTest.module.css';
 
 const PromptTest: React.FC = () => {

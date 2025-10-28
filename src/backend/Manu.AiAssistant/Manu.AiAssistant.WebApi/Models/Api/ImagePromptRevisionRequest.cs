@@ -1,16 +1,16 @@
 using System.Collections.Generic;
 
-namespace Manu.AiAssistant.WebApi.Models.ImagePrompt
+namespace Manu.AiAssistant.WebApi.Models.Api
 {
-    public class PromptRevisionRequest
+    public class ImagePromptRevisionRequest
     {
         public string Prompt { get; set; } = string.Empty;
-        public RevisionTags Tags { get; set; } = new();
+        public RevisionTagsRequest Tags { get; set; } = new();
         public string? PointOfView { get; set; }
         public string? ImageStyle { get; set; }
     }
 
-    public class RevisionTags
+    public class RevisionTagsRequest
     {
         public List<string> ToInclude { get; set; } = new();
         public List<string> ToExclude { get; set; } = new();
