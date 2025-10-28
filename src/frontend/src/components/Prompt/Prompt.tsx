@@ -68,10 +68,10 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
       setConversationId(data?.conversationId ?? null);
       // store the prompt object on the selectedImageForGeneration so children receive it via props
       setSelectedImageForGeneration({ imageUrl: undefined, imagePromptId: data?.id ?? null, imagePrompt: data });
-  setIsShowingPromptResult(Boolean(data));
-  setGeneratedImageUrl(null);
-  // New prompt resets generateEnabled — require explicit reset or evaluate to enable
-  setGenerateEnabled(false);
+      setIsShowingPromptResult(Boolean(data));
+      setGeneratedImageUrl(null);
+      // New prompt: ensure Generate is enabled for the returned prompt (no error occurred)
+      setGenerateEnabled(true);
       setActiveTab('generate');
       return data;
     } catch (err: unknown) {
@@ -98,9 +98,9 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
       setConversationId(imageResult?.conversationId ?? conversationId ?? null);
       // attach the new prompt result to the selected image holder
       setSelectedImageForGeneration((s) => ({ ...(s ?? {}), imagePromptId: imageResult?.id ?? s?.imagePromptId ?? null, imagePrompt: imageResult }));
-  setIsShowingPromptResult(true);
-  // after successful evaluate, enable generate
-  setGenerateEnabled(true);
+      setIsShowingPromptResult(true);
+      // after successful evaluate, enable generate
+      setGenerateEnabled(true);
       return imageResult;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error');
@@ -160,8 +160,8 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
     // Note: sending/evaluating/generating flags are managed by the hook; we cannot directly set them here.
     setGeneratedImageUrl(null);
     setConversationId(null);
-  // Reset enables generate per spec
-  setGenerateEnabled(true);
+    // Reset enables generate per spec
+    setGenerateEnabled(true);
     // conversation tracking removed from this component
     // Note: do NOT automatically call onResetShowGallery here. The gallery/tab
     // switching should be controlled by the page that renders Prompt (e.g. Image.tsx)
@@ -233,27 +233,27 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
             image={
               selectedImageForGeneration?.imagePrompt
                 ? {
-                    id: selectedImageForGeneration?.imagePrompt?.id ?? (selectedImageForGeneration?.imagePromptId ?? ''),
-                    timestamp: '',
-                    imageData: {
-                      url: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
-                      smallUrl: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
-                      mediumUrl: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
-                      largeUrl: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
-                    },
-                    imagePrompt: selectedImageForGeneration?.imagePrompt as ImagePromptResponse,
-                  }
+                  id: selectedImageForGeneration?.imagePrompt?.id ?? (selectedImageForGeneration?.imagePromptId ?? ''),
+                  timestamp: '',
+                  imageData: {
+                    url: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
+                    smallUrl: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
+                    mediumUrl: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
+                    largeUrl: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
+                  },
+                  imagePrompt: selectedImageForGeneration?.imagePrompt as ImagePromptResponse,
+                }
                 : {
-                    id: selectedImageForGeneration?.imagePromptId ?? '',
-                    timestamp: '',
-                    imageData: {
-                      url: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
-                      smallUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
-                      mediumUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
-                      largeUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
-                    },
-                    imagePrompt: (selectedImageForGeneration?.imagePrompt as ImagePromptResponse) ?? ({} as ImagePromptResponse),
-                  }
+                  id: selectedImageForGeneration?.imagePromptId ?? '',
+                  timestamp: '',
+                  imageData: {
+                    url: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
+                    smallUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
+                    mediumUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
+                    largeUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
+                  },
+                  imagePrompt: (selectedImageForGeneration?.imagePrompt as ImagePromptResponse) ?? ({} as ImagePromptResponse),
+                }
             }
             onReset={handleResetShowGallery}
             onShowPromptResult={handleImageDisplayShowPromptResult}
@@ -298,27 +298,27 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
                   image={
                     selectedImageForGeneration?.imagePrompt
                       ? {
-                          id: selectedImageForGeneration?.imagePrompt?.id ?? (selectedImageForGeneration?.imagePromptId ?? ''),
-                          timestamp: '',
-                          imageData: {
-                            url: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
-                            smallUrl: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
-                            mediumUrl: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
-                            largeUrl: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
-                          },
-                          imagePrompt: selectedImageForGeneration?.imagePrompt as ImagePromptResponse,
-                        }
+                        id: selectedImageForGeneration?.imagePrompt?.id ?? (selectedImageForGeneration?.imagePromptId ?? ''),
+                        timestamp: '',
+                        imageData: {
+                          url: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
+                          smallUrl: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
+                          mediumUrl: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
+                          largeUrl: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
+                        },
+                        imagePrompt: selectedImageForGeneration?.imagePrompt as ImagePromptResponse,
+                      }
                       : {
-                          id: selectedImageForGeneration?.imagePromptId ?? '',
-                          timestamp: '',
-                          imageData: {
-                            url: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
-                            smallUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
-                            mediumUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
-                            largeUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
-                          },
-                          imagePrompt: (selectedImageForGeneration?.imagePrompt as ImagePromptResponse) ?? ({} as ImagePromptResponse),
-                        }
+                        id: selectedImageForGeneration?.imagePromptId ?? '',
+                        timestamp: '',
+                        imageData: {
+                          url: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
+                          smallUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
+                          mediumUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
+                          largeUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
+                        },
+                        imagePrompt: (selectedImageForGeneration?.imagePrompt as ImagePromptResponse) ?? ({} as ImagePromptResponse),
+                      }
                   }
                   onReset={handleResetShowGallery}
                   onShowPromptResult={handleImageDisplayShowPromptResult}
