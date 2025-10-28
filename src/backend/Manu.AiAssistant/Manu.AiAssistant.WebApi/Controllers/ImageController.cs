@@ -209,6 +209,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
             foreach (var imageItem in ordered.Where(item => !item.HasError && item.ImagePrompt != null && !string.IsNullOrEmpty(item.ImagePrompt.Id)))
             {
                 var imagePrompt = _mapper.Map<ImagePromptResponse>(imageItem.ImagePrompt);
+                imagePrompt.ImageId = imageItem.Id;
                 images.Add(new ImageResponse
                 {
                     Id = imageItem.Id,

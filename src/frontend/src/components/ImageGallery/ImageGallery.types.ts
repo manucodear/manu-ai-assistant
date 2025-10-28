@@ -1,12 +1,12 @@
 export interface ImageGalleryProps {
   value?: string;
-  // notify parent when a prompt result needs to be shown. The handler may be
-  // called in one of three ways:
-  // - no args: switch to the generate/input view
-  // - string id: parent should fetch the prompt result by id
-  // - object { imageUrl?, imagePromptId? }: parent should use the imageUrl for
-  //   generation and optionally fetch the prompt result by id
-  onShowPromptResult?: (payload?: string | { imageUrl?: string; imagePromptId?: string | null } | null) => void;
+  // notify parent when a prompt result needs to be shown.
+  // When an image is clicked the gallery will call the handler with the
+  // full ImagePromptResponse (non-null). The gallery will not call the
+  // handler with undefined/null for selection events.
+  // The handler receives the full ImageResponse so the parent has both
+  // the prompt and the image metadata available.
+  onShowPromptResult?: (payload: import('../../hooks/useImage.types').ImageResponse) => void;
 }
 
 export type ImageSize = 'small' | 'medium' | 'large';

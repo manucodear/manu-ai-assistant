@@ -28,20 +28,17 @@ import Snackbar from '@mui/material/Snackbar';
 import CreateIcon from '@mui/icons-material/Create';
 import useImagePrompt from '../../hooks/useImagePrompt';
 import Alert from '@mui/material/Alert';
+import { ImagePromptRevisionRequest } from '../../hooks/useImagePrompt.types';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { ImagePromptResponse } from '../../hooks/useImagePrompt.types';
 
-
-
 interface PromptResultProps {
   imageResult: ImagePromptResponse;
-  onEvaluate?: (payload: any) => Promise<any>;
+  onEvaluate?: (payload: ImagePromptRevisionRequest) => Promise<any>;
   onReset?: () => void;
   // now expects an imagePromptId string
   onGenerate?: (imagePromptId: string) => Promise<any>;
   generating?: boolean;
-  conversationId?: string | null;
-  setConversationId?: (id: string | null) => void;
 }
 
 const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, onReset, onGenerate, generating }) => {
@@ -102,36 +99,28 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
   const hasImageStyleChange = (selectedImageStyle ?? null) !== (originalImageStyle ?? null);
   const hasAnyChange = hasTagChanges || hasPOVChange || hasImageStyleChange;
 
-  const { evaluatePrompt, setConversationId: hookSetConversationId } = useImagePrompt();
+  const { evaluatePrompt } = useImagePrompt();
 
   const handleEvaluate = async () => {
     setEvaluateSuccess(null);
     setEvaluateError(null);
 
-    const payloadResult: ImagePromptResponse = {
-      id: imageResult.id,
-      originalPrompt: imageResult.originalPrompt,
-      improvedPrompt: imageResult.improvedPrompt,
-      mainDifferences: imageResult.mainDifferences,
-      tags: {
-        included: selectedTags,
-        notIncluded: imageResult.tags?.notIncluded ?? [],
+    const payloadResult: ImagePromptRevisionRequest = {
+      prompt: imageResult.improvedPrompt ?? imageResult.originalPrompt ?? '',
+      revisionTags: {
+        toInclude: selectedTags,
+        toExclude: (imageResult.tags?.notIncluded ?? []).filter((t) => !selectedTags.includes(t)),
       },
-      pointOfViews: imageResult.pointOfViews || [],
-      pointOfView: selectedPOV,
-      imageStyles: imageResult.imageStyles || [],
-      imageStyle: selectedImageStyle,
-      conversationId: imageResult.conversationId ?? '',
+      pointOfView: selectedPOV ?? '',
+      imageStyle: selectedImageStyle ?? '',
     };
 
     try {
       if (onEvaluate) {
-        const json = await onEvaluate(payloadResult);
-        if (json && json.conversationId && hookSetConversationId) hookSetConversationId(String(json.conversationId));
+        await onEvaluate(payloadResult);
         setEvaluateSuccess('Evaluation successful');
       } else {
-        const json = await evaluatePrompt(payloadResult as any);
-        if (json && json.conversationId && hookSetConversationId) hookSetConversationId(String(json.conversationId));
+        await evaluatePrompt(payloadResult as any);
         setEvaluateSuccess('Evaluation successful');
       }
     } catch (err: any) {

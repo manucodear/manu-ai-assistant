@@ -13,7 +13,7 @@ import {
 import {
   Collections as ImageMultiple,
   Warning as WarningIcon,
-  
+
   CropFree as SmallIcon,
   CropSquare as MediumIcon,
   AspectRatio as LargeIcon
@@ -109,12 +109,13 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ onShowPromptResult }: Image
         <>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: selectedSize === 'large' ? '1fr' : 'repeat(auto-fill, minmax(120px, 1fr))', sm: selectedSize === 'small' ? 'repeat(auto-fill, minmax(100px, 1fr))' : selectedSize === 'medium' ? 'repeat(auto-fill, minmax(180px, 1fr))' : 'repeat(auto-fill, minmax(280px, 1fr))', md: selectedSize === 'small' ? 'repeat(auto-fill, minmax(150px, 1fr))' : selectedSize === 'medium' ? 'repeat(auto-fill, minmax(250px, 1fr))' : 'repeat(auto-fill, minmax(350px, 1fr))' }, gap: { xs: selectedSize === 'small' ? 0.5 : selectedSize === 'medium' ? 1 : 1.5, sm: selectedSize === 'small' ? 1 : selectedSize === 'medium' ? 1.5 : 2, md: selectedSize === 'small' ? 1 : selectedSize === 'medium' ? 2 : 2.5 }, width: '100%', justifyContent: 'center' }}>
             {images.map((image) => (
-                <Box key={`${image.id}-${selectedSize}`} sx={{ position: 'relative', aspectRatio: '1', borderRadius: { xs: '8px', md: '12px' }, overflow: 'hidden', cursor: 'pointer', transition: 'all 0.3s ease', '&:hover': { transform: 'translateY(-4px)', boxShadow: 4, '& .image-overlay': { transform: 'translateY(0)' }, '& .delete-button': { opacity: 1, transform: 'scale(1)' }, '& img': { transform: 'scale(1.05)' } } }} onClick={() => {
-                  // notify parent that an image was clicked; parent (Prompt) will show ImageDisplay
-                  if (typeof onShowPromptResult === 'function') {
-                    onShowPromptResult({ imageUrl: getImageUrl(image.imageData), imagePromptId: image.imagePrompt.id ?? null });
-                  }
-                }}>
+              <Box key={`${image.id}-${selectedSize}`} sx={{ position: 'relative', aspectRatio: '1', borderRadius: { xs: '8px', md: '12px' }, overflow: 'hidden', cursor: 'pointer', transition: 'all 0.3s ease', '&:hover': { transform: 'translateY(-4px)', boxShadow: 4, '& .image-overlay': { transform: 'translateY(0)' }, '& .delete-button': { opacity: 1, transform: 'scale(1)' }, '& img': { transform: 'scale(1.05)' } } }} onClick={() => {
+                // notify parent that an image was clicked; parent (Prompt) will show ImageDisplay
+                if (typeof onShowPromptResult === 'function') {
+                    // pass the full ImageResponse so the parent has image and prompt data
+                    onShowPromptResult(image);
+                }
+              }}>
                 <Box component="img" src={getImageUrl(image.imageData)} alt={image.imagePrompt.improvedPrompt} sx={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s ease' }} />
                 <Box className="image-overlay" sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%)', p: { xs: 1, md: 1.5 }, transform: { xs: 'translateY(0)', md: 'translateY(100%)' }, transition: 'transform 0.3s ease' }}>
                   <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: { xs: '0.75rem', md: '0.875rem' } }}>{formatTimestamp(image.timestamp)}</Typography>

@@ -15,9 +15,7 @@ namespace Manu.AiAssistant.WebApi.Options
 
             // DTO -> Entity
             CreateMap<ImagePromptTags, Tag>();
-            CreateMap<ImagePromptResponse, Prompt>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.Username, opt => opt.Ignore());
+            CreateMap<ImagePromptResponse, Prompt>();
         }
     }
 }

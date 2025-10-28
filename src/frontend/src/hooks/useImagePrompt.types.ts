@@ -1,6 +1,7 @@
 export interface ImagePromptGenerateRequest
 {
     prompt: string;
+    conversationId?: string;
 }
 
 export interface ImagePromptResponse
@@ -15,6 +16,7 @@ export interface ImagePromptResponse
     imageStyles: string[];
     imageStyle: string;
     conversationId: string;
+    imageId?: string;
 }
 
 export interface ImagePromptTagsResponse

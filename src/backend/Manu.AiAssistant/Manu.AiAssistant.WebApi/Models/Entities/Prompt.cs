@@ -32,7 +32,7 @@ namespace Manu.AiAssistant.WebApi.Models.Entities
         public List<string> ImageStyles { get; set; } = new();
 
         [JsonProperty("conversationId")]
-        public string ConversationId { get; set; } = string.Empty;
+        public string? ConversationId { get; set; }
     }
 
     public class Tag

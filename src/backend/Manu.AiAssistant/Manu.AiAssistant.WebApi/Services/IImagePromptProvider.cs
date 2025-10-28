@@ -7,7 +7,7 @@ namespace Manu.AiAssistant.WebApi.Services
 {
     public interface IImagePromptProvider
     {
-        Task<ImagePromptResponse> GetImagePromptResponseAsync(string userPrompt, CancellationToken cancellationToken, bool useLong = false);
+        Task<ImagePromptResponse> GetImagePromptResponseAsync(string userPrompt, string? conversationId, CancellationToken cancellationToken, bool useLong = false);
         Task<ImagePromptRevisionResponse> PromptRevisionAsync(ImagePromptRevisionRequest request, CancellationToken cancellationToken);
     }
 }

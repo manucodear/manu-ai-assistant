@@ -23,7 +23,7 @@ namespace Manu.AiAssistant.WebApi.Services
             _promptSettings = promptSettingsOptions.Value;
         }
 
-        public async Task<ImagePromptResponse> GetImagePromptResponseAsync(string userPrompt, CancellationToken cancellationToken, bool useLong = false)
+        public async Task<ImagePromptResponse> GetImagePromptResponseAsync(string userPrompt, string? conversationId, CancellationToken cancellationToken, bool useLong = false)
         {
             var basePrompts = useLong ? _promptSettings.Image.Long : _promptSettings.Image.Short;
             var promptMessages = new List<PromptMessage>(basePrompts ?? new List<PromptMessage>());
@@ -39,7 +39,7 @@ namespace Manu.AiAssistant.WebApi.Services
                     return new ImagePromptResponse();
                 }
                 result.Id = Guid.NewGuid().ToString();
-                result.ConversationId = result.Id;
+                result.ConversationId = string.IsNullOrWhiteSpace(conversationId) ? result.Id : conversationId;
                 return result;
             }
             catch

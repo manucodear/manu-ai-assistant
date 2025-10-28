@@ -1,19 +1,19 @@
 import { useState } from 'react';
-import { ImagePromptResponse, ImagePromptRevisionRequest, ImagePromptRevisionResponse } from './useImagePrompt.types';
+import { ImagePromptResponse, ImagePromptRevisionRequest, ImagePromptRevisionResponse, ImagePromptGenerateRequest } from './useImagePrompt.types';
 import { ImageResponse } from './useImage.types';
 
 export const useImagePrompt = () => {
   const [sending, setSending] = useState(false);
   const [evaluating, setEvaluating] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
 
   const base = (import.meta as any).env.VITE_BACKEND_URL || '';
 
-  const sendPrompt = async (prompt: string): Promise<ImagePromptResponse> => {
+  const sendPrompt = async (request: ImagePromptGenerateRequest, conversationId?: string | null): Promise<ImagePromptResponse> => {
     setSending(true);
     try {
-      const payload = { prompt: prompt, conversationId: conversationId ?? '' } as any;
+      const payload: any = { prompt: request.prompt };
+      if (conversationId) payload.conversationId = conversationId;
       const res = await fetch(`${base}/imagePrompt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -29,15 +29,14 @@ export const useImagePrompt = () => {
       const promptResultRaw = (await res.json()) as ImagePromptResponse | null;
       if (!promptResultRaw) throw new Error('Empty or invalid JSON response from server');
 
-      if (!promptResultRaw.tags) promptResultRaw.tags = { included: [], notIncluded: [] } as any;
-      if (promptResultRaw.conversationId) setConversationId(String(promptResultRaw.conversationId));
+  if (!promptResultRaw.tags) promptResultRaw.tags = { included: [], notIncluded: [] } as any;
       return promptResultRaw;
     } finally {
       setSending(false);
     }
   };
 
-  const evaluatePrompt = async (payload: ImagePromptRevisionRequest): Promise<ImagePromptRevisionResponse & { conversationId?: string }> => {
+  const evaluatePrompt = async (payload: ImagePromptRevisionRequest): Promise<ImagePromptRevisionResponse> => {
     setEvaluating(true);
     try {
       const res = await fetch(`${base}/imagePrompt`, {
@@ -52,10 +51,8 @@ export const useImagePrompt = () => {
         throw new Error(txt || `Request failed: ${res.status}`);
       }
 
-      const json = (await res.json()) as ImagePromptRevisionResponse & { conversationId?: string } & any;
-      // conversationId may also be returned; preserve previous behavior if present
-      if (json && json.conversationId) setConversationId(String(json.conversationId));
-      return json;
+  const json = (await res.json()) as ImagePromptRevisionResponse & any;
+  return json;
     } finally {
       setEvaluating(false);
     }
@@ -65,11 +62,10 @@ export const useImagePrompt = () => {
     setGenerating(true);
     try {
       // backend expects { ImagePromptId: string }
-      const res = await fetch(`${base}/Image/Generate`, {
+      const res = await fetch(`${base}/imagePrompt/${imagePromptId}/image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ ImagePromptId: imagePromptId }),
+        credentials: 'include'
       });
 
       if (!res.ok) {
@@ -114,8 +110,6 @@ export const useImagePrompt = () => {
     sending,
     evaluating,
     generating,
-    conversationId,
-    setConversationId,
     getImagePromptById,
   };
 };

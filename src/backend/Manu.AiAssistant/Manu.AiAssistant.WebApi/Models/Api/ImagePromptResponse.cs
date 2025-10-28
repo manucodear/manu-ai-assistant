@@ -11,7 +11,8 @@
         public string PointOfView { get; set; } = string.Empty;
         public List<string> ImageStyles { get; set; } = new();
         public string ImageStyle { get; set; } = string.Empty;
-        public string ConversationId { get; set; } = string.Empty;
+        public string? ConversationId { get; set; }
+        public string? ImageId { get; set; }
     }
 
     public class ImagePromptTags

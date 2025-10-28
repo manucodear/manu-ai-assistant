@@ -1,50 +1,44 @@
 import React from 'react';
-// imagePromptResult is fetched by parent via id; no local type import needed here
+import { ImagePromptResponse } from '../../hooks/useImagePrompt.types';
+import { ImageResponse } from '../../hooks/useImage.types';
 import Box from '@mui/material/Box';
 import ClearIcon from '@mui/icons-material/Clear';
 import CreateIcon from '@mui/icons-material/Create';
 import { Fab } from '@mui/material';
 
 interface ImageDisplayProps {
-  imageUrl: string;
+  image: ImageResponse;
   // optional reset handler to return to initial input state
   onReset?: () => void;
-  // imagePromptId for fetching prompt result (from ImageGallery)
-  imagePromptId?: string | null;
-  // optional handler for showing prompt result; receives the imagePromptId string
-  onShowPromptResult?: (imagePromptId: string) => void;
+  // optional handler for showing prompt result; receives the ImagePromptResponse
+  onShowPromptResult?: (imagePrompt: ImagePromptResponse) => void;
 }
 
 const ImageDisplay: React.FC<ImageDisplayProps> = ({
-  imageUrl,
+  image,
   onReset,
-  imagePromptId,
   onShowPromptResult,
 }) => {
   const handleBackClick = () => {
-    // Only pass the imagePromptId to the parent. If no id is present, fallback to onReset.
-    if (typeof onShowPromptResult !== 'function') {
-      if (onReset) onReset();
+    // Prefer to call onShowPromptResult with the full ImagePromptResponse when available.
+    if (typeof onShowPromptResult === 'function' && image?.imagePrompt) {
+      onShowPromptResult(image.imagePrompt);
       return;
     }
 
-    if (!imagePromptId) {
-      if (onReset) onReset();
-      return;
-    }
-
-    onShowPromptResult(imagePromptId);
+    // Fallback: if we don't have the full prompt, call onReset so the parent can handle it.
+    if (onReset) onReset();
   };
 
-  // Show back button only when we have an imagePromptId and an onShowPromptResult handler
-  const showBackButton = Boolean(imagePromptId) && typeof onShowPromptResult === 'function';
+  // Show back button only when we have an imagePrompt and an onShowPromptResult handler
+  const showBackButton = Boolean(image?.imagePrompt) && typeof onShowPromptResult === 'function';
 
   return (
     <Box sx={{ position: 'fixed', inset: 0, zIndex: 1300, bgcolor: 'common.black', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       {/* full-viewport image (contained so entire image is visible) */}
       <Box
         component="img"
-        src={imageUrl}
+        src={image?.imageData?.url ?? ''}
         alt="Generated"
         sx={{
           maxWidth: '100vw',

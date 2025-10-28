@@ -7,7 +7,7 @@ import CreateIcon from '@mui/icons-material/Create';
 interface PromptInputProps {
   input: string;
   setInput: (s: string) => void;
-  onSend: () => void;
+  onSend: (prompt: string, conversationId: string | null) => void;
   disable: boolean;
 }
 
@@ -36,7 +36,7 @@ const PromptInput: React.FC<PromptInputProps> = ({ input, setInput, onSend, disa
         <Button
           variant="contained"
           color="primary"
-          onClick={onSend}
+          onClick={() => onSend(input, null)}
           disabled={disable || !input.trim()}
           aria-label="Send prompt"
           size="small"
