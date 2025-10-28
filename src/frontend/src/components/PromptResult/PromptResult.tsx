@@ -4,7 +4,6 @@ import Paper from '@mui/material/Paper';
 import Chip from '@mui/material/Chip';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import ListSubheader from '@mui/material/ListSubheader';
 import Checkbox from '@mui/material/Checkbox';
 import ListItemText from '@mui/material/ListItemText';
 import ToggleButton from '@mui/material/ToggleButton';
@@ -45,7 +44,8 @@ interface PromptResultProps {
 
 const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, onReset, onGenerate, generating, generateEnabled }) => {
   const [selectedTags, setSelectedTags] = React.useState<string[]>(() => [...(imageResult.tags?.included || [])]);
-  const [tagsAnchorEl, setTagsAnchorEl] = React.useState<HTMLElement | null>(null);
+  const [includedTagsAnchorEl, setIncludedTagsAnchorEl] = React.useState<HTMLElement | null>(null);
+  const [notIncludedTagsAnchorEl, setNotIncludedTagsAnchorEl] = React.useState<HTMLElement | null>(null);
   const [selectedPOV, setSelectedPOV] = React.useState<string>(() => {
     if (Object.prototype.hasOwnProperty.call(imageResult, 'pointOfViewRaw')) {
       const raw = (imageResult as any).pointOfViewRaw;
@@ -202,96 +202,142 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
 
       <Paper elevation={0} sx={{ p: 1, mt: 1 }}>
         <Box sx={{ mt: 0 }}>
-          <Box sx={{ fontWeight: 600, mb: 1 }}>Point of views</Box>
           {isSmall ? (
-            <>
-              <Button variant="outlined" size="small" onClick={() => setPovDrawerOpen(true)}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+              <Box sx={{ fontWeight: 600, minWidth: 'fit-content' }}>Point of views</Box>
+              <Button variant="outlined" color="warning" size="small" onClick={() => setPovDrawerOpen(true)}>
                 {selectedPOV ?? 'Choose point of view'}
               </Button>
-              <SwipeableDrawer anchor="bottom" open={povDrawerOpen} onClose={() => setPovDrawerOpen(false)} onOpen={() => setPovDrawerOpen(true)}>
-                <Box sx={{ p: 1 }}>
-                  <List>
-                    {(imageResult.pointOfViews || []).map((p: string) => (
-                      <ListItemButton key={p} onClick={() => { setSelectedPOV(p); setPovDrawerOpen(false); }}>
-                        <Radio checked={selectedPOV === p} />
-                        <ListItemText primary={p} />
-                      </ListItemButton>
-                    ))}
-                  </List>
-                </Box>
-              </SwipeableDrawer>
-            </>
-          ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', overflowX: { xs: 'auto', sm: 'visible' }, whiteSpace: { xs: 'nowrap', sm: 'normal' } }}>
-              <ToggleButtonGroup
-                value={selectedPOV}
-                exclusive
-                onChange={(_e, newVal) => setSelectedPOV(newVal)}
-                aria-label="Point of view"
-                size="small"
-                sx={{ display: 'inline-flex' }}
-              >
-                {(imageResult.pointOfViews || []).map((p: string) => (
-                  <ToggleButton key={p} color="primary" value={p} aria-label={p} sx={{ minWidth: { xs: 88, sm: 64 }, fontSize: { xs: '0.82rem', sm: '0.875rem' } }}>
-                    {p}
-                  </ToggleButton>
-                ))}
-              </ToggleButtonGroup>
             </Box>
+          ) : (
+            <>
+              <Box sx={{ fontWeight: 600, mb: 1 }}>Point of views</Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', overflowX: { xs: 'auto', sm: 'visible' }, whiteSpace: { xs: 'nowrap', sm: 'normal' } }}>
+                <ToggleButtonGroup
+                  value={selectedPOV}
+                  exclusive
+                  onChange={(_e, newVal) => setSelectedPOV(newVal)}
+                  aria-label="Point of view"
+                  size="small"
+                  sx={{ display: 'inline-flex' }}
+                >
+                  {(imageResult.pointOfViews || []).map((p: string) => (
+                    <ToggleButton key={p} color="warning" value={p} aria-label={p} sx={{ minWidth: { xs: 88, sm: 64 }, fontSize: { xs: '0.82rem', sm: '0.875rem' } }}>
+                      {p}
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
+              </Box>
+            </>
+          )}
+          {isSmall && (
+            <SwipeableDrawer anchor="bottom" open={povDrawerOpen} onClose={() => setPovDrawerOpen(false)} onOpen={() => setPovDrawerOpen(true)}>
+              <Box sx={{ p: 1 }}>
+                <List>
+                  {(imageResult.pointOfViews || []).map((p: string) => (
+                    <ListItemButton key={p} onClick={() => { setSelectedPOV(p); setPovDrawerOpen(false); }}>
+                      <Radio checked={selectedPOV === p} />
+                      <ListItemText primary={p} />
+                    </ListItemButton>
+                  ))}
+                </List>
+              </Box>
+            </SwipeableDrawer>
           )}
         </Box>
       </Paper>
 
       {/* Tags & chips - separate Paper */}
       <Paper elevation={0} sx={{ p: 1, mt: 1 }}>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Box sx={{ fontWeight: 600, mb: 1 }}>Tags</Box>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mb: 2 }}>
+          {/* Included Tags Combobox */}
           <Box>
-            <Button variant="contained" size="small" onClick={(e: React.MouseEvent<HTMLElement>) => setTagsAnchorEl(e.currentTarget)}>
-              Tags ({selectedTags.length})
+            <Button 
+              variant="contained" 
+              size="small" 
+              color="info"
+              onClick={(e: React.MouseEvent<HTMLElement>) => setIncludedTagsAnchorEl(e.currentTarget)}
+            >
+              Included ({selectedTags.filter(t => (imageResult.tags?.included || []).includes(t)).length})
             </Button>
-            <Menu anchorEl={tagsAnchorEl} open={Boolean(tagsAnchorEl)} onClose={() => setTagsAnchorEl(null)} PaperProps={{ style: { maxHeight: 320 } }}>
-              <ListSubheader>Included</ListSubheader>
+            <Menu 
+              anchorEl={includedTagsAnchorEl} 
+              open={Boolean(includedTagsAnchorEl)} 
+              onClose={() => setIncludedTagsAnchorEl(null)} 
+              PaperProps={{ style: { maxHeight: 320 } }}
+            >
               {(imageResult.tags?.included || []).map((t: string) => (
-                <MenuItem key={`inc-${t}`} onClick={(ev) => { ev.preventDefault(); setSelectedTags((prev: string[]) => (prev.includes(t) ? prev.filter((x: string) => x !== t) : [...prev, t])); }}>
+                <MenuItem key={`inc-${t}`} onClick={(ev) => { 
+                  ev.preventDefault(); 
+                  setSelectedTags((prev: string[]) => (
+                    prev.includes(t) ? prev.filter((x: string) => x !== t) : [...prev, t]
+                  )); 
+                }}>
                   <Checkbox checked={selectedTags.includes(t)} />
                   <ListItemText primary={t} />
                 </MenuItem>
               ))}
-
-              <ListSubheader>Not included</ListSubheader>
-              {(imageResult.tags?.notIncluded || []).map((t: string) => (
-                <MenuItem key={`not-${t}`} onClick={(ev) => { ev.preventDefault(); setSelectedTags((prev: string[]) => (prev.includes(t) ? prev.filter((x: string) => x !== t) : [...prev, t])); }}>
-                  <Checkbox checked={selectedTags.includes(t)} />
-                  <ListItemText primary={t} />
-                </MenuItem>
-              ))}
-
-              <MenuItem onClick={() => setTagsAnchorEl(null)}>
+              <MenuItem onClick={() => setIncludedTagsAnchorEl(null)}>
                 <ListItemText primary="Done" />
               </MenuItem>
             </Menu>
           </Box>
 
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
-            {selectedTags.map((t: string) => {
-              const isIncluded = (imageResult.tags?.included || []).includes(t);
-              const isNotIncluded = (imageResult.tags?.notIncluded || []).includes(t);
-              const handleDelete = () => setSelectedTags((prev) => prev.filter((x) => x !== t));
-              if (isIncluded) {
-                return (
-                  <Chip key={`chip-${t}`} label={t} size="small" color="primary" variant="outlined" onDelete={handleDelete} aria-label={`Remove tag ${t}`} sx={{ mr: 1, mb: 1 }} />
-                );
-              }
-              if (isNotIncluded) {
-                return (
-                  <Chip key={`chip-${t}`} label={t} size="small" color="secondary" variant="outlined" onDelete={handleDelete} aria-label={`Remove tag ${t}`} sx={{ mr: 1, mb: 1 }} />
-                );
-              }
-              return (
-                <Chip key={`chip-${t}`} label={t} size="small" variant="outlined" onDelete={handleDelete} aria-label={`Remove tag ${t}`} sx={{ mr: 1, mb: 1 }} />
-              );
-            })}
+          {/* Not Included Tags Combobox */}
+          <Box>
+            <Button 
+              variant="outlined" 
+              size="small" 
+              color="info"
+              onClick={(e: React.MouseEvent<HTMLElement>) => setNotIncludedTagsAnchorEl(e.currentTarget)}
+            >
+              Suggested ({selectedTags.filter(t => (imageResult.tags?.notIncluded || []).includes(t)).length})
+            </Button>
+            <Menu 
+              anchorEl={notIncludedTagsAnchorEl} 
+              open={Boolean(notIncludedTagsAnchorEl)} 
+              onClose={() => setNotIncludedTagsAnchorEl(null)} 
+              PaperProps={{ style: { maxHeight: 320 } }}
+            >
+              {(imageResult.tags?.notIncluded || []).map((t: string) => (
+                <MenuItem key={`not-${t}`} onClick={(ev) => { 
+                  ev.preventDefault(); 
+                  setSelectedTags((prev: string[]) => (
+                    prev.includes(t) ? prev.filter((x: string) => x !== t) : [...prev, t]
+                  )); 
+                }}>
+                  <Checkbox checked={selectedTags.includes(t)} />
+                  <ListItemText primary={t} />
+                </MenuItem>
+              ))}
+              <MenuItem onClick={() => setNotIncludedTagsAnchorEl(null)}>
+                <ListItemText primary="Done" />
+              </MenuItem>
+            </Menu>
           </Box>
+        </Box>
+
+        {/* Selected Tags Display */}
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+          {selectedTags.map((t: string) => {
+            const isIncluded = (imageResult.tags?.included || []).includes(t);
+            const isNotIncluded = (imageResult.tags?.notIncluded || []).includes(t);
+            const handleDelete = () => setSelectedTags((prev) => prev.filter((x) => x !== t));
+            if (isIncluded) {
+              return (
+                <Chip key={`chip-${t}`} label={t} size="small" color="info" variant="filled" onDelete={handleDelete} aria-label={`Remove tag ${t}`} sx={{ mr: 1, mb: 1 }} />
+              );
+            }
+            if (isNotIncluded) {
+              return (
+                <Chip key={`chip-${t}`} label={t} size="small" color="info" variant="outlined" onDelete={handleDelete} aria-label={`Remove tag ${t}`} sx={{ mr: 1, mb: 1 }} />
+              );
+            }
+            return (
+              <Chip key={`chip-${t}`} label={t} size="small" variant="outlined" onDelete={handleDelete} aria-label={`Remove tag ${t}`} sx={{ mr: 1, mb: 1 }} />
+            );
+          })}
         </Box>
       </Paper>
 
@@ -299,54 +345,58 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
         {/* Image styles - its own Paper and responsive picker */}
         {imageResult.imageStyles && imageResult.imageStyles.length > 0 && (
           <Box sx={{ mt: 0 }}>
-            <Box sx={{ fontWeight: 600, mb: 1 }}>Image styles</Box>
             {isSmall ? (
-              <>
-                <Button variant="outlined" size="small" onClick={() => setStyleDrawerOpen(true)}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                <Box sx={{ fontWeight: 600, minWidth: 'fit-content' }}>Image styles</Box>
+                <Button variant="outlined" color="warning" size="small" onClick={() => setStyleDrawerOpen(true)}>
                   {selectedImageStyle ?? 'Choose image style'}
                 </Button>
-                <SwipeableDrawer anchor="bottom" open={styleDrawerOpen} onClose={() => setStyleDrawerOpen(false)} onOpen={() => setStyleDrawerOpen(true)}>
-                  <Box sx={{ p: 1 }}>
-                    <List>
-                      {(imageResult.imageStyles || []).map((s: string) => (
-                        <ListItemButton key={s} onClick={() => { setSelectedImageStyle(s); setStyleDrawerOpen(false); }}>
-                          <Radio checked={selectedImageStyle === s} />
-                          <ListItemText primary={s} />
-                        </ListItemButton>
-                      ))}
-                    </List>
-                  </Box>
-                </SwipeableDrawer>
-              </>
-            ) : (
-              <Box sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflowX: { xs: 'auto', sm: 'visible' },
-                whiteSpace: { xs: 'nowrap', sm: 'normal' },
-              }}>
-                <ToggleButtonGroup
-                  value={selectedImageStyle}
-                  exclusive
-                  onChange={(_e, newVal) => setSelectedImageStyle(newVal)}
-                  aria-label="Image style"
-                  size="small"
-                  sx={{ display: 'inline-flex' }}
-                >
-                  {(imageResult.imageStyles || []).map((s: string) => (
-                    <ToggleButton
-                      color="primary"
-                      key={s}
-                      value={s}
-                      aria-label={s}
-                      sx={{ minWidth: { xs: 72, sm: 56 }, fontSize: { xs: '0.72rem', sm: '0.78rem' } }}
-                    >
-                      {s}
-                    </ToggleButton>
-                  ))}
-                </ToggleButtonGroup>
               </Box>
+            ) : (
+              <>
+                <Box sx={{ fontWeight: 600, mb: 1 }}>Image styles</Box>
+                <Box sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  overflowX: { xs: 'auto', sm: 'visible' },
+                  whiteSpace: { xs: 'nowrap', sm: 'normal' },
+                }}>
+                  <ToggleButtonGroup
+                    value={selectedImageStyle}
+                    exclusive
+                    onChange={(_e, newVal) => setSelectedImageStyle(newVal)}
+                    aria-label="Image style"
+                    size="small"
+                    sx={{ display: 'inline-flex' }}
+                  >
+                    {(imageResult.imageStyles || []).map((s: string) => (
+                      <ToggleButton
+                        color="warning"
+                        key={s}
+                        value={s}
+                        aria-label={s}
+                        sx={{ minWidth: { xs: 72, sm: 56 }, fontSize: { xs: '0.72rem', sm: '0.78rem' } }}
+                      >
+                        {s}
+                      </ToggleButton>
+                    ))}
+                  </ToggleButtonGroup>
+                </Box>
+              </>
+            )}
+            {isSmall && (
+              <SwipeableDrawer anchor="bottom" open={styleDrawerOpen} onClose={() => setStyleDrawerOpen(false)} onOpen={() => setStyleDrawerOpen(true)}>
+                <Box sx={{ p: 1 }}>
+                  <List>
+                    {(imageResult.imageStyles || []).map((s: string) => (
+                      <ListItemButton key={s} onClick={() => { setSelectedImageStyle(s); setStyleDrawerOpen(false); }}>
+                        <Radio checked={selectedImageStyle === s} />
+                        <ListItemText primary={s} />
+                      </ListItemButton>
+                    ))}
+                  </List>
+                </Box>
+              </SwipeableDrawer>
             )}
           </Box>
         )}
