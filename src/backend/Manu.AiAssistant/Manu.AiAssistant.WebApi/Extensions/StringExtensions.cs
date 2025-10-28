@@ -22,5 +22,18 @@ namespace Manu.AiAssistant.WebApi.Extensions
 
             return responseContent;
         }
+
+        public static int CountWords(this string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return 0;
+
+            // Split by whitespace and punctuation, count words
+            var words = text
+                .Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+                .Length;
+
+            return words;
+        }
     }
 }
