@@ -39,9 +39,11 @@ interface PromptResultProps {
   // now expects an imagePromptId string
   onGenerate?: (imagePromptId: string) => Promise<any>;
   generating?: boolean;
+  // Parent (Prompt) controls whether Generate is enabled. If omitted, default to true.
+  generateEnabled?: boolean;
 }
 
-const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, onReset, onGenerate, generating }) => {
+const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, onReset, onGenerate, generating, generateEnabled }) => {
   const [selectedTags, setSelectedTags] = React.useState<string[]>(() => [...(imageResult.tags?.included || [])]);
   const [tagsAnchorEl, setTagsAnchorEl] = React.useState<HTMLElement | null>(null);
   const [selectedPOV, setSelectedPOV] = React.useState<string>(() => {
@@ -178,7 +180,8 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
                 size="small"
                 startIcon={<ImageSparkle />}
                 onClick={() => onGenerate && onGenerate(String(imageResult.id))}
-                disabled={generating || hasAnyChange}
+                // Parent controls generateEnabled; default to true when omitted
+                disabled={!(generateEnabled ?? true) || Boolean(generating) || hasAnyChange}
                 title={hasAnyChange ? 'Change tags or point of view back to original to enable generate' : undefined}
               >
                 Generate

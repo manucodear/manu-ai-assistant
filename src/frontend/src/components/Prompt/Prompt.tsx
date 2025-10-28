@@ -26,6 +26,8 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
   const [evaluateMessage, setEvaluateMessage] = useState<string | null>(null);
   const [evaluateSeverity, setEvaluateSeverity] = useState<'success' | 'error' | null>(null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  // Controls whether the Generate button in PromptResult is enabled. Prompt owns this state.
+  const [generateEnabled, setGenerateEnabled] = useState<boolean>(false);
   // store the selected image and optionally the prompt object together
   const [selectedImageForGeneration, setSelectedImageForGeneration] = useState<{ imageUrl?: string; imagePromptId?: string | null; imagePrompt?: ImagePromptResponse | null } | null>(null);
   const [openedFromGallery, setOpenedFromGallery] = useState<boolean>(false);
@@ -66,8 +68,10 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
       setConversationId(data?.conversationId ?? null);
       // store the prompt object on the selectedImageForGeneration so children receive it via props
       setSelectedImageForGeneration({ imageUrl: undefined, imagePromptId: data?.id ?? null, imagePrompt: data });
-      setIsShowingPromptResult(Boolean(data));
-      setGeneratedImageUrl(null);
+  setIsShowingPromptResult(Boolean(data));
+  setGeneratedImageUrl(null);
+  // New prompt resets generateEnabled — require explicit reset or evaluate to enable
+  setGenerateEnabled(false);
       setActiveTab('generate');
       return data;
     } catch (err: unknown) {
@@ -94,7 +98,9 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
       setConversationId(imageResult?.conversationId ?? conversationId ?? null);
       // attach the new prompt result to the selected image holder
       setSelectedImageForGeneration((s) => ({ ...(s ?? {}), imagePromptId: imageResult?.id ?? s?.imagePromptId ?? null, imagePrompt: imageResult }));
-      setIsShowingPromptResult(true);
+  setIsShowingPromptResult(true);
+  // after successful evaluate, enable generate
+  setGenerateEnabled(true);
       return imageResult;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error');
@@ -109,6 +115,8 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
     setSelectedImageForGeneration({ imageUrl: result.imageData?.url ?? '', imagePromptId: result.imagePrompt?.id ?? null, imagePrompt: result.imagePrompt ?? null });
     setIsShowingPromptResult(true);
     setOpenedFromGallery(true);
+    // opening image display from gallery disables generate
+    setGenerateEnabled(false);
   };
 
   // onGenerate: called by PromptResult when user triggers Generate
@@ -119,6 +127,8 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
       const image = await hookGenerateImage(imagePromptId);
       const url = image?.imageData?.url ?? null;
       setGeneratedImageUrl(url);
+      // showing generated image disables generate until reset
+      setGenerateEnabled(false);
     } catch (err: any) {
       const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error');
       setGlobalError(msg);
@@ -135,6 +145,8 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
     setActiveTab('generate');
     setIsShowingPromptResult(true);
     setOpenedFromGallery(false);
+    // showing prompt result from image display disables generate
+    setGenerateEnabled(false);
   };
 
   const handleReset = () => {
@@ -148,6 +160,8 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
     // Note: sending/evaluating/generating flags are managed by the hook; we cannot directly set them here.
     setGeneratedImageUrl(null);
     setConversationId(null);
+  // Reset enables generate per spec
+  setGenerateEnabled(true);
     // conversation tracking removed from this component
     // Note: do NOT automatically call onResetShowGallery here. The gallery/tab
     // switching should be controlled by the page that renders Prompt (e.g. Image.tsx)
@@ -198,7 +212,6 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
             setActiveTab('gallery');
             setIsShowingPromptResult(false);
             // clear any existing result so the gallery view is clean
-            imagePromptRef.current = null;
             setGeneratedImageUrl(null);
           }}
         />
@@ -316,7 +329,14 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
                   <Box sx={{ color: 'text.secondary' }}>{'Generating image\u2026'}</Box>
                 </Paper>
               ) : (
-                <PromptResult imageResult={selectedImageForGeneration?.imagePrompt as ImagePromptResponse} onEvaluate={onEvaluate} onReset={handleReset} onGenerate={onGenerate} generating={generating} />
+                <PromptResult
+                  imageResult={selectedImageForGeneration?.imagePrompt as ImagePromptResponse}
+                  onEvaluate={onEvaluate}
+                  onReset={handleReset}
+                  onGenerate={onGenerate}
+                  generating={generating}
+                  generateEnabled={generateEnabled}
+                />
               )
             ) : null}
           </>
