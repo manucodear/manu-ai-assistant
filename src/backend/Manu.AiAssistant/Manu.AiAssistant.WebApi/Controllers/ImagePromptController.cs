@@ -85,6 +85,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
             // Map and persist from ImagePromptResult
             var promptEntity = _mapper.Map<Prompt>(result);
             promptEntity.Username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name! : "anonymous";
+            promptEntity.Timestamp = DateTime.UtcNow;
             await _promptRepository.AddAsync(promptEntity, cancellationToken);
             return Ok(result);
         }
