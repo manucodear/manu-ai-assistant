@@ -1,16 +1,17 @@
-﻿using Manu.AiAssistant.WebApi.Services;
+﻿using Azure.Storage.Blobs.Models; // for blob listing
+using Manu.AiAssistant.WebApi.Models.Api;
+using Manu.AiAssistant.WebApi.Options;
+using Manu.AiAssistant.WebApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Manu.AiAssistant.WebApi.Options;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.IO;
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
-using System.Security.Claims;
-using Azure.Storage.Blobs.Models; // for blob listing
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {
@@ -78,12 +79,12 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 }
 
                 // Public URLs now expose only filename (without user directory) since GET will infer userId
-                var resultObj = new
+                var resultObj = new ImageDataResponse
                 {
-                    url = $"{basePath}/{id + ext}".ToLower(),
-                    thumbnailSmall = $"{basePath}/{id}{ThumbnailSize.Small.ToFileSuffix()}".ToLower(),
-                    thumbnailMedium = $"{basePath}/{id}{ThumbnailSize.Medium.ToFileSuffix()}".ToLower(),
-                    thumbnailLarge = $"{basePath}/{id}{ThumbnailSize.Large.ToFileSuffix()}".ToLower()
+                    Url = $"{basePath}/{id + ext}".ToLower(),
+                    SmallUrl = $"{basePath}/{id}{ThumbnailSize.Small.ToFileSuffix()}".ToLower(),
+                    MediumUrl = $"{basePath}/{id}{ThumbnailSize.Medium.ToFileSuffix()}".ToLower(),
+                    LargeUrl = $"{basePath}/{id}{ThumbnailSize.Large.ToFileSuffix()}".ToLower()
                 };
                 return Ok(resultObj);
             }
@@ -176,7 +177,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
 
             await _userImageStorageProvider.DeleteImagesAsync(blobsToDelete, cancellationToken);
             _logger.LogInformation("Deleted {Count} user image blobs for user {UserId} rootId {RootId}", blobsToDelete.Count, userId, rootId);
-            return Ok(new { deleted = blobsToDelete.Count });
+            return NoContent();
         }
     }
 }
