@@ -76,18 +76,20 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 return BadRequest("Prompt is required.");
             }
             // TODO: use long / short parameter
-            var result = await _imagePromptProvider.GetImagePromptResponseAsync(request.Prompt, request.ConversationId, cancellationToken);
-            if (result == null || string.IsNullOrWhiteSpace(result.ImprovedPrompt))
+            try
             {
-                return StatusCode(500, "Failed to parse image prompt result.");
+                var result = await _imagePromptProvider.GetImagePromptResponseAsync(request.Prompt, request.ConversationId, cancellationToken);
+                // Map and persist from ImagePromptResult
+                var promptEntity = _mapper.Map<Prompt>(result);
+                promptEntity.Username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name! : "anonymous";
+                promptEntity.Timestamp = DateTime.UtcNow;
+                await _promptRepository.AddAsync(promptEntity, cancellationToken);
+                return Ok(result);
             }
-
-            // Map and persist from ImagePromptResult
-            var promptEntity = _mapper.Map<Prompt>(result);
-            promptEntity.Username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name! : "anonymous";
-            promptEntity.Timestamp = DateTime.UtcNow;
-            await _promptRepository.AddAsync(promptEntity, cancellationToken);
-            return Ok(result);
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to generate image prompt: {ex.Message}");
+            }
         }
 
         [HttpPost("{id}/image")]

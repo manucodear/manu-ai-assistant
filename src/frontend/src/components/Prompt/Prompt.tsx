@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { PromptProps } from './Prompt.types';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -13,38 +13,69 @@ import PromptResult from '../PromptResult/PromptResult';
 import ImageDisplay from '../ImageDisplay/ImageDisplay';
 import ImageGallery from '../ImageGallery/ImageGallery';
 import ImageActionSelector from '../ImageActionSelector/ImageActionSelector';
-import useImagePrompt from '../../hooks/useImagePrompt';
-import { ImagePromptResponse, ImagePromptRevisionRequest, ImagePromptRevisionResponse } from '../../hooks/useImagePrompt.types';
-import { ImageResponse } from '../../hooks/useImage.types';
+import { ImagePromptResponse } from '../../hooks/useImagePrompt.types';
+import { usePromptController } from './usePromptController';
 
-export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
-  // Prompt now owns its own UI state: active tab (generate/gallery) and whether a prompt result view is showing
-  const [activeTab, setActiveTab] = useState<'generate' | 'gallery'>('generate');
-  const [isShowingPromptResult, setIsShowingPromptResult] = useState<boolean>(false);
-  const [input, setInput] = useState<string>(value ?? '');
-  const [globalError, setGlobalError] = useState<string | null>(null);
-  const [evaluateMessage, setEvaluateMessage] = useState<string | null>(null);
-  const [evaluateSeverity, setEvaluateSeverity] = useState<'success' | 'error' | null>(null);
-  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
-  // Controls whether the Generate button in PromptResult is enabled. Prompt owns this state.
-  const [generateEnabled, setGenerateEnabled] = useState<boolean>(false);
-  // store the selected image and optionally the prompt object together
-  const [selectedImageForGeneration, setSelectedImageForGeneration] = useState<{ imageUrl?: string; imagePromptId?: string | null; imagePrompt?: ImagePromptResponse | null } | null>(null);
-  const [openedFromGallery, setOpenedFromGallery] = useState<boolean>(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+export const Prompt: React.FC<PromptProps> = ({ value, controller }: PromptProps) => {
+  // use external controller if provided, otherwise create an internal one
+  const internalController = usePromptController({ value });
+  const ctrl = controller ?? internalController;
+
   const {
-    sendPrompt: hookSendPrompt,
-    evaluatePrompt: hookEvaluatePrompt,
-    generateImage: hookGenerateImage,
-    sending: hookSending,
-    evaluating: hookEvaluating,
-    generating: hookGenerating,
-    // getImagePromptById removed — gallery/display now provides full ImageResponse
-  } = useImagePrompt();
+    state: {
+      activeTab,
+      isShowingPromptResult,
+      input,
+      globalError,
+      evaluateMessage,
+      evaluateSeverity,
+      generatedImageUrl,
+      generateEnabled,
+      selectedImageForGeneration,
+      openedFromGallery,
+      sending: hookSending,
+      evaluating: hookEvaluating,
+      generating: hookGenerating,
+    },
+    actions,
+  } = ctrl;
 
   const disable = hookSending;
   const evaluating = hookEvaluating;
   const generating = hookGenerating;
+
+  // Memoize construction of the image object passed to ImageDisplay to avoid
+  // duplicating the same object shape in multiple places below.
+  const imageForDisplay = React.useMemo(() => {
+    const hasPrompt = !!selectedImageForGeneration?.imagePrompt;
+    const url = selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '';
+
+    if (hasPrompt) {
+      return {
+        id: selectedImageForGeneration?.imagePrompt?.id ?? (selectedImageForGeneration?.imagePromptId ?? ''),
+        timestamp: '',
+        imageData: {
+          url,
+          smallUrl: url,
+          mediumUrl: url,
+          largeUrl: url,
+        },
+        imagePrompt: selectedImageForGeneration?.imagePrompt as ImagePromptResponse,
+      };
+    }
+
+    return {
+      id: selectedImageForGeneration?.imagePromptId ?? '',
+      timestamp: '',
+      imageData: {
+        url,
+        smallUrl: url,
+        mediumUrl: url,
+        largeUrl: url,
+      },
+      imagePrompt: (selectedImageForGeneration?.imagePrompt as ImagePromptResponse) ?? ({} as ImagePromptResponse),
+    };
+  }, [generatedImageUrl, selectedImageForGeneration]);
   // conversationId removed from hook; not tracked here
   // result UI is self-contained
 
@@ -52,141 +83,25 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
   // Now accepts prompt and conversationId (conversationId is not used by the hook)
   // Gallery overlay will pass back a full ImagePromptResponse when selecting an item
 
-  const handleSendClick = async (text: string, _conversationId: string | null) => {
-    if (!text || !text.trim()) return;
-    setEvaluateMessage(null);
-    setEvaluateSeverity(null);
-    setGlobalError(null);
-    setGeneratedImageUrl(null);
-    const previousInput = text;
-    setInput('');
-    try {
-      // hookSendPrompt expects ImagePromptGenerateRequest { prompt }
-      const data = await hookSendPrompt({ prompt: text });
-      // hookSendPrompt returns ImagePromptResponse
-      // capture conversationId if present so we can include it on subsequent evaluate/send
-      setConversationId(data?.conversationId ?? null);
-      // store the prompt object on the selectedImageForGeneration so children receive it via props
-      setSelectedImageForGeneration({ imageUrl: undefined, imagePromptId: data?.id ?? null, imagePrompt: data });
-      setIsShowingPromptResult(Boolean(data));
-      setGeneratedImageUrl(null);
-      // New prompt: ensure Generate is enabled for the returned prompt (no error occurred)
-      setGenerateEnabled(true);
-      setActiveTab('generate');
-      return data;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error');
-      setEvaluateMessage(msg);
-      setEvaluateSeverity('error');
-      // Only set the evaluation message/severity here to avoid showing
-      // the same error twice (globalError renders a separate Alert).
-      // restore input so user can retry
-      setInput(previousInput);
-      throw err;
-    }
-  };
+  const handleSendClick = actions.sendPrompt;
 
 
   // Called by PromptResult when the user clicks "ReWrite" to evaluate the prompt
-  const onEvaluate = async (payload: ImagePromptRevisionRequest) => {
-    setGlobalError(null);
-    try {
-      const rev = (await hookEvaluatePrompt(payload)) as ImagePromptRevisionResponse;
-      // rev.revisedPrompt contains the revised prompt string — use it to request a full ImagePromptResponse
-      const imageResult = await hookSendPrompt({ prompt: rev.revisedPrompt }, conversationId ?? null);
-      // update conversationId if the server returned one
-      setConversationId(imageResult?.conversationId ?? conversationId ?? null);
-      // attach the new prompt result to the selected image holder
-      setSelectedImageForGeneration((s) => ({ ...(s ?? {}), imagePromptId: imageResult?.id ?? s?.imagePromptId ?? null, imagePrompt: imageResult }));
-      setIsShowingPromptResult(true);
-      // after successful evaluate, enable generate
-      setGenerateEnabled(true);
-      return imageResult;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error');
-      setGlobalError(msg);
-      throw err;
-    }
-  };
+  const onEvaluate = actions.evaluate;
 
-  const handleGalleryShowPromptResult = async (result: ImageResponse) => {
-    // The gallery passes the full ImageResponse; extract prompt and image info
-    // store the selected image and its prompt object so child components can receive it as a parameter
-    setSelectedImageForGeneration({ imageUrl: result.imageData?.url ?? '', imagePromptId: result.imagePrompt?.id ?? null, imagePrompt: result.imagePrompt ?? null });
-    setIsShowingPromptResult(true);
-    setOpenedFromGallery(true);
-    // opening image display from gallery disables generate
-    setGenerateEnabled(false);
-  };
+  const handleGalleryShowPromptResult = actions.showGalleryPrompt;
 
   // onGenerate: called by PromptResult when user triggers Generate
-  const onGenerate = async (imagePromptId: string) => {
-    setGlobalError(null);
-    setGeneratedImageUrl(null);
-    try {
-      const image = await hookGenerateImage(imagePromptId);
-      const url = image?.imageData?.url ?? null;
-      setGeneratedImageUrl(url);
-      // showing generated image disables generate until reset
-      setGenerateEnabled(false);
-    } catch (err: any) {
-      const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error');
-      setGlobalError(msg);
-    }
-  };
+  const onGenerate = actions.generate;
 
   // Centralized handler used by ImageDisplay to show the prompt result directly
   // Now accepts the ImagePromptResponse and displays the PromptResult in create mode
-  const handleImageDisplayShowPromptResult = (imagePrompt: ImagePromptResponse) => {
-    // Show the prompt result and switch to the create view
-    // Show the prompt result and switch to the create view
-    setSelectedImageForGeneration({ imageUrl: undefined, imagePromptId: imagePrompt?.id ?? null, imagePrompt });
-    setGeneratedImageUrl(null);
-    setActiveTab('generate');
-    setIsShowingPromptResult(true);
-    setOpenedFromGallery(false);
-    // showing prompt result from image display disables generate
-    setGenerateEnabled(false);
-  };
+  const handleImageDisplayShowPromptResult = actions.showImageDisplayPrompt;
 
-  const handleReset = () => {
-    // Reset to initial state: clear result and input, clear messages and errors
-    setSelectedImageForGeneration(null);
-    setInput('');
-    setGlobalError(null);
-    setEvaluateMessage(null);
-    setEvaluateSeverity(null);
-    // clear generation state as well
-    // Note: sending/evaluating/generating flags are managed by the hook; we cannot directly set them here.
-    setGeneratedImageUrl(null);
-    setConversationId(null);
-    // Reset enables generate per spec
-    setGenerateEnabled(true);
-    // conversation tracking removed from this component
-    // Note: do NOT automatically call onResetShowGallery here. The gallery/tab
-    // switching should be controlled by the page that renders Prompt (e.g. Image.tsx)
-    // so main flow Reset returns to the prompt input as expected.
-  };
+  const handleReset = actions.reset;
 
   // When the ImageDisplay triggers a reset, we want to return the UI to the gallery view
-  const handleResetShowGallery = () => {
-    // If the overlay was opened from the gallery, simply close the overlay but keep the gallery mounted
-    if (openedFromGallery) {
-      setOpenedFromGallery(false);
-      setIsShowingPromptResult(false);
-      setGeneratedImageUrl(null);
-      setSelectedImageForGeneration(null);
-      // keep activeTab as 'gallery' so the gallery remains available and not remounted
-      setActiveTab('gallery');
-      return;
-    }
-
-    // Otherwise perform the usual reset and switch to the gallery view
-    handleReset();
-    setActiveTab('gallery');
-    setIsShowingPromptResult(false);
-    setGeneratedImageUrl(null);
-  };
+  const handleResetShowGallery = actions.resetShowGallery;
 
   // key handling moved into PromptInput; keep sendPrompt available for direct calls
 
@@ -197,22 +112,21 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
         <ImageActionSelector
           activeTab={activeTab}
           isShowingPromptResult={isShowingPromptResult}
-          onShowGenerate={() => {
+            onShowGenerate={() => {
             // Switch to create view: unmount gallery so it will be recreated
             // (and refetch) the next time the user opens it.
-            setActiveTab('generate');
-            setIsShowingPromptResult(false);
-            setOpenedFromGallery(false);
+            actions.setActiveTab?.('generate');
+            actions.setIsShowingPromptResult?.(false);
+            actions.setOpenedFromGallery?.(false);
             // clear any gallery-related state so the gallery starts fresh next time
-            setSelectedImageForGeneration(null);
-            setSelectedImageForGeneration(null);
-            setGeneratedImageUrl(null);
+              actions.setSelectedImageForGeneration?.(null);
+            actions.setGeneratedImageUrl?.(null);
           }}
           onShowGallery={() => {
-            setActiveTab('gallery');
-            setIsShowingPromptResult(false);
+            actions.setActiveTab?.('gallery');
+            actions.setIsShowingPromptResult?.(false);
             // clear any existing result so the gallery view is clean
-            setGeneratedImageUrl(null);
+            actions.setGeneratedImageUrl?.(null);
           }}
         />
         {/* Include the ImageGallery inside the Prompt layout. Keep it mounted but hide when ImageDisplay overlay is open
@@ -231,8 +145,10 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
         {openedFromGallery && isShowingPromptResult && (generatedImageUrl || selectedImageForGeneration?.imageUrl || selectedImageForGeneration?.imagePrompt) && (
           <ImageDisplay
             image={
-              selectedImageForGeneration?.imagePrompt
-                ? {
+              // imageForDisplay is memoized below; placeholder here to satisfy JSX position
+              (() => {
+                // this will be replaced by the memoized value further down in the render
+                return {
                   id: selectedImageForGeneration?.imagePrompt?.id ?? (selectedImageForGeneration?.imagePromptId ?? ''),
                   timestamp: '',
                   imageData: {
@@ -242,18 +158,8 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
                     largeUrl: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
                   },
                   imagePrompt: selectedImageForGeneration?.imagePrompt as ImagePromptResponse,
-                }
-                : {
-                  id: selectedImageForGeneration?.imagePromptId ?? '',
-                  timestamp: '',
-                  imageData: {
-                    url: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
-                    smallUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
-                    mediumUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
-                    largeUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
-                  },
-                  imagePrompt: (selectedImageForGeneration?.imagePrompt as ImagePromptResponse) ?? ({} as ImagePromptResponse),
-                }
+                };
+              })()
             }
             onReset={handleResetShowGallery}
             onShowPromptResult={handleImageDisplayShowPromptResult}
@@ -283,8 +189,8 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
                 - after click Send: hide textarea and show a loading area
                 - on success: show PromptResult (textarea remains hidden)
                 - on error: show Alert and restore textarea */}
-            {!disable && !(selectedImageForGeneration?.imagePrompt) && !evaluating ? (
-              <PromptInput input={input} setInput={setInput} onSend={handleSendClick} disable={disable} />
+            {!disable && !evaluating ? (
+              <PromptInput input={input} setInput={actions.setInput} onSend={handleSendClick} disable={disable} />
             ) : disable || evaluating ? (
               <Paper aria-live="polite" elevation={0} sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
                 <CircularProgress size={24} />
@@ -295,31 +201,7 @@ export const Prompt: React.FC<PromptProps> = ({ value }: PromptProps) => {
               // Otherwise show prompt result or generation/loading states.
               (generatedImageUrl || selectedImageForGeneration?.imageUrl) ? (
                 <ImageDisplay
-                  image={
-                    selectedImageForGeneration?.imagePrompt
-                      ? {
-                        id: selectedImageForGeneration?.imagePrompt?.id ?? (selectedImageForGeneration?.imagePromptId ?? ''),
-                        timestamp: '',
-                        imageData: {
-                          url: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
-                          smallUrl: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
-                          mediumUrl: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
-                          largeUrl: selectedImageForGeneration?.imageUrl ?? generatedImageUrl ?? '',
-                        },
-                        imagePrompt: selectedImageForGeneration?.imagePrompt as ImagePromptResponse,
-                      }
-                      : {
-                        id: selectedImageForGeneration?.imagePromptId ?? '',
-                        timestamp: '',
-                        imageData: {
-                          url: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
-                          smallUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
-                          mediumUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
-                          largeUrl: generatedImageUrl ?? selectedImageForGeneration?.imageUrl ?? '',
-                        },
-                        imagePrompt: (selectedImageForGeneration?.imagePrompt as ImagePromptResponse) ?? ({} as ImagePromptResponse),
-                      }
-                  }
+                  image={imageForDisplay}
                   onReset={handleResetShowGallery}
                   onShowPromptResult={handleImageDisplayShowPromptResult}
                 />

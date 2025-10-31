@@ -45,7 +45,7 @@ namespace Manu.AiAssistant.WebApi.Services
             }
             catch
             {
-                return new ImagePromptResponse();
+                throw new Exception(chatResult.ResponseContent);
             }
         }
 
