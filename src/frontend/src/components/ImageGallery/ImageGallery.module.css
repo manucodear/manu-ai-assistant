@@ -1,34 +1,39 @@
+/* Trimmed: most gallery styles were migrated to the MUI-based ImageGallery component.
+   Keeping only the global `.image-overlay` selector because `ImageGallery.tsx` sets
+   className="image-overlay" on the overlay Box (not using CSS modules). If you
+   want to fully migrate to CSS modules or MUI styles, remove this file entirely. */
+
 .container {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.5rem;
   align-items: stretch;
-  justify-content: flex-start;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 600px) {
   .container {
-    gap: 2rem;
-    padding: 1.5rem;
+    padding: 0.5rem;
+    gap: 1rem;
   }
 }
 
-/* Header Card */
-.headerCard {
+@media (min-width: 900px) {
+  .container {
+    padding: 1rem;
+    gap: 1.5rem;
+  }
+}
+
+/* Header / controls */
+.headerPaper {
   padding: 1rem;
 }
 
-@media (min-width: 768px) {
-  .headerCard {
-    padding: 1.5rem;
-  }
-}
-
-.header {
+.headerBox {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -36,488 +41,82 @@
   gap: 1rem;
 }
 
-.headerIcon {
-  margin-right: 0.5rem;
-  vertical-align: middle;
+@media (min-width: 600px) {
+  .headerBox { gap: 2rem; }
 }
 
-/* Controls Card */
-.controlsCard {
-  padding: 1rem;
+.toggleGroup :global(.MuiToggleButton-root) {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-size: 0.8rem;
+  min-width: 60px;
+  border: 1px solid;
+  border-color: var(--mui-palette-action-disabled, #666);
+  color: var(--mui-palette-text-secondary, #666);
 }
 
-@media (min-width: 768px) {
-  .controlsCard {
-    padding: 1.5rem;
+@media (min-width: 600px) {
+  .toggleGroup :global(.MuiToggleButton-root) {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-top: 0.38rem;
+    padding-bottom: 0.38rem;
+    font-size: 0.875rem;
+    min-width: 80px;
   }
 }
 
-.controls {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
+/* Loading / status */
+.loadingPaper { padding: 1rem; text-align: center; }
+@media (min-width: 900px) { .loadingPaper { padding: 1.5rem; } }
 
-@media (min-width: 768px) {
-  .controls {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
-}
+.loadingBox { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+@media (min-width: 600px) { .loadingBox { flex-direction: row; justify-content: center; } }
 
-.sizeSelector {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
+.loadingText { font-size: 0.9rem; }
+@media (min-width: 900px) { .loadingText { font-size: 1rem; } }
 
-/* Status Cards */
-.statusCard {
-  padding: 1.5rem;
-  text-align: center;
-}
+.alertCustom :global(.MuiAlert-message) { font-size: 0.875rem; }
 
-.loadingContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
+.emptyPaper { padding: 1.5rem; text-align: center; }
+@media (min-width: 900px) { .emptyPaper { padding: 2rem; } }
 
-@media (min-width: 768px) {
-  .loadingContainer {
-    flex-direction: row;
-    justify-content: center;
-  }
-}
+.emptyBox { display: flex; flex-direction: column; align-items: center; gap: 1rem; color: var(--mui-palette-text-secondary, #666); }
+.emptyIcon { font-size: 2.5rem; opacity: 0.5; }
+.emptyTitle { font-size: 1.1rem; }
+@media (min-width: 900px) { .emptyTitle { font-size: 1.25rem; } }
+.emptyBody { font-size: 0.9rem; }
+@media (min-width: 900px) { .emptyBody { font-size: 1rem; } }
 
-.emptyCard {
-  padding: 2rem;
-  text-align: center;
-}
+/* Image list and items */
+.imageList { width: 100%; margin: 0; padding: 0; column-gap: 12px; row-gap: 12px; }
 
-.emptyState {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  color: var(--colorNeutralForeground3, #666);
-}
+.imageItem { cursor: pointer; overflow: hidden; border-radius: 8px; }
+@media (min-width: 900px) { .imageItem { border-radius: 12px; } }
 
-.emptyIcon {
-  font-size: 3rem;
-  opacity: 0.5;
-}
+.imageWrapper { position: relative; width: 100%; padding-top: 100%; overflow: hidden; }
 
-/* Gallery Grid - Base styles */
-.gallery {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.25rem;
-  width: 100%;
-  transition: gap 0.3s ease;
-}
+.galleryImage { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
+.imageItem:hover .galleryImage { transform: scale(1.03); }
 
-/* Small size - more images per row (smaller cards) */
-.gallery[data-size="small"] {
-  gap: 0.125rem;
-}
-
-@media (min-width: 768px) {
-  .gallery[data-size="small"] {
-    gap: 0.25rem;
-  }
-}
-
-/* Medium size - balanced layout (default) */
-.gallery[data-size="medium"] {
-  gap: 0.25rem;
-}
-
-@media (min-width: 768px) {
-  .gallery[data-size="medium"] {
-    gap: 0.5rem;
-  }
-}
-
-/* Large size - fewer images per row (larger cards) */
-.gallery[data-size="large"] {
-  gap: 0.5rem;
-}
-
-@media (min-width: 768px) {
-  .gallery[data-size="large"] {
-    gap: 0.75rem;
-  }
-}
-
-/* Mobile - always single column regardless of size */
-@media (max-width: 480px) {
-  .gallery[data-size="small"],
-  .gallery[data-size="medium"],
-  .gallery[data-size="large"] {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-}
-
-/* Image Cards */
-.imageCard {
-  position: relative;
-  overflow: hidden;
-  border-radius: 8px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-radius 0.3s ease;
-  cursor: pointer;
-}
-
-.imageCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-}
-
-/* Size-specific image card styling */
-.gallery[data-size="small"] .imageCard {
-  border-radius: 6px;
-  width: 65px;
-  height: 65px;
-  flex-shrink: 0;
-}
-
-.gallery[data-size="medium"] .imageCard {
-  border-radius: 8px;
-  width: 110px;
-  height: 110px;
-  flex-shrink: 0;
-}
-
-.gallery[data-size="large"] .imageCard {
-  border-radius: 12px;
-  width: 320px;
-  height: 320px;
-  flex-shrink: 0;
-}
-
-.imageContainer {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1;
-  overflow: hidden;
-}
-
-/* Size-specific image container dimensions - maintaining square aspect ratio */
-.gallery[data-size="small"] .imageContainer {
-  width: 65px;
-  height: 65px;
-}
-
-.gallery[data-size="medium"] .imageContainer {
-  width: 110px;
-  height: 110px;
-}
-
-.gallery[data-size="large"] .imageContainer {
-  width: 320px;
-  height: 320px;
-}
-
-@media (min-width: 768px) {
-  .gallery[data-size="small"] .imageContainer {
-    width: 120px;
-    height: 120px;
-  }
-  
-  .gallery[data-size="medium"] .imageContainer {
-    width: 200px;
-    height: 200px;
-  }
-  
-  .gallery[data-size="large"] .imageContainer {
-    width: 400px;
-    height: 400px;
-  }
-  
-  .gallery[data-size="small"] .imageCard {
-    width: 120px;
-    height: 120px;
-    flex-shrink: 0;
-  }
-  
-  .gallery[data-size="medium"] .imageCard {
-    width: 200px;
-    height: 200px;
-    flex-shrink: 0;
-  }
-  
-  .gallery[data-size="large"] .imageCard {
-    width: 400px;
-    height: 400px;
-    flex-shrink: 0;
-  }
-}
-
-@media (min-width: 1024px) {
-  .gallery[data-size="small"] .imageContainer {
-    width: 150px;
-    height: 150px;
-  }
-  
-  .gallery[data-size="medium"] .imageContainer {
-    width: 250px;
-    height: 250px;
-  }
-  
-  .gallery[data-size="large"] .imageContainer {
-    width: 480px;
-    height: 480px;
-  }
-  
-  .gallery[data-size="small"] .imageCard {
-    width: 150px;
-    height: 150px;
-    flex-shrink: 0;
-  }
-  
-  .gallery[data-size="medium"] .imageCard {
-    width: 250px;
-    height: 250px;
-    flex-shrink: 0;
-  }
-  
-  .gallery[data-size="large"] .imageCard {
-    width: 480px;
-    height: 480px;
-    flex-shrink: 0;
-  }
-}
-
-.galleryImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.imageCard:hover .galleryImage {
-  transform: scale(1.05);
-}
-
-/* Delete Button */
-.deleteButton {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  z-index: 10;
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  opacity: 0;
-  transform: scale(0.9);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  min-height: 32px;
-}
-
-.deleteButton:hover {
-  background-color: rgba(220, 38, 38, 0.9);
-  color: white;
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: scale(1);
-}
-
-.imageCard:hover .deleteButton {
-  opacity: 1;
-  transform: scale(1);
-}
-
-/* Size-specific delete button positioning */
-.gallery[data-size="small"] .deleteButton {
-  top: 0.25rem;
-  right: 0.25rem;
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  min-height: 24px;
-}
-
-.gallery[data-size="medium"] .deleteButton {
-  top: 0.5rem;
-  right: 0.5rem;
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
-  min-height: 28px;
-}
-
-.gallery[data-size="large"] .deleteButton {
-  top: 0.75rem;
-  right: 0.75rem;
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  min-height: 36px;
-}
-
-/* Image Overlay */
+/* Overlay behavior: visible on small screens, hidden by default on md+ and revealed on hover */
 .imageOverlay {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.8) 0%,
-    rgba(0, 0, 0, 0.4) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, transparent 100%);
   padding: 1rem;
-  transform: translateY(100%);
+  transform: translateY(0);
   transition: transform 0.3s ease;
 }
 
-/* Size-specific overlay padding */
-.gallery[data-size="small"] .imageOverlay {
-  padding: 0.75rem;
+@media (min-width: 900px) {
+  .imageOverlay { transform: translateY(100%); padding: 1.5rem; }
+  .imageItem:hover .imageOverlay { transform: translateY(0); }
 }
 
-.gallery[data-size="medium"] .imageOverlay {
-  padding: 1rem;
-}
-
-.gallery[data-size="large"] .imageOverlay {
-  padding: 1.25rem;
-}
-
-.imageCard:hover .imageOverlay {
-  transform: translateY(0);
-}
-
-.imageInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.imagePrompt {
-  color: white;
-  font-weight: 500;
-  line-height: 1.3;
-  word-break: break-word;
-  margin: 0;
-}
-
-.imageTimestamp {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.875rem;
-  margin: 0;
-}
-
-/* Size-specific text styling */
-.gallery[data-size="small"] .imagePrompt {
-  font-size: 0.8125rem;
-  line-height: 1.2;
-}
-
-.gallery[data-size="small"] .imageTimestamp {
-  font-size: 0.5rem;
-  display: none;
-}
-
-@media (min-width: 768px) {
-  .gallery[data-size="small"] .imageTimestamp {
-    display: block;
-    font-size: 0.625rem;
-  }
-}
-
-.gallery[data-size="medium"] .imagePrompt {
-  font-size: 0.875rem;
-  line-height: 1.3;
-}
-
-.gallery[data-size="medium"] .imageTimestamp {
-  font-size: 0.8125rem;
-}
-
-.gallery[data-size="large"] .imagePrompt {
-  font-size: 1rem;
-  line-height: 1.4;
-}
-
-.gallery[data-size="large"] .imageTimestamp {
-  font-size: 0.875rem;
-}
-
-/* Mobile-specific adjustments */
-@media (max-width: 480px) {
-  .header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-  
-  .controls {
-    gap: 0.75rem;
-  }
-  
-  .sizeSelector {
-    gap: 0.75rem;
-  }
-  
-  .imageCard {
-    border-radius: 6px;
-  }
-  
-  .imageOverlay {
-    padding: 0.75rem;
-  }
-  
-  .imagePrompt {
-    font-size: 0.875rem;
-  }
-  
-  .imageTimestamp {
-    font-size: 0.8125rem;
-  }
-}
-
-/* Touch-friendly hover states for mobile */
-@media (hover: none) and (pointer: coarse) {
-  .imageCard:active {
-    transform: scale(0.98);
-  }
-  
-  .imageOverlay {
-    transform: translateY(0);
-    background: linear-gradient(
-      to top,
-      rgba(0, 0, 0, 0.9) 0%,
-      rgba(0, 0, 0, 0.6) 70%,
-      transparent 100%
-    );
-  }
-  
-  /* Always show delete button on mobile for user images */
-  .deleteButton {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Dark theme optimizations */
-@media (prefers-color-scheme: dark) {
-  .emptyState {
-    color: var(--colorNeutralForeground3, #999);
-  }
-  
-  .imageCard {
-    background-color: var(--colorNeutralBackground2, #2d2d2d);
-  }
-  
-  .imageCard:hover {
-    box-shadow: 0 8px 24px rgba(255, 255, 255, 0.1);
-  }
-}
+.overlayText { color: rgba(255,255,255,0.9); font-size: 0.75rem; }
+@media (min-width: 900px) { .overlayText { font-size: 0.875rem; } }

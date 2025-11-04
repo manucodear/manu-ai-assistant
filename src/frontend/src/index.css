@@ -8,4 +8,12 @@ html, body, #root {
   margin: 0;
 }
 
+/* Reserve space for the vertical scrollbar to avoid layout shift when it appears/disappears.
+   Modern browsers support `scrollbar-gutter: stable` which keeps the scrollbar gutter reserved.
+   This prevents horizontal shifts (for example the PageSelector moving) when a page becomes scrollable.
+*/
+html {
+  scrollbar-gutter: stable;
+}
+
 /* Leave color, typography and background to MUI Theme/CssBaseline */

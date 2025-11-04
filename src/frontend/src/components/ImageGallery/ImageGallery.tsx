@@ -1,15 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ImageGalleryProps, ImageSize } from './ImageGallery.types';
 import {
   Paper,
   Typography,
-  CircularProgress,
   Alert,
+  Skeleton,
   Box,
   Chip,
   ToggleButtonGroup,
-  ToggleButton
+  ToggleButton,
+  ImageList,
+  ImageListItem
 } from '@mui/material';
+import styles from './ImageGallery.module.css';
+import ImageDisplay from '../ImageDisplay/ImageDisplay';
+import { useNavigate } from 'react-router-dom';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import {
   Collections as ImageMultiple,
   Warning as WarningIcon,
@@ -21,11 +28,13 @@ import {
 import { fetchImagesApi } from '../../hooks/useImage';
 import { ImageDataResponse, ImageResponse } from '../../hooks/useImage.types';
 
-const ImageGallery: React.FC<ImageGalleryProps> = ({ onShowPromptResult }: ImageGalleryProps) => {
+const ImageGallery: React.FC<ImageGalleryProps> = (_props: ImageGalleryProps) => {
   const [images, setImages] = useState<ImageResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<ImageSize>('large');
+  const [selectedImage, setSelectedImage] = useState<ImageResponse | null>(null);
+  const navigate = useNavigate();
   // Gallery does not own the full-screen ImageDisplay view anymore.
   // Parent `Prompt` will render ImageDisplay when notified via onShowPromptResult.
 
@@ -63,16 +72,47 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ onShowPromptResult }: Image
     }
   };
 
+  const theme = useTheme();
+  const isSm = useMediaQuery(theme.breakpoints.up('sm'));
+  const isMd = useMediaQuery(theme.breakpoints.up('md'));
+  const isLg = useMediaQuery(theme.breakpoints.up('lg'));
+  const isXl = useMediaQuery(theme.breakpoints.up('xl'));
+
+  const cols = useMemo(() => {
+    // Choose columns based on selected size and breakpoint. Aim to show more columns on larger screens.
+    if (selectedSize === 'small') {
+      if (isXl) return 12;
+      if (isLg) return 10;
+      if (isMd) return 6;
+      if (isSm) return 4;
+      return 3;
+    }
+    if (selectedSize === 'medium') {
+      if (isXl) return 8;
+      if (isLg) return 6;
+      if (isMd) return 4;
+      if (isSm) return 3;
+      return 2;
+    }
+    // large
+    if (isXl) return 6;
+    if (isLg) return 5;
+    if (isMd) return 4;
+    if (isSm) return 2;
+    return 1;
+  }, [selectedSize, isSm, isMd, isLg, isXl]);
+
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, md: 2 }, width: '100%', maxWidth: 1200, margin: '0 auto', padding: { xs: 0.5, sm: 1, md: 1.5 }, alignItems: 'stretch' }}>
-      <Paper elevation={1} sx={{ p: { xs: 1.5, sm: 2, md: 2.5 } }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: { xs: 1.5, sm: 2 } }}>
+    <Box className={styles.container}>
+      <Paper elevation={1} className={styles.headerPaper}>
+        <Box className={styles.headerBox}>
           <ToggleButtonGroup
             value={selectedSize}
             exclusive
             onChange={(_, newSize: ImageSize | null) => { if (newSize !== null) setSelectedSize(newSize); }}
             size="small"
-            sx={{ '& .MuiToggleButton-root': { px: { xs: 1.5, sm: 2 }, py: { xs: 0.5, sm: 0.75 }, fontSize: { xs: '0.8rem', md: '0.875rem' }, minWidth: { xs: 60, sm: 80 }, border: '1px solid', borderColor: 'action.disabled', color: 'text.secondary' } }}
+            color='standard'
+            className={styles.toggleGroup}
           >
             <ToggleButton value="small" aria-label="Small size"><Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><SmallIcon fontSize="small" /><span>Small</span></Box></ToggleButton>
             <ToggleButton value="medium" aria-label="Medium size"><Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><MediumIcon fontSize="small" /><span>Medium</span></Box></ToggleButton>
@@ -83,48 +123,64 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ onShowPromptResult }: Image
       </Paper>
 
       {loading && (
-        <Paper elevation={0} sx={{ p: { xs: 2, md: 3 }, textAlign: 'center' }}>
-          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', justifyContent: 'center', gap: { xs: 1.5, sm: 2 } }}>
-            <CircularProgress size={28} />
-            <Typography variant="body1" sx={{ fontSize: { xs: '0.9rem', md: '1rem' } }}>Loading images...</Typography>
+        <Paper elevation={0} className={styles.loadingPaper}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <ImageList cols={cols} gap={12} className={styles.imageList}>
+              {Array.from({ length: cols * 3 }).map((_, i) => (
+                <ImageListItem key={`sk-${i}`} className={styles.imageItem}>
+                  <div className={styles.imageWrapper}>
+                    <Skeleton variant="rectangular" sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+                  </div>
+                </ImageListItem>
+              ))}
+            </ImageList>
           </Box>
         </Paper>
       )}
 
       {error && (
-        <Alert severity="error" icon={<WarningIcon />} sx={{ '& .MuiAlert-message': { fontSize: { xs: '0.875rem', md: '0.875rem' } } }}>{error}</Alert>
+        <Alert severity="error" icon={<WarningIcon />} className={styles.alertCustom}>{error}</Alert>
       )}
 
       {!loading && !error && images.length === 0 && (
-        <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, textAlign: 'center' }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: { xs: 1.5, md: 2 }, color: 'text.secondary' }}>
-            <ImageMultiple sx={{ fontSize: { xs: '2.5rem', md: '3rem' }, opacity: 0.5 }} />
-            <Typography variant="h6" sx={{ fontSize: { xs: '1.1rem', md: '1.25rem' } }}>No Images Found</Typography>
-            <Typography variant="body1" sx={{ fontSize: { xs: '0.9rem', md: '1rem' } }}>Generate some images to see them here in the gallery.</Typography>
+        <Paper elevation={0} className={styles.emptyPaper}>
+          <Box className={styles.emptyBox}>
+            <ImageMultiple className={styles.emptyIcon} sx={{ opacity: 0.5 }} />
+            <Typography className={styles.emptyTitle} variant="h6">No Images Found</Typography>
+            <Typography className={styles.emptyBody} variant="body1">Generate some images to see them here in the gallery.</Typography>
           </Box>
         </Paper>
       )}
 
       {!loading && !error && images.length > 0 && (
         <>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: selectedSize === 'large' ? '1fr' : 'repeat(auto-fill, minmax(120px, 1fr))', sm: selectedSize === 'small' ? 'repeat(auto-fill, minmax(100px, 1fr))' : selectedSize === 'medium' ? 'repeat(auto-fill, minmax(180px, 1fr))' : 'repeat(auto-fill, minmax(280px, 1fr))', md: selectedSize === 'small' ? 'repeat(auto-fill, minmax(150px, 1fr))' : selectedSize === 'medium' ? 'repeat(auto-fill, minmax(250px, 1fr))' : 'repeat(auto-fill, minmax(350px, 1fr))' }, gap: { xs: selectedSize === 'small' ? 0.5 : selectedSize === 'medium' ? 1 : 1.5, sm: selectedSize === 'small' ? 1 : selectedSize === 'medium' ? 1.5 : 2, md: selectedSize === 'small' ? 1 : selectedSize === 'medium' ? 2 : 2.5 }, width: '100%', justifyContent: 'center' }}>
+          <ImageList cols={cols} gap={12} className={styles.imageList}>
             {images.map((image) => (
-              <Box key={`${image.id}-${selectedSize}`} sx={{ position: 'relative', aspectRatio: '1', borderRadius: { xs: '8px', md: '12px' }, overflow: 'hidden', cursor: 'pointer', transition: 'all 0.3s ease', '&:hover': { transform: 'translateY(-4px)', boxShadow: 4, '& .image-overlay': { transform: 'translateY(0)' }, '& .delete-button': { opacity: 1, transform: 'scale(1)' }, '& img': { transform: 'scale(1.05)' } } }} onClick={() => {
-                // notify parent that an image was clicked; parent (Prompt) will show ImageDisplay
-                if (typeof onShowPromptResult === 'function') {
-                    // pass the full ImageResponse so the parent has image and prompt data
-                    onShowPromptResult(image);
-                }
+              <ImageListItem key={`${image.id}-${selectedSize}`} className={styles.imageItem} onClick={() => {
+                // show the ImageDisplay overlay locally
+                setSelectedImage(image);
               }}>
-                <Box component="img" src={getImageUrl(image.imageData)} alt={image.imagePrompt.improvedPrompt} sx={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s ease' }} />
-                <Box className="image-overlay" sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%)', p: { xs: 1, md: 1.5 }, transform: { xs: 'translateY(0)', md: 'translateY(100%)' }, transition: 'transform 0.3s ease' }}>
-                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: { xs: '0.75rem', md: '0.875rem' } }}>{formatTimestamp(image.timestamp)}</Typography>
-                </Box>
-              </Box>
+                <div className={styles.imageWrapper}>
+                  <img className={styles.galleryImage} src={getImageUrl(image.imageData)} alt={image.imagePrompt.improvedPrompt} />
+                  <div className={styles.imageOverlay}>
+                    <Typography className={styles.overlayText} variant="body2">{formatTimestamp(image.timestamp)}</Typography>
+                  </div>
+                </div>
+              </ImageListItem>
             ))}
-          </Box>
+          </ImageList>
 
-          {/* ImageDisplay is rendered by the parent `Prompt` component when it receives an imagePromptId via `onShowPromptResult` */}
+          {/* ImageDisplay overlay shown locally when an image is clicked. */}
+          {selectedImage && (
+            <ImageDisplay
+              image={selectedImage}
+              onReset={() => setSelectedImage(null)}
+              onShowPromptResult={() => {
+                // redirect to placeholder URL when ImageDisplay requests to show prompt result
+                navigate(`/prompt/${selectedImage?.imagePrompt.id}`);
+              }}
+            />
+          )}
         </>
       )}
     </Box>

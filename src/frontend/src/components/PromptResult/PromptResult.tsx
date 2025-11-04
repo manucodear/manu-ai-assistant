@@ -40,28 +40,33 @@ interface PromptResultProps {
   generating?: boolean;
   // Parent (Prompt) controls whether Generate is enabled. If omitted, default to true.
   generateEnabled?: boolean;
+  // When true, the ReWrite button will be disabled (useful for read-only loaded responses)
+  disableRewrite?: boolean;
 }
 
-const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, onReset, onGenerate, generating, generateEnabled }) => {
+const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, onReset, onGenerate, generating, generateEnabled, disableRewrite }) => {
   const [selectedTags, setSelectedTags] = React.useState<string[]>(() => [...(imageResult.tags?.included || [])]);
   const [includedTagsAnchorEl, setIncludedTagsAnchorEl] = React.useState<HTMLElement | null>(null);
   const [notIncludedTagsAnchorEl, setNotIncludedTagsAnchorEl] = React.useState<HTMLElement | null>(null);
-  const [selectedPOV, setSelectedPOV] = React.useState<string>(() => {
-    if (Object.prototype.hasOwnProperty.call(imageResult, 'pointOfViewRaw')) {
-      const raw = (imageResult as any).pointOfViewRaw;
-      if (raw && String(raw).trim()) return String(raw).trim();
-      return '';
-    }
-    return (imageResult.pointOfViews && imageResult.pointOfViews[0]) ?? '';
-  });
-  const [selectedImageStyle, setSelectedImageStyle] = React.useState<string>(() => {
-    if (Object.prototype.hasOwnProperty.call(imageResult, 'imageStyleRaw')) {
-      const raw = (imageResult as any).imageStyleRaw;
-      if (raw && String(raw).trim()) return String(raw).trim();
-      return '';
-    }
-    return (imageResult.imageStyles && imageResult.imageStyles[0]) ?? '';
-  });
+  // initialize with empty values; we'll sync from imageResult in an effect
+  const [selectedPOV, setSelectedPOV] = React.useState<string>('');
+  const [selectedImageStyle, setSelectedImageStyle] = React.useState<string>('');
+
+  // Keep selected values in sync when a new imageResult is loaded. The previous
+  // lazy initializers only ran on mount which meant new results didn't update state.
+  React.useEffect(() => {
+    // Tags
+    setSelectedTags([...(imageResult.tags?.included || [])]);
+
+    // POV: prefer the typed `pointOfView` value when it's non-empty, otherwise
+    // fall back to the first available `pointOfViews` entry.
+    const povFromTyped = imageResult.pointOfView && imageResult.pointOfView.trim() ? imageResult.pointOfView.trim() : '';
+    setSelectedPOV(povFromTyped || ((imageResult.pointOfViews && imageResult.pointOfViews[0]) ?? ''));
+
+    // Image style: prefer typed `imageStyle` then fallback to array entry
+    const styleFromTyped = imageResult.imageStyle && imageResult.imageStyle.trim() ? imageResult.imageStyle.trim() : '';
+    setSelectedImageStyle(styleFromTyped || ((imageResult.imageStyles && imageResult.imageStyles[0]) ?? ''));
+  }, [imageResult]);
 
   const [copyMessage, setCopyMessage] = React.useState<string | null>(null);
   const [copyOpen, setCopyOpen] = React.useState<boolean>(false);
@@ -74,20 +79,12 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
 
   const originalIncluded = React.useMemo(() => [...(imageResult.tags?.included || [])], [imageResult]);
   const originalPOV = React.useMemo(() => {
-    if (Object.prototype.hasOwnProperty.call(imageResult, 'pointOfViewRaw')) {
-      const raw = (imageResult as any).pointOfViewRaw;
-      if (raw && String(raw).trim()) return String(raw).trim();
-      return null;
-    }
-    return (imageResult.pointOfViews && imageResult.pointOfViews[0]) ?? null;
+    const povTyped = imageResult.pointOfView && String(imageResult.pointOfView).trim() ? String(imageResult.pointOfView).trim() : null;
+    return povTyped ?? ((imageResult.pointOfViews && imageResult.pointOfViews[0]) ?? null);
   }, [imageResult]);
   const originalImageStyle = React.useMemo(() => {
-    if (Object.prototype.hasOwnProperty.call(imageResult, 'imageStyleRaw')) {
-      const raw = (imageResult as any).imageStyleRaw;
-      if (raw && String(raw).trim()) return String(raw).trim();
-      return null;
-    }
-    return (imageResult.imageStyles && imageResult.imageStyles[0]) ?? null;
+    const styleTyped = imageResult.imageStyle && String(imageResult.imageStyle).trim() ? String(imageResult.imageStyle).trim() : null;
+    return styleTyped ?? ((imageResult.imageStyles && imageResult.imageStyles[0]) ?? null);
   }, [imageResult]);
 
   const tagSetsEqual = (a: string[], b: string[]) => {
@@ -101,7 +98,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
   const hasImageStyleChange = (selectedImageStyle ?? null) !== (originalImageStyle ?? null);
   const hasAnyChange = hasTagChanges || hasPOVChange || hasImageStyleChange;
 
-  const { evaluatePrompt } = useImagePrompt();
+  const { evaluatePrompt, evaluating } = useImagePrompt();
 
   const handleEvaluate = async () => {
     setEvaluateSuccess(null);
@@ -127,20 +124,13 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
       }
     } catch (err: any) {
       setEvaluateError(err?.message ?? 'Unknown error');
-    } finally {
-      if (evaluateSuccess || evaluateError) {
-        window.setTimeout(() => {
-          setEvaluateSuccess(null);
-          setEvaluateError(null);
-        }, 5000);
-      }
     }
   };
 
   return (
     <Box sx={{ position: 'relative', pb: '72px' }}>
       {/* Improved prompt + POV grouped inside a Paper */}
-      <Paper elevation={0} sx={{ p: 1, position: 'relative' }}>
+      <Paper elevation={2} sx={{ p: 1, position: 'relative' }}>
         <Box sx={{ fontWeight: 600, mb: 1 }}>Improved prompt</Box>
         <IconButton
           aria-label="Copy improved prompt"
@@ -186,7 +176,14 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
               >
                 Generate
               </Button>
-              <Button variant="contained" color="primary" size="small" startIcon={<CreateIcon />} onClick={handleEvaluate}>
+              <Button
+                variant="contained"
+                color="primary"
+                size="small"
+                startIcon={<CreateIcon />}
+                onClick={handleEvaluate}
+                disabled={(Boolean(disableRewrite) && !hasAnyChange) || Boolean(evaluating)}
+              >
                 ReWrite
               </Button>
             </Box>
@@ -200,7 +197,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
         </Snackbar>
       </Paper>
 
-      <Paper elevation={0} sx={{ p: 1, mt: 1 }}>
+      <Paper elevation={2} sx={{ p: 1, mt: 1 }}>
         <Box sx={{ mt: 0 }}>
           {isSmall ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
@@ -248,31 +245,31 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
       </Paper>
 
       {/* Tags & chips - separate Paper */}
-      <Paper elevation={0} sx={{ p: 1, mt: 1 }}>
+      <Paper elevation={2} sx={{ p: 1, mt: 1 }}>
         <Box sx={{ fontWeight: 600, mb: 1 }}>Tags</Box>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mb: 2 }}>
           {/* Included Tags Combobox */}
           <Box>
-            <Button 
-              variant="contained" 
-              size="small" 
+            <Button
+              variant="contained"
+              size="small"
               color="info"
               onClick={(e: React.MouseEvent<HTMLElement>) => setIncludedTagsAnchorEl(e.currentTarget)}
             >
               Included ({selectedTags.filter(t => (imageResult.tags?.included || []).includes(t)).length})
             </Button>
-            <Menu 
-              anchorEl={includedTagsAnchorEl} 
-              open={Boolean(includedTagsAnchorEl)} 
-              onClose={() => setIncludedTagsAnchorEl(null)} 
+            <Menu
+              anchorEl={includedTagsAnchorEl}
+              open={Boolean(includedTagsAnchorEl)}
+              onClose={() => setIncludedTagsAnchorEl(null)}
               PaperProps={{ style: { maxHeight: 320 } }}
             >
               {(imageResult.tags?.included || []).map((t: string) => (
-                <MenuItem key={`inc-${t}`} onClick={(ev) => { 
-                  ev.preventDefault(); 
+                <MenuItem key={`inc-${t}`} onClick={(ev) => {
+                  ev.preventDefault();
                   setSelectedTags((prev: string[]) => (
                     prev.includes(t) ? prev.filter((x: string) => x !== t) : [...prev, t]
-                  )); 
+                  ));
                 }}>
                   <Checkbox checked={selectedTags.includes(t)} />
                   <ListItemText primary={t} />
@@ -286,26 +283,26 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
 
           {/* Not Included Tags Combobox */}
           <Box>
-            <Button 
-              variant="outlined" 
-              size="small" 
+            <Button
+              variant="outlined"
+              size="small"
               color="info"
               onClick={(e: React.MouseEvent<HTMLElement>) => setNotIncludedTagsAnchorEl(e.currentTarget)}
             >
               Suggested ({selectedTags.filter(t => (imageResult.tags?.notIncluded || []).includes(t)).length})
             </Button>
-            <Menu 
-              anchorEl={notIncludedTagsAnchorEl} 
-              open={Boolean(notIncludedTagsAnchorEl)} 
-              onClose={() => setNotIncludedTagsAnchorEl(null)} 
+            <Menu
+              anchorEl={notIncludedTagsAnchorEl}
+              open={Boolean(notIncludedTagsAnchorEl)}
+              onClose={() => setNotIncludedTagsAnchorEl(null)}
               PaperProps={{ style: { maxHeight: 320 } }}
             >
               {(imageResult.tags?.notIncluded || []).map((t: string) => (
-                <MenuItem key={`not-${t}`} onClick={(ev) => { 
-                  ev.preventDefault(); 
+                <MenuItem key={`not-${t}`} onClick={(ev) => {
+                  ev.preventDefault();
                   setSelectedTags((prev: string[]) => (
                     prev.includes(t) ? prev.filter((x: string) => x !== t) : [...prev, t]
-                  )); 
+                  ));
                 }}>
                   <Checkbox checked={selectedTags.includes(t)} />
                   <ListItemText primary={t} />
@@ -341,7 +338,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
         </Box>
       </Paper>
 
-      <Paper elevation={0} sx={{ p: 1, mt: 1 }}>
+      <Paper elevation={2} sx={{ p: 1, mt: 1 }}>
         {/* Image styles - its own Paper and responsive picker */}
         {imageResult.imageStyles && imageResult.imageStyles.length > 0 && (
           <Box sx={{ mt: 0 }}>
@@ -403,33 +400,41 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
       </Paper>
 
 
-      {/* publish alerts */}
-      {evaluateSuccess && (
-        <Alert severity="success" sx={{ mt: 1 }}>{evaluateSuccess}</Alert>
-      )}
-      {evaluateError && (
-        <Alert severity="error" sx={{ mt: 1 }}>{evaluateError}</Alert>
-      )}
-      <Paper elevation={0} sx={{ p: 1, mt: 1 }}>
+      {/* publish alerts shown as a Snackbar (keeps behavior consistent with copy notifications) */}
+      <Snackbar
+        open={Boolean(evaluateSuccess || evaluateError)}
+        autoHideDuration={5000}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        onClose={() => { setEvaluateSuccess(null); setEvaluateError(null); }}
+      >
+        <Alert
+          onClose={() => { setEvaluateSuccess(null); setEvaluateError(null); }}
+          severity={evaluateError ? 'error' : 'success'}
+          sx={{ width: '100%' }}
+        >
+          {evaluateError ?? evaluateSuccess}
+        </Alert>
+      </Snackbar>
+      <Paper elevation={2} sx={{ p: 1, mt: 1 }}>
         <Accordion>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="original-content" id="original-header">
-          <Typography color="info" variant="subtitle1">Source prompt</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Typography sx={{ whiteSpace: 'pre-wrap' }}>{imageResult.originalPrompt}</Typography>
-        </AccordionDetails>
-      </Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="original-content" id="original-header">
+            <Typography color="info" variant="subtitle1">Source prompt</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Typography sx={{ whiteSpace: 'pre-wrap' }}>{imageResult.originalPrompt}</Typography>
+          </AccordionDetails>
+        </Accordion>
 
-      <Accordion>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="differences-content" id="differences-header">
-          <Typography color="info" variant="subtitle1">Main differences</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Typography sx={{ whiteSpace: 'pre-wrap' }}>{imageResult.mainDifferences}</Typography>
-        </AccordionDetails>
-      </Accordion>
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="differences-content" id="differences-header">
+            <Typography color="info" variant="subtitle1">Main differences</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Typography sx={{ whiteSpace: 'pre-wrap' }}>{imageResult.mainDifferences}</Typography>
+          </AccordionDetails>
+        </Accordion>
       </Paper>
-      
+
     </Box>
   );
 };
