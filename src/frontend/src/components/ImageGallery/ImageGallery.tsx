@@ -177,7 +177,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = (_props: ImageGalleryProps) =>
               onReset={() => setSelectedImage(null)}
               onShowPromptResult={() => {
                 // redirect to placeholder URL when ImageDisplay requests to show prompt result
-                navigate(`/prompt/${selectedImage?.imagePrompt.id}`);
+                navigate(`/create/${selectedImage?.imagePrompt.id}`);
               }}
             />
           )}

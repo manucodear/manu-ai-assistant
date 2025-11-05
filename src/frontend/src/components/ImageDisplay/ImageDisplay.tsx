@@ -12,12 +12,15 @@ interface ImageDisplayProps {
   onReset?: () => void;
   // optional handler for showing prompt result; receives the ImagePromptResponse
   onShowPromptResult?: (imagePrompt: ImagePromptResponse) => void;
+  // when true, hides the "Back to prompt" button even if onShowPromptResult is provided
+  hideBackButton?: boolean;
 }
 
 const ImageDisplay: React.FC<ImageDisplayProps> = ({
   image,
   onReset,
   onShowPromptResult,
+  hideBackButton,
 }) => {
   const handleBackClick = () => {
     // Prefer to call onShowPromptResult with the full ImagePromptResponse when available.
@@ -30,8 +33,8 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({
     if (onReset) onReset();
   };
 
-  // Show back button only when we have an imagePrompt and an onShowPromptResult handler
-  const showBackButton = Boolean(image?.imagePrompt) && typeof onShowPromptResult === 'function';
+  // Show back button only when we have an imagePrompt and an onShowPromptResult handler, and it's not explicitly hidden
+  const showBackButton = Boolean(image?.imagePrompt) && typeof onShowPromptResult === 'function' && !hideBackButton;
 
   return (
     <Box sx={{ position: 'fixed', inset: 0, zIndex: 1300, bgcolor: 'common.black', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

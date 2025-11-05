@@ -96,6 +96,34 @@ namespace Manu.AiAssistant.WebApi.Controllers
         public async Task<IActionResult> Generate(string id, CancellationToken cancellationToken)
         {
             var imagePrompt = await _promptRepository.GetAsync(id, cancellationToken);
+            if (imagePrompt == null)
+            {
+                return NotFound();
+            }
+
+            // Early return: if the prompt already has an associated ImageId, fetch and return it instead of generating again.
+            if (!string.IsNullOrWhiteSpace(imagePrompt.ImageId))
+            {
+                var existingImage = await _imageRepository.GetAsync(imagePrompt.ImageId, cancellationToken);
+                if (existingImage != null && existingImage.ImageData != null)
+                {
+                    var existingPromptResponse = _mapper.Map<ImagePromptResponse>(imagePrompt);
+                    return Ok(new ImageResponse
+                    {
+                        Id = existingImage.Id,
+                        Timestamp = existingImage.Timestamp,
+                        ImageData = new ImageDataResponse
+                        {
+                            Url = existingImage.ImageData.Url,
+                            SmallUrl = existingImage.ImageData.SmallUrl,
+                            MediumUrl = existingImage.ImageData.MediumUrl,
+                            LargeUrl = existingImage.ImageData.LargeUrl
+                        },
+                        ImagePrompt = existingPromptResponse
+                    });
+                }
+            }
+
             var dalleResult = await _dalleProvider.GenerateImageAsync(imagePrompt, cancellationToken);
             var responseContent = dalleResult.ResponseContent;
             bool isError = dalleResult.IsError;
@@ -184,8 +212,9 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 ImageData = imageData!
             };
             await _imageRepository.AddAsync(entity, cancellationToken);
+            imagePrompt.ImageId = entity.Id;
+            await _promptRepository.UpdateAsync(imagePrompt, cancellationToken);
             var imagePromptResponse = _mapper.Map<ImagePromptResponse>(imagePrompt);
-            imagePromptResponse.ImageId = entity.Id;
             return Ok(new ImageResponse
             {
                 Id = entity.Id,

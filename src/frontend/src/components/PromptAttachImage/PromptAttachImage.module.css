@@ -1,0 +1,41 @@
+/* PromptAttachImage Component Styles */
+.attachImageContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.attachButton {
+  min-width: auto;
+}
+
+.uploadedImageContainer {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+}
+
+.imagePreview {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  margin-right: 4px;
+}
+
+.imagePreviewImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+/* Remove button styles moved to sx prop in component for better Material-UI integration */
+
+.uploadMessage {
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.6);
+}

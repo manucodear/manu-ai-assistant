@@ -38,19 +38,27 @@ interface PromptResultProps {
   // now expects an imagePromptId string
   onGenerate?: (imagePromptId: string) => Promise<any>;
   generating?: boolean;
+  // Parent (Prompt) controls whether evaluation is in progress. If omitted, uses local hook state.
+  evaluating?: boolean;
   // Parent (Prompt) controls whether Generate is enabled. If omitted, default to true.
   generateEnabled?: boolean;
   // When true, the ReWrite button will be disabled (useful for read-only loaded responses)
   disableRewrite?: boolean;
 }
 
-const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, onReset, onGenerate, generating, generateEnabled, disableRewrite }) => {
+const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, onReset, onGenerate, generating, evaluating: evaluatingProp, generateEnabled, disableRewrite }) => {
   const [selectedTags, setSelectedTags] = React.useState<string[]>(() => [...(imageResult.tags?.included || [])]);
   const [includedTagsAnchorEl, setIncludedTagsAnchorEl] = React.useState<HTMLElement | null>(null);
   const [notIncludedTagsAnchorEl, setNotIncludedTagsAnchorEl] = React.useState<HTMLElement | null>(null);
-  // initialize with empty values; we'll sync from imageResult in an effect
-  const [selectedPOV, setSelectedPOV] = React.useState<string>('');
-  const [selectedImageStyle, setSelectedImageStyle] = React.useState<string>('');
+  // Initialize with values from imageResult to avoid hasAnyChange being true initially
+  const [selectedPOV, setSelectedPOV] = React.useState<string>(() => {
+    const povFromTyped = imageResult.pointOfView && imageResult.pointOfView.trim() ? imageResult.pointOfView.trim() : '';
+    return povFromTyped || ((imageResult.pointOfViews && imageResult.pointOfViews[0]) ?? '');
+  });
+  const [selectedImageStyle, setSelectedImageStyle] = React.useState<string>(() => {
+    const styleFromTyped = imageResult.imageStyle && imageResult.imageStyle.trim() ? imageResult.imageStyle.trim() : '';
+    return styleFromTyped || ((imageResult.imageStyles && imageResult.imageStyles[0]) ?? '');
+  });
 
   // Keep selected values in sync when a new imageResult is loaded. The previous
   // lazy initializers only ran on mount which meant new results didn't update state.
@@ -98,7 +106,10 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
   const hasImageStyleChange = (selectedImageStyle ?? null) !== (originalImageStyle ?? null);
   const hasAnyChange = hasTagChanges || hasPOVChange || hasImageStyleChange;
 
-  const { evaluatePrompt, evaluating } = useImagePrompt();
+  const { evaluatePrompt, evaluating: localEvaluating } = useImagePrompt();
+
+  // Use parent's evaluating state if provided, otherwise use local hook state
+  const evaluating = evaluatingProp ?? localEvaluating;
 
   const handleEvaluate = async () => {
     setEvaluateSuccess(null);
@@ -174,7 +185,7 @@ const PromptResult: React.FC<PromptResultProps> = ({ imageResult, onEvaluate, on
                 disabled={!(generateEnabled ?? true) || Boolean(generating) || hasAnyChange}
                 title={hasAnyChange ? 'Change tags or point of view back to original to enable generate' : undefined}
               >
-                Generate
+                {imageResult.imageId ? 'Show Image' : 'Generate'}
               </Button>
               <Button
                 variant="contained"

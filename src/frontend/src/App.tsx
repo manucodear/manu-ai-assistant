@@ -45,6 +45,11 @@ function App() {
             <Create />
           </ProtectedRoute>
         } />
+        <Route path="/create/:imagePromptId" element={
+          <ProtectedRoute>
+            <Create />
+          </ProtectedRoute>
+        } />
         <Route path="/gallery" element={
           <ProtectedRoute>
             <Gallery />
