@@ -96,7 +96,7 @@ const AuthCallback: React.FC = () => {
               navigate(returnUrl);
             } else {
               // Default redirect to /image-generation as requested
-              navigate('/image-generation');
+              navigate('/create');
             }
           }
         })
