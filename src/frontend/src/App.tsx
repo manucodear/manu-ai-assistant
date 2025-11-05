@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { Home } from './pages/Home';
 import { AuthCallback } from './pages/AuthCallback';
 import { RedditPosts } from './pages/RedditPosts';
-import { Image } from './pages/Image';
 import Create from './pages/Create/Create';
 import Gallery from './pages/Gallery/Gallery';
 import { Login } from './pages/Login';
@@ -11,8 +10,6 @@ import MaterialShowcase from './pages/MaterialShowcase';
 import ErrorPage from './pages/ErrorPage';
 import ErrorTestPage from './pages/ErrorTestPage';
 import ResponsiveDemo from './pages/ResponsiveDemo';
-import PromptTest from './pages/PromptTest/PromptTest';
-import PromptPage from './pages/Prompt/Prompt';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Token } from './pages/Token';
 import { Privacy } from './pages/Privacy';
@@ -35,11 +32,6 @@ function App() {
             <RedditPosts />
           </ProtectedRoute>
         } />
-        <Route path="/image-generation" element={
-          <ProtectedRoute>
-            <Image />
-          </ProtectedRoute>
-        } />
         <Route path="/create" element={
           <ProtectedRoute>
             <Create />
@@ -58,12 +50,6 @@ function App() {
         <Route path="/token" element={
           <ProtectedRoute>
             <Token />
-          </ProtectedRoute>
-        } />
-        <Route path="/prompt-test" element={<PromptTest />} />
-        <Route path="/prompt/:imagePromptId" element={
-          <ProtectedRoute>
-            <PromptPage />
           </ProtectedRoute>
         } />
         <Route path="/privacy" element={<Privacy />} />
