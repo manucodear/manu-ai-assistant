@@ -25,7 +25,7 @@ const PromptInput: React.FC<PromptInputProps> = ({ input, setInput, onSend, disa
           these suggestions before generating your image.
         </Typography>
       </Box>
-      
+
       <Box sx={{ position: 'relative', display: 'flex', gap: 1 }}>
         <Box sx={{ flex: 1, position: 'relative' }}>
             <TextField

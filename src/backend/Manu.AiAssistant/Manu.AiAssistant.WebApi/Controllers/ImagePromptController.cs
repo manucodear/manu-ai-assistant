@@ -76,24 +76,54 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 return BadRequest("Prompt is required.");
             }
             // TODO: use long / short parameter
-            var result = await _imagePromptProvider.GetImagePromptResponseAsync(request.Prompt, request.ConversationId, cancellationToken);
-            if (result == null || string.IsNullOrWhiteSpace(result.ImprovedPrompt))
+            try
             {
-                return StatusCode(500, "Failed to parse image prompt result.");
+                var result = await _imagePromptProvider.GetImagePromptResponseAsync(request.Prompt, request.ConversationId, cancellationToken);
+                // Map and persist from ImagePromptResult
+                var promptEntity = _mapper.Map<Prompt>(result);
+                promptEntity.Username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name! : "anonymous";
+                promptEntity.Timestamp = DateTime.UtcNow;
+                await _promptRepository.AddAsync(promptEntity, cancellationToken);
+                return Ok(result);
             }
-
-            // Map and persist from ImagePromptResult
-            var promptEntity = _mapper.Map<Prompt>(result);
-            promptEntity.Username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name! : "anonymous";
-            promptEntity.Timestamp = DateTime.UtcNow;
-            await _promptRepository.AddAsync(promptEntity, cancellationToken);
-            return Ok(result);
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to generate image prompt: {ex.Message}");
+            }
         }
 
         [HttpPost("{id}/image")]
         public async Task<IActionResult> Generate(string id, CancellationToken cancellationToken)
         {
             var imagePrompt = await _promptRepository.GetAsync(id, cancellationToken);
+            if (imagePrompt == null)
+            {
+                return NotFound();
+            }
+
+            // Early return: if the prompt already has an associated ImageId, fetch and return it instead of generating again.
+            if (!string.IsNullOrWhiteSpace(imagePrompt.ImageId))
+            {
+                var existingImage = await _imageRepository.GetAsync(imagePrompt.ImageId, cancellationToken);
+                if (existingImage != null && existingImage.ImageData != null)
+                {
+                    var existingPromptResponse = _mapper.Map<ImagePromptResponse>(imagePrompt);
+                    return Ok(new ImageResponse
+                    {
+                        Id = existingImage.Id,
+                        Timestamp = existingImage.Timestamp,
+                        ImageData = new ImageDataResponse
+                        {
+                            Url = existingImage.ImageData.Url,
+                            SmallUrl = existingImage.ImageData.SmallUrl,
+                            MediumUrl = existingImage.ImageData.MediumUrl,
+                            LargeUrl = existingImage.ImageData.LargeUrl
+                        },
+                        ImagePrompt = existingPromptResponse
+                    });
+                }
+            }
+
             var dalleResult = await _dalleProvider.GenerateImageAsync(imagePrompt, cancellationToken);
             var responseContent = dalleResult.ResponseContent;
             bool isError = dalleResult.IsError;
@@ -182,8 +212,9 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 ImageData = imageData!
             };
             await _imageRepository.AddAsync(entity, cancellationToken);
+            imagePrompt.ImageId = entity.Id;
+            await _promptRepository.UpdateAsync(imagePrompt, cancellationToken);
             var imagePromptResponse = _mapper.Map<ImagePromptResponse>(imagePrompt);
-            imagePromptResponse.ImageId = entity.Id;
             return Ok(new ImageResponse
             {
                 Id = entity.Id,

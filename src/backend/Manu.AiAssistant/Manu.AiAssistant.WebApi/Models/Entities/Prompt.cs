@@ -36,6 +36,9 @@ namespace Manu.AiAssistant.WebApi.Models.Entities
 
         [JsonProperty("timestamp")]
         public DateTime Timestamp { get; set; }
+
+        [JsonProperty("imageId")]
+        public string? ImageId { get; set; }
     }
 
     public class Tag

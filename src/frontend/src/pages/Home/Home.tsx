@@ -17,7 +17,7 @@ const Home: React.FC = () => {
   const handleStart = () => {
     if (isAuthenticationValid()) {
       // User is authenticated, redirect to image generation page
-      navigate('/image-generation');
+      navigate('/create');
     } else {
       // User is not authenticated, redirect to login page
       navigate('/login');
@@ -32,114 +32,60 @@ const Home: React.FC = () => {
             <Typography 
               variant="h4" 
               gutterBottom
-              sx={{ 
-                fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' },
-                textAlign: 'center',
-                mb: { xs: 1, md: 2 }
-              }}
+              className="home-main-title"
             >
               AI Image Generator
             </Typography>
             <Typography 
               variant="h6" 
               color="text.secondary" 
-              sx={{ 
-                fontSize: { xs: '0.875rem', sm: '1.125rem', md: '1.25rem' },
-                textAlign: 'center',
-                mb: { xs: 1.5, md: 3 }
-              }}
+              className="home-subtitle"
             >
               Create stunning images with AI-powered prompts
             </Typography>
             
             {/* Mobile-optimized features grid */}
-            <Box sx={{ 
-              display: 'grid',
-              gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-              gap: { xs: 1.5, md: 3 },
-              width: '100%',
-              mb: { xs: 2, md: 3 }
-            }}>
-              <Box 
-                className="feature-card"
-                sx={{
-                  p: { xs: 1.5, md: 2 },
-                  textAlign: 'center'
-                }}
-              >
+            <Box className="home-features-grid">
+              <Box className="feature-card home-feature-card">
                 <Typography 
                   variant="h6" 
-                  sx={{ 
-                    fontSize: { xs: '1rem', md: '1.125rem' }, 
-                    mb: { xs: 0.75, md: 1.5 },
-                    fontWeight: 600
-                  }}
+                  className="home-feature-title"
                 >
                   🎨 Smart Prompts
                 </Typography>
                 <Typography 
                   variant="body2" 
-                  sx={{ 
-                    fontSize: { xs: '0.8rem', md: '0.875rem' },
-                    lineHeight: { xs: 1.3, md: 1.4 }
-                  }}
+                  className="home-feature-description"
                 >
                   Transform ideas into optimized prompts
                 </Typography>
               </Box>
               
-              <Box 
-                className="feature-card"
-                sx={{
-                  p: { xs: 1.5, md: 2 },
-                  textAlign: 'center'
-                }}
-              >
+              <Box className="feature-card home-feature-card">
                 <Typography 
                   variant="h6" 
-                  sx={{ 
-                    fontSize: { xs: '1rem', md: '1.125rem' }, 
-                    mb: { xs: 0.75, md: 1.5 },
-                    fontWeight: 600
-                  }}
+                  className="home-feature-title"
                 >
                   🖼️ AI Generation
                 </Typography>
                 <Typography 
                   variant="body2" 
-                  sx={{ 
-                    fontSize: { xs: '0.8rem', md: '0.875rem' },
-                    lineHeight: { xs: 1.3, md: 1.4 }
-                  }}
+                  className="home-feature-description"
                 >
                   High-quality images using advanced AI
                 </Typography>
               </Box>
               
-              <Box 
-                className="feature-card"
-                sx={{
-                  p: { xs: 1.5, md: 2 },
-                  textAlign: 'center',
-                  gridColumn: { xs: '1 / -1', md: 'auto' }
-                }}
-              >
+              <Box className="feature-card home-feature-card home-feature-card-full">
                 <Typography 
                   variant="h6" 
-                  sx={{ 
-                    fontSize: { xs: '1rem', md: '1.125rem' }, 
-                    mb: { xs: 0.75, md: 1.5 },
-                    fontWeight: 600
-                  }}
+                  className="home-feature-title"
                 >
                   📱 Personal Gallery
                 </Typography>
                 <Typography 
                   variant="body2" 
-                  sx={{ 
-                    fontSize: { xs: '0.8rem', md: '0.875rem' },
-                    lineHeight: { xs: 1.3, md: 1.4 }
-                  }}
+                  className="home-feature-description"
                 >
                   Save and organize images securely
                 </Typography>
@@ -147,52 +93,19 @@ const Home: React.FC = () => {
             </Box>
 
             {/* Quick benefits row - visible on mobile */}
-            <Box sx={{ 
-              display: 'flex',
-              justifyContent: 'center',
-              flexWrap: 'wrap',
-              gap: { xs: 1, md: 1.5 },
-              mb: { xs: 2.5, md: 3 }
-            }}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 0.5,
-                px: { xs: 1, md: 1.5 },
-                py: { xs: 0.5, md: 0.75 },
-                backgroundColor: 'action.hover',
-                borderRadius: 1,
-                fontSize: { xs: '0.75rem', md: '0.8rem' }
-              }}>
-                <Typography variant="body2" sx={{ fontSize: 'inherit' }}>
+            <Box className="home-benefits-row">
+              <Box className="home-benefit-badge">
+                <Typography variant="body2">
                   ⚡ Fast
                 </Typography>
               </Box>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 0.5,
-                px: { xs: 1, md: 1.5 },
-                py: { xs: 0.5, md: 0.75 },
-                backgroundColor: 'action.hover',
-                borderRadius: 1,
-                fontSize: { xs: '0.75rem', md: '0.8rem' }
-              }}>
-                <Typography variant="body2" sx={{ fontSize: 'inherit' }}>
+              <Box className="home-benefit-badge">
+                <Typography variant="body2">
                   🎯 High Quality
                 </Typography>
               </Box>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 0.5,
-                px: { xs: 1, md: 1.5 },
-                py: { xs: 0.5, md: 0.75 },
-                backgroundColor: 'action.hover',
-                borderRadius: 1,
-                fontSize: { xs: '0.75rem', md: '0.8rem' }
-              }}>
-                <Typography variant="body2" sx={{ fontSize: 'inherit' }}>
+              <Box className="home-benefit-badge">
+                <Typography variant="body2">
                   🔒 Secure
                 </Typography>
               </Box>
@@ -200,24 +113,12 @@ const Home: React.FC = () => {
           </div>
         </Paper>
         
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          mt: { xs: 1.5, md: 2 }
-        }}>
+        <Box className="home-start-button-container">
           <Button
             variant="contained"
             size="medium"
             onClick={handleStart}
-            sx={{
-              px: { xs: 3, md: 4 },
-              py: { xs: 1, md: 1.25 },
-              fontSize: { xs: '0.95rem', md: '1rem' },
-              fontWeight: 600,
-              borderRadius: 2,
-              textTransform: 'none',
-              minWidth: { xs: 160, md: 200 }
-            }}
+            className="home-start-button"
           >
             🚀 Start Creating
           </Button>
