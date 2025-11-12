@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using Azure;
 using Azure.AI.OpenAI;
 using Manu.AiAssistant.WebApi.Models.Chat;
 using Manu.AiAssistant.WebApi.Options;
+using OpenAI.Chat;
 
 namespace Manu.AiAssistant.WebApi.Services
 {
@@ -22,23 +19,22 @@ namespace Manu.AiAssistant.WebApi.Services
         {
             try
             {
-                var client = new OpenAIClient(
+                var azureClient = new AzureOpenAIClient(
                     new Uri(_options.Endpoint),
                     new AzureKeyCredential(_options.ApiKey)
                 );
+                var chatClient = azureClient.GetChatClient(_options.DeploymentName);
 
-                var chatOptions = new ChatCompletionsOptions();
-                chatOptions.Messages.Add(new ChatMessage(ChatRole.System, "You are a helpful assistant."));
-                chatOptions.Messages.Add(new ChatMessage(ChatRole.User, prompt));
+                var messages = new List<ChatMessage>
+                {
+                    new SystemChatMessage("You are a helpful assistant."),
+                    new UserChatMessage(prompt)
+                };
 
-                var response = await client.GetChatCompletionsAsync(
-                    _options.DeploymentName,
-                    chatOptions,
-                    cancellationToken
-                );
-
-                var content = response.Value.Choices[0].Message.Content;
-                return new ChatResult { ResponseContent = content, IsError = false };
+                var completionResult = await chatClient.CompleteChatAsync(messages, null, cancellationToken);
+                var completion = completionResult.Value;
+                string response = string.Join("", completion.Content.Select(part => part.Text));
+                return new ChatResult { ResponseContent = response, IsError = false };
             }
             catch (Exception ex)
             {
@@ -50,31 +46,42 @@ namespace Manu.AiAssistant.WebApi.Services
         {
             try
             {
-                var client = new OpenAIClient(
+                var azureClient = new AzureOpenAIClient(
                     new Uri(_options.Endpoint),
                     new AzureKeyCredential(_options.ApiKey)
                 );
+                var chatClient = azureClient.GetChatClient(_options.DeploymentName);
 
-                var chatOptions = new ChatCompletionsOptions();
+                var messages = new List<ChatMessage>();
                 foreach (var prompt in prompts)
                 {
-                    ChatRole role = prompt.Role switch
+                    ChatMessage message;
+                    switch (prompt.Role)
                     {
-                        PromptRole.System => ChatRole.System,
-                        PromptRole.Assistant => ChatRole.Assistant,
-                        _ => ChatRole.User
-                    };
-                    chatOptions.Messages.Add(new ChatMessage(role, prompt.Prompt));
+                        case PromptRole.System:
+                            message = new SystemChatMessage(prompt.Content);
+                            break;
+                        case PromptRole.Assistant:
+                            message = new AssistantChatMessage(prompt.Content);
+                            break;
+                        case PromptRole.File:
+                            message = new UserChatMessage(new List<ChatMessageContentPart>
+                            {
+                                ChatMessageContentPart.CreateTextPart("Attached image for analysis."),
+                                ChatMessageContentPart.CreateImagePart(new Uri(prompt.Content))
+                            });
+                            break;
+                        default:
+                            message = new UserChatMessage(prompt.Content);
+                            break;
+                    }
+                    messages.Add(message);
                 }
 
-                var response = await client.GetChatCompletionsAsync(
-                    _options.DeploymentName,
-                    chatOptions,
-                    cancellationToken
-                );
-
-                var content = response.Value.Choices[0].Message.Content;
-                return new ChatResult { ResponseContent = content, IsError = false };
+                var completionResult = await chatClient.CompleteChatAsync(messages, null, cancellationToken);
+                var completion = completionResult.Value;
+                string response = string.Join("", completion.Content.Select(part => part.Text));
+                return new ChatResult { ResponseContent = response, IsError = false };
             }
             catch (Exception ex)
             {

@@ -1,13 +1,13 @@
+using Manu.AiAssistant.WebApi.Models.Api;
+using Manu.AiAssistant.WebApi.Models.Entities;
+using Manu.AiAssistant.WebApi.Options;
+using Microsoft.Extensions.Options;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Options;
-using Manu.AiAssistant.WebApi.Options;
-using Manu.AiAssistant.WebApi.Models.Api;
-using Manu.AiAssistant.WebApi.Models.Entities;
 
 namespace Manu.AiAssistant.WebApi.Services
 {
@@ -29,10 +29,25 @@ namespace Manu.AiAssistant.WebApi.Services
 
         public async Task<DalleResult> GenerateImageAsync(Prompt prompt, CancellationToken cancellationToken)
         {
+            string fullPrompt = prompt.ImprovedPrompt;
+
+            if (!string.IsNullOrEmpty(prompt.UserImageUrl) && prompt.UserImageAnalysis != null)
+            {
+                fullPrompt = $@"
+                    Generate a new image based on the following analysis. Only modify the main subject by adding a stylish winter hat.
+                    Preserve all other scene elements, lighting, color palette, and composition.
+
+                    Image Analysis:
+                    {Newtonsoft.Json.JsonConvert.SerializeObject(prompt.UserImageAnalysis, Newtonsoft.Json.Formatting.Indented)}
+
+                    Instructions:
+                    {prompt.ImprovedPrompt}";
+            }
+
             var payload = new
             {
                 model = _model,
-                prompt = prompt.ImprovedPrompt,
+                prompt = fullPrompt,
                 size = _size,
                 style = _style,
                 quality = _quality,

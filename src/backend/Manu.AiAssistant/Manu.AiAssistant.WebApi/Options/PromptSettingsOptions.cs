@@ -7,6 +7,8 @@ namespace Manu.AiAssistant.WebApi.Options
     {
         public ImagePromptOptions Image { get; set; } = new();
         public string RevisionPrompt { get; set; } = string.Empty;
+        public List<PromptMessage> ImageAnalysis { get; set; } = new();
+        public List<PromptMessage> ImageGeneration { get; set; } = new();
     }
 
     public class ImagePromptOptions

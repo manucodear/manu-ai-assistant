@@ -12,8 +12,11 @@ export const useImagePrompt = () => {
   const sendPrompt = async (request: ImagePromptGenerateRequest, conversationId?: string | null): Promise<ImagePromptResponse> => {
     setSending(true);
     try {
-      const payload: any = { prompt: request.prompt };
-      if (conversationId) payload.conversationId = conversationId;
+      const payload: ImagePromptGenerateRequest = {
+        prompt: request.prompt,
+        userImageUrl: request.userImageUrl,
+        conversationId: conversationId ?? request.conversationId,
+      };
       const res = await fetch(`${base}/imagePrompt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -29,7 +32,7 @@ export const useImagePrompt = () => {
       const promptResultRaw = (await res.json()) as ImagePromptResponse | null;
       if (!promptResultRaw) throw new Error('Empty or invalid JSON response from server');
 
-  if (!promptResultRaw.tags) promptResultRaw.tags = { included: [], notIncluded: [] } as any;
+      if (!promptResultRaw.tags) promptResultRaw.tags = { included: [], notIncluded: [] } as ImagePromptResponse['tags'];
       return promptResultRaw;
     } finally {
       setSending(false);
@@ -51,8 +54,8 @@ export const useImagePrompt = () => {
         throw new Error(txt || `Request failed: ${res.status}`);
       }
 
-  const json = (await res.json()) as ImagePromptRevisionResponse & any;
-  return json;
+      const json = (await res.json()) as ImagePromptRevisionResponse & any;
+      return json;
     } finally {
       setEvaluating(false);
     }

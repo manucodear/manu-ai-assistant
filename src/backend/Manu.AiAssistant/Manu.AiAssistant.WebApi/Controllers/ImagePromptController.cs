@@ -83,6 +83,11 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 var promptEntity = _mapper.Map<Prompt>(result);
                 promptEntity.Username = User?.Identity?.IsAuthenticated == true ? User.Identity.Name! : "anonymous";
                 promptEntity.Timestamp = DateTime.UtcNow;
+                if (!string.IsNullOrEmpty(request.UserImageUrl))
+                {
+                    promptEntity.UserImageUrl = request.UserImageUrl;
+                    promptEntity.UserImageAnalysis = await _imagePromptProvider.ImageAnalisysAsync(promptEntity.OriginalPrompt, promptEntity.ImprovedPrompt, request.UserImageUrl, cancellationToken);
+                }
                 await _promptRepository.AddAsync(promptEntity, cancellationToken);
                 return Ok(result);
             }

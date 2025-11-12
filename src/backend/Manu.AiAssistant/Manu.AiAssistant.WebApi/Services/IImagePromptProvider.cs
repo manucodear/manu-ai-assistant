@@ -9,5 +9,6 @@ namespace Manu.AiAssistant.WebApi.Services
     {
         Task<ImagePromptResponse> GetImagePromptResponseAsync(string userPrompt, string? conversationId, CancellationToken cancellationToken);
         Task<ImagePromptRevisionResponse> PromptRevisionAsync(ImagePromptRevisionRequest request, CancellationToken cancellationToken);
+        Task<object?> ImageAnalisysAsync(string prompt, string improvedPrompt, string imageUrl, CancellationToken cancellationToken);
     }
 }

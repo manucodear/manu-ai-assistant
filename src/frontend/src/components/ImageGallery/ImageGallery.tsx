@@ -172,12 +172,13 @@ const ImageGallery: React.FC<ImageGalleryProps> = (_props: ImageGalleryProps) =>
 
           {/* ImageDisplay overlay shown locally when an image is clicked. */}
           {selectedImage && (
-            <ImageDisplay
+                <ImageDisplay
               image={selectedImage}
               onReset={() => setSelectedImage(null)}
               onShowPromptResult={() => {
-                // redirect to placeholder URL when ImageDisplay requests to show prompt result
-                navigate(`/create/${selectedImage?.imagePrompt.id}`);
+                // redirect to create view and pass the prompt in navigation state so
+                // the Create page can avoid re-fetching the same prompt immediately.
+                navigate(`/create/${selectedImage?.imagePrompt.id}`, { state: { prompt: selectedImage?.imagePrompt } });
               }}
             />
           )}
