@@ -1,8 +1,15 @@
 import { Link as RouterLink } from 'react-router-dom';
 import { Box, Typography, Link, Paper } from '@mui/material';
 import './Terms.css';
+import usePageMeta from '../../hooks/usePageMeta';
 
 const Terms: React.FC = () => {
+  usePageMeta({
+    title: 'Terms of Service — AI Image Generator',
+    description:
+      'Terms of Service — Use the AI Image Generator responsibly. We reserve the right to suspend accounts for abuse.',
+  });
+
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
       <Paper sx={{ maxWidth: 800, p: 3 }}>

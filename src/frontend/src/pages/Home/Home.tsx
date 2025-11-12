@@ -1,4 +1,5 @@
 import './Home.css';
+import usePageMeta from '../../hooks/usePageMeta';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -13,6 +14,11 @@ const Home: React.FC = () => {
   const privacyUrl = import.meta.env.VITE_PRIVACY_URL || '';
   const termsUrl = import.meta.env.VITE_TERMS_URL || '';
   const appVersion = import.meta.env.VITE_VERSION || '';
+  usePageMeta({
+    title: 'AI Image Generator — Create Stunning AI Images',
+    description:
+      'Create stunning images with AI-powered prompts. Fast, secure, and high-quality image generation with a personal gallery.',
+  });
 
   const handleStart = () => {
     if (isAuthenticationValid()) {
@@ -150,7 +156,8 @@ const Home: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    
   );
 };
 

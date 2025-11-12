@@ -13,13 +13,18 @@ RUN yarn install --frozen-lockfile --verbose
 # Copy source code and build
 COPY . ./
 
-# Debug: Show environment files and their contents
+# Allow SITE_URL to be provided at build time; default to the requested domain
+ARG SITE_URL="https://ai.manucode.ar"
+ENV SITE_URL=${SITE_URL}
+
+# Debug: Show environment files and their contents and build (also generate sitemap/robots)
 RUN echo "=== Debugging Environment Files ===" && \
-    ls -la .env* && \
-    echo "Contents of .env.production:" && \
-    cat .env.production && \
-    echo "=== Building ===" && \
-    yarn build:production
+    ls -la .env* || true && \
+    echo "Contents of .env.production (if present):" && \
+    (cat .env.production || echo "<no .env.production>") && \
+    echo "=== Building (with SITE_URL=${SITE_URL}) ===" && \
+    yarn build:production && \
+    node ./scripts/generate-sitemap.cjs
 
 # Stage 2: Production nginx
 FROM nginx:stable-alpine AS production
