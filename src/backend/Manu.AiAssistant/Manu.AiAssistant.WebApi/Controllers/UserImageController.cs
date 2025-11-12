@@ -98,7 +98,6 @@ namespace Manu.AiAssistant.WebApi.Controllers
 
         // GET only receives the file name (e.g. guid.png or guid.small.png) and we prepend userId internally
         [HttpGet("{filename}")]
-        [Authorize]
         public async Task<IActionResult> GetImage(string filename, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(filename))

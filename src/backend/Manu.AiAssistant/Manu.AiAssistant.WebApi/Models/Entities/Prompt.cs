@@ -39,6 +39,12 @@ namespace Manu.AiAssistant.WebApi.Models.Entities
 
         [JsonProperty("imageId")]
         public string? ImageId { get; set; }
+
+        [JsonProperty("userImageUrl")]
+        public string? UserImageUrl { get; set; }
+
+        [JsonProperty("userImageAnalysis")]
+        public object? UserImageAnalysis { get; set; }
     }
 
     public class Tag

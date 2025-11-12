@@ -4,12 +4,13 @@ namespace Manu.AiAssistant.WebApi.Models.Chat
     {
         System,
         User,
+        File,
         Assistant // Added Assistant role
     }
 
     public class PromptMessage
     {
         public PromptRole Role { get; set; }
-        public string Prompt { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
     }
 }

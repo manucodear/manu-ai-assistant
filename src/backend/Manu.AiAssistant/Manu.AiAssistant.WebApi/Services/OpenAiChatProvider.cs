@@ -61,10 +61,10 @@ namespace Manu.AiAssistant.WebApi.Services
 
                 var messages = prompts.Select(p =>
                     p.Role == PromptRole.System
-                        ? new SystemChatMessage(p.Prompt) as ChatMessage
+                        ? new SystemChatMessage(p.Content) as ChatMessage
                         : p.Role == PromptRole.Assistant
-                            ? new AssistantChatMessage(p.Prompt) as ChatMessage
-                            : new UserChatMessage(p.Prompt) as ChatMessage
+                            ? new AssistantChatMessage(p.Content) as ChatMessage
+                            : new UserChatMessage(p.Content) as ChatMessage
                 ).ToArray();
 
                 ChatCompletion completion = await client.CompleteChatAsync(messages, cancellationToken: cancellationToken);

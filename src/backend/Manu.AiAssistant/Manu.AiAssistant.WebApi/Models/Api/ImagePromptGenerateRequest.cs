@@ -4,6 +4,6 @@ namespace Manu.AiAssistant.WebApi.Models.Api
     {
         public string Prompt { get; set; } = string.Empty;
         public string? ConversationId { get; set; }
-        public string? ImageUrl { get; set; }
+        public string? UserImageUrl { get; set; }
     }
 }

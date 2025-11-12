@@ -28,7 +28,7 @@ namespace Manu.AiAssistant.WebApi.Services
             bool useLong = userPrompt.CountWords() > 25;
             var basePrompts = useLong ? _promptSettings.Image.Long : _promptSettings.Image.Short;
             var promptMessages = new List<PromptMessage>(basePrompts ?? new List<PromptMessage>());
-            promptMessages.Add(new PromptMessage { Role = PromptRole.User, Prompt = userPrompt });
+            promptMessages.Add(new PromptMessage { Role = PromptRole.User, Content = userPrompt });
             ChatResult chatResult = await _chatProvider.CompleteChatAsync(promptMessages, cancellationToken);
             var json = chatResult.ResponseContent.ExtractJson();
             // TODO: improve exception handling
@@ -53,7 +53,7 @@ namespace Manu.AiAssistant.WebApi.Services
         {
             var conversation = new List<PromptMessage>
             {
-                new PromptMessage { Role = PromptRole.System, Prompt = _promptSettings.RevisionPrompt }
+                new PromptMessage { Role = PromptRole.System, Content = _promptSettings.RevisionPrompt }
             };
 
             var userMessage = $"Original prompt: \"{request.Prompt}\".\n";
@@ -72,7 +72,7 @@ namespace Manu.AiAssistant.WebApi.Services
             }
             userMessage += "Improve the prompt accordingly, preserving the original meaning as much as possible.";
 
-            conversation.Add(new PromptMessage { Role = PromptRole.User, Prompt = userMessage });
+            conversation.Add(new PromptMessage { Role = PromptRole.User, Content = userMessage });
             ChatResult chatResult = await _chatProvider.CompleteChatAsync(conversation, cancellationToken);
             var json = chatResult.ResponseContent.ExtractJson();
             try
@@ -84,6 +84,22 @@ namespace Manu.AiAssistant.WebApi.Services
             {
                 return new ImagePromptRevisionResponse();
             }
+        }
+
+        public async Task<object?> ImageAnalisysAsync(string prompt, string improvedPrompt, string imageUrl, CancellationToken cancellationToken)
+        {
+            var conversation = new List<PromptMessage>(_promptSettings.ImageAnalysis ?? new List<PromptMessage>());
+            conversation[1].Content = prompt;
+            conversation[3].Content = $"Improved prompt: \"{improvedPrompt}\"";
+            if (!string.IsNullOrWhiteSpace(imageUrl))
+            {
+                conversation.Add(new PromptMessage { Role = PromptRole.File, Content = "https://ai.manucode.ar/api/image/IMG_0050.JPEG" });
+            }
+            //// Add text prompt message
+            //conversation.Add(new PromptMessage { Role = PromptRole.User, Content = $"This is the user prompt: {prompt}"});
+            ChatResult chatResult = await _chatProvider.CompleteChatAsync(conversation, cancellationToken);
+            var json = chatResult.ResponseContent.ExtractJson();
+            return json.ParseJsonToPlainObject();
         }
     }
 }
