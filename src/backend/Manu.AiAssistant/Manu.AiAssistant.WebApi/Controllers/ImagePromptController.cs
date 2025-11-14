@@ -7,9 +7,10 @@ using Manu.AiAssistant.WebApi.Options;
 using Manu.AiAssistant.WebApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Http;
-using System.Text.Json;
 using Microsoft.Extensions.Options;
+using System.Net.Http;
+using System.Security.Claims;
+using System.Text.Json;
 
 namespace Manu.AiAssistant.WebApi.Controllers
 {
@@ -86,7 +87,9 @@ namespace Manu.AiAssistant.WebApi.Controllers
                 if (!string.IsNullOrEmpty(request.UserImageUrl))
                 {
                     promptEntity.UserImageUrl = request.UserImageUrl;
-                    promptEntity.UserImageAnalysis = await _imagePromptProvider.ImageAnalisysAsync(promptEntity.OriginalPrompt, promptEntity.ImprovedPrompt, request.UserImageUrl, cancellationToken);
+                    var userId = User!.FindFirstValue(ClaimTypes.NameIdentifier) ?? User!.FindFirstValue("sub");
+                    var userImageUrl = userId + "/" + request.UserImageUrl;
+                    promptEntity.UserImageAnalysis = await _imagePromptProvider.ImageAnalisysAsync(promptEntity.OriginalPrompt, promptEntity.ImprovedPrompt, userImageUrl, cancellationToken);
                 }
                 await _promptRepository.AddAsync(promptEntity, cancellationToken);
                 return Ok(result);
