@@ -98,6 +98,7 @@ namespace Manu.AiAssistant.WebApi.Controllers
 
         // GET only receives the file name (e.g. guid.png or guid.small.png) and we prepend userId internally
         [HttpGet("{filename}")]
+        [Authorize]
         public async Task<IActionResult> GetImage(string filename, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(filename))
@@ -125,6 +126,29 @@ namespace Manu.AiAssistant.WebApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to retrieve user image: {Filename} (stored path {StoredPath})", filename, storedPath);
+                return StatusCode(500, "Error retrieving image");
+            }
+        }
+
+        [HttpGet("{userId}/{filename}")]
+        public async Task<IActionResult> GetDirectImage(string userId, string filename, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(filename))
+                return BadRequest("Filename required.");
+
+            try
+            {
+                var containerClient = _userImageStorageProvider.GetContainerClient();
+                var blobClient = containerClient.GetBlobClient(userId + "/" + filename);
+                if (!await blobClient.ExistsAsync(cancellationToken))
+                    return NotFound();
+
+                var downloadInfo = await blobClient.DownloadAsync(cancellationToken);
+                return File(downloadInfo.Value.Content, "image/png");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to retrieve user image: {Filename}", filename);
                 return StatusCode(500, "Error retrieving image");
             }
         }

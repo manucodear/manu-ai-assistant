@@ -93,7 +93,7 @@ namespace Manu.AiAssistant.WebApi.Services
             conversation[3].Content = $"Improved prompt: \"{improvedPrompt}\"";
             if (!string.IsNullOrWhiteSpace(imageUrl))
             {
-                conversation.Add(new PromptMessage { Role = PromptRole.File, Content = "https://ai.manucode.ar/api/image/IMG_0050.JPEG" });
+                conversation.Add(new PromptMessage { Role = PromptRole.File, Content = imageUrl });
             }
             //// Add text prompt message
             //conversation.Add(new PromptMessage { Role = PromptRole.User, Content = $"This is the user prompt: {prompt}"});
